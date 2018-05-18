@@ -1,0 +1,108 @@
+swagger: '2.0'
+info:
+  description: >-
+    Tagbase is a [Flask](http://flask.pocoo.org/) application which provides
+    HTTP endpoints for ingestion of various files into the tagbase SQL database.
+  version: 1.0.0
+  title: Tagbase API
+host: 'localhost:5433'
+basePath: /v1/tagbase
+schemes:
+  - https
+produces:
+  - application/json
+paths:
+  /ingest/etuff:
+    get:
+      tags:
+        - Products
+      summary: Get eTUFF file and execute ingestion.
+      description: >
+        The etuff endpoint associates an eTUFF file with a given DMAS identifier
+        before splitting the file, populating mappings to the Tagbase DB
+        structure and executing ingestion.
+      operationId: ingest_etuff_get
+      parameters:
+        - name: dmas_granule_id
+          in: query
+          description: Corresponding PO.DAAC DMAS identifier for the eTUFF file e.g. '888'
+          required: true
+          type: string
+        - name: file
+          in: query
+          description: >-
+            Location of a network accessible (file, ftp, http, https) eTUFF file
+            e.g. 'ftp:///Users/nchung/Downloads/eTUFF-sailfish-117259.txt'
+          required: true
+          type: string
+      responses:
+        '200':
+          description: A success message confirming ingestion.
+          schema:
+            $ref: '#/definitions/Success'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+      x-swagger-router-controller: swagger_server.controllers.products_controller
+  /ingest/ncingester:
+    get:
+      tags:
+        - Products
+      summary: Get X file and execute specific profile ingestion.
+      description: >
+        The ncingester endpoint associates a netCDF file with a given in-situ
+        profile before splitting the file, populating mappings to the Tagbase DB
+        structure and executing ingestion.
+      operationId: ingest_ncingester_get
+      parameters:
+        - name: source_file_path
+          in: query
+          description: blah blah blah
+          required: true
+          type: string
+        - name: source_ingest_file
+          in: query
+          description: blah blah blah
+          required: true
+          type: string
+        - name: profile
+          in: query
+          description: 'Profile to map the ingestion to. Options include ACDD, CF'
+          required: true
+          type: string
+      responses:
+        '200':
+          description: A success message confirming ingestion.
+          schema:
+            $ref: '#/definitions/Success'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+      x-swagger-router-controller: swagger_server.controllers.products_controller
+definitions:
+  Success:
+    type: object
+    properties:
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string
+      fields:
+        type: string
+    example:
+      code: 0
+      message: message
+      fields: fields
+  Error:
+    type: object
+    properties:
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string
+      fields:
+        type: string
