@@ -1,3 +1,5 @@
+\connect tagbase
+
 -- MATERIALIZED VIEW
 
 CREATE MATERIALIZED VIEW mview_vis_data

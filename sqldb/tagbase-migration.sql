@@ -1,3 +1,4 @@
+\connect tagbase
 -- data_time_series
 
 WITH moved_rows AS
