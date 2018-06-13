@@ -103,7 +103,7 @@ def ingest_etuff_get(dmas_granule_id, file):
                         str_submission_id = str(submission_id)
                         str_row = str(rows[0][0])
                         metadata.append((str_submission_id, str_row, tokens[1]))
-            elif not line.startswith('"'):
+            else:
                 # Parse variable values
                 tokens = line.split(',')
 
@@ -125,7 +125,6 @@ def ingest_etuff_get(dmas_granule_id, file):
                     variable_lookup[variable_name] = variable_id
                 date_time = None
                 if tokens[0] != "":
-                    print(tokens[0])
                     date_time = pytz.utc.localize(datetime.strptime(tokens[0], '%Y-%m-%d %H:%M:%S'))
 
                 proc_obs.append((date_time, variable_id, tokens[2], submission_id))
