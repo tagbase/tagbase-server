@@ -13,6 +13,7 @@ This example uses the [Connexion](https://github.com/zalando/connexion) library 
 
 ## Requirements
 Python 3.5.2+
+Postgres (ensure that the both ```log_timezone = 'UTC'``` and ```timezone = 'UTC'``` are set in ```postgresql.conf```
 
 ## Usage
 To run the server, please execute the following from the root directory:

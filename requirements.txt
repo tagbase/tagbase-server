@@ -4,3 +4,4 @@ psycopg2==2.7.4
 python_dateutil == 2.6.0
 pytz
 setuptools >= 21.0.0
+tzlocal

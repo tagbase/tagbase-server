@@ -6,9 +6,10 @@ import six
 import pytz
 from datetime import datetime
 from time import time
+from tzlocal import get_localzone
 
-from swagger_server.models.error import Error  # noqa: E501
-from swagger_server.models.success import Success  # noqa: E501
+from swagger_server.models.error import Error
+from swagger_server.models.success import Success
 from swagger_server import util
 
 # Needed Python 2/3 urllib compatability
@@ -67,7 +68,8 @@ def ingest_etuff_get(dmas_granule_id, file):
 
     cur = conn.cursor()
 
-    cur.execute("INSERT INTO submission (tag_id, filename, dmas_granule_id) VALUES ((SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) FROM submission WHERE filename = %s), %s, %s)", (submission_filename, submission_filename, dmas_granule_id))
+    cur.execute("INSERT INTO submission (tag_id, filename, dmas_granule_id, date_time) VALUES ((SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) FROM submission WHERE filename = %s), %s, %s, %s)", (submission_filename, submission_filename, dmas_granule_id, datetime.now(tz=pytz.utc).astimezone(get_localzone())))
+    #app.logger.info("Successfully staged INSERT into tagbase.submission")
     cur.execute("SELECT currval('submission_submission_id_seq')")
     submission_id = cur.fetchone()[0]
 
@@ -106,7 +108,7 @@ def ingest_etuff_get(dmas_granule_id, file):
             else:
                 # Parse variable values
                 tokens = line.split(',')
-
+                tokens = [token.replace('"', '') for token in tokens]
                 variable_name = tokens[3]
                 if variable_name in variable_lookup:
                     variable_id = variable_lookup[variable_name]
@@ -120,22 +122,28 @@ def ingest_etuff_get(dmas_granule_id, file):
                         cur.execute(
                             "INSERT INTO observation_types(variable_name, variable_units) VALUES (%s, %s) ON CONFLICT (variable_name) DO NOTHING",
                             (variable_name, tokens[4].strip()))
+                        #app.logger.info("Successfully staged INSERT into tagbase.proc_observations")
                         cur.execute("SELECT currval('observation_types_variable_id_seq')")
                         variable_id = cur.fetchone()[0]
                     variable_lookup[variable_name] = variable_id
                 date_time = None
-                if tokens[0] != "":
-                    date_time = pytz.utc.localize(datetime.strptime(tokens[0], '%Y-%m-%d %H:%M:%S'))
+                if tokens[0] != '""' and tokens[0] != '':
+                    if tokens[0].startswith('"'):
+                    	tokens[0].replace('"', '')
+                    date_time = datetime.strptime(tokens[0], '%Y-%m-%d %H:%M:%S').astimezone(pytz.utc)
+                else:
+                    #row begins with an empty datetime string, ignore
+                    continue
 
                 proc_obs.append((date_time, variable_id, tokens[2], submission_id))
 
-                #app.logger.info(line.strip())
     for x in metadata:
         a = x[0]
         b = x[1]
         c = x[2]
         mog = cur.mogrify("(%s, %s, %s)", (a, b, c))
         cur.execute("INSERT INTO metadata (submission_id, attribute_id, attribute_value) VALUES " + mog.decode("utf-8"))
+        #app.logger.info("Successfully staged INSERT into tagbase.metadata")
 
     for x in proc_obs:
         a = x[0]
@@ -144,6 +152,7 @@ def ingest_etuff_get(dmas_granule_id, file):
         d = x[3]
         mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, c, d))
         cur.execute("INSERT INTO proc_observations (date_time, variable_id, variable_value, submission_id) VALUES " + mog.decode("utf-8"))
+        #app.logger.info("Successfully staged INSERT into tagbase.proc_observations")
 
     conn.commit()
 
@@ -151,15 +160,25 @@ def ingest_etuff_get(dmas_granule_id, file):
     conn.close()
 
     end = time()
-    #app.logger.info("Time took to ingest file: %f" % (end - start))
+    #app.logger.info("Data file %s has been ingested into tagbase. Time took to ingest file: %s s" % (data, (end - start)))
 
     return "Data file %s has been ingested into tagbase. Time took to ingest file: %s s" % (data, (end - start))
 
+def tz_aware(dt):
+    """Convenience function to determine whether a datetime 
+    has been localized or not. If it has, tzinfo and utcoffset
+    information will be present. 
+    """
+    if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None: 
+        return False
+    elif dt.tzinfo is not None and dt.tzinfo.utcoffset(dt) is not None: 
+        return True
 
 def ingest_ncingester_get(profile, file):  # noqa: E501
-    """Get netCDF file and execute specific profile ingestion.
+    """Obtain profile information about a specific netCDF file.
 
-    The ningester endpoint associates a netCDF file with a given in-situ profile before splitting the file, populating mappings to the Tagbase DB structure and executing ingestion.  # noqa: E501
+    The ncingester endpoint associates a netCDF file with a given in-situ profile before \
+    splitting the file, populating mappings to the Tagbase DB structure and executing ingestion.
 
     :param profile: Profile to map the ingestion to. Options include ACDD, CF
     :type profile: str
@@ -168,4 +187,4 @@ def ingest_ncingester_get(profile, file):  # noqa: E501
 
     :rtype: Success
     """
-    return 'do some magic!'
+    return 'Not implemented yet in tagbase-server.'
