@@ -1,0 +1,18 @@
+version: '3.2'
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile-postgres
+    ports:
+      - "5432:5432"
+    expose:
+      - "5432"
+  tagbase:
+    build:
+      context: .
+      dockerfile: Dockerfile-tagbase
+    ports:
+      - "5433:5433"
+    links:
+      - postgres

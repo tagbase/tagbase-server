@@ -61,7 +61,7 @@ def ingest_etuff_get(dmas_granule_id, file):
 
     try:
         conn = psycopg2.connect("dbname='%s' user='%s' host='%s' port=%d password='%s'" %
-                                ('tagbase', 'tagbase', 'localhost', 5432, ''))
+                                ('tagbase', 'tagbase', 'postgres', 5432, ''))
     except:
         #app.logger.error("Unable to connect to the database")
         raise InternalServerError("Unable to connect to the Tagbase database")
@@ -104,7 +104,7 @@ def ingest_etuff_get(dmas_granule_id, file):
                     else:
                         str_submission_id = str(submission_id)
                         str_row = str(rows[0][0])
-                        metadata.append((str_submission_id, str_row, tokens[1]))
+                        metadata.append((str_submission_id, str_row, tokens[1])) #.replace('"', '')
             else:
                 # Parse variable values
                 tokens = line.split(',')
@@ -141,8 +141,8 @@ def ingest_etuff_get(dmas_granule_id, file):
         a = x[0]
         b = x[1]
         c = x[2]
-        mog = cur.mogrify("(%s, %s, %s)", (a, b, c))
-        cur.execute("INSERT INTO metadata (submission_id, attribute_id, attribute_value) VALUES " + mog.decode("utf-8"))
+        mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, c, str(submission_id)))
+        cur.execute("INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES " + mog.decode("utf-8"))
         #app.logger.info("Successfully staged INSERT into tagbase.metadata")
 
     for x in proc_obs:
@@ -150,8 +150,8 @@ def ingest_etuff_get(dmas_granule_id, file):
         b = x[1]
         c = x[2]
         d = x[3]
-        mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, c, d))
-        cur.execute("INSERT INTO proc_observations (date_time, variable_id, variable_value, submission_id) VALUES " + mog.decode("utf-8"))
+        mog = cur.mogrify("(%s, %s, %s, %s, %s)", (a, b, c, d, str(submission_id)))
+        cur.execute("INSERT INTO proc_observations (date_time, variable_id, variable_value, submission_id, tag_id) VALUES " + mog.decode("utf-8"))
         #app.logger.info("Successfully staged INSERT into tagbase.proc_observations")
 
     conn.commit()

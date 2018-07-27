@@ -1663,7 +1663,7 @@ ALTER TABLE ONLY data_profile
 --
 
 ALTER TABLE ONLY data_time_series
-    ADD CONSTRAINT datatimeseries_procobservations_fkey FOREIGN KEY (date_time, variable_id, submission_id) REFERENCES proc_observations(date_time, variable_id, submission_id);
+    ADD CONSTRAINT datatimeseries_procobservations_fkey FOREIGN KEY (date_time, variable_id, submission_id) REFERENCES proc_observations(date_time, variable_id, submission_id) ON DELETE CASCADE;
 
 
 --
@@ -1734,4 +1734,3 @@ ALTER TABLE ONLY proc_observations
 --
 -- PostgreSQL database dump complete
 --
-

@@ -1,5 +1,6 @@
 connexion == 1.1.15
 Flask==0.12.2
+flask-swagger-ui
 psycopg2==2.7.4
 python_dateutil == 2.6.0
 pytz

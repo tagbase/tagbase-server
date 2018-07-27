@@ -1,0 +1,2 @@
+FROM postgres:10
+COPY ./sqldb/Tagbase_schema_20180612.sql /docker-entrypoint-initdb.d/
