@@ -1,5 +1,4 @@
 \connect tagbase
-
 -- data_time_series
 
 WITH moved_rows AS
@@ -87,27 +86,27 @@ WITH moved_rows AS
                                   submission c
    WHERE a.variable_id = b.variable_id
      AND b.variable_name LIKE 'Hist%'
-     AND a.submission_id = c.submission_id RETURNING bin_id, 
+     AND a.submission_id = c.submission_id RETURNING a.submission_id AS bin_id, 
                                               cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
                                               variable_value)
 INSERT INTO data_histogram_bin_info
 SELECT *
 FROM moved_rows ON CONFLICT DO NOTHING;
 
-WITH moved_rows AS
-  ( DELETE
-   FROM proc_observations a USING observation_types b,
-                                  submission c
-   WHERE a.variable_id = b.variable_id
-     AND b.variable_name LIKE 'Hist%'
-     AND a.submission_id = c.submission_id) RETURNING bin_id, 
-                                              cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
-                                              variable_value)
-UPDATE data_histogram_bin_info
-SET max_value = moved_rows.variable_value
-FROM moved_rows
-WHERE data_histogram_bin_info.bin_id = moved_rows.bin_id
-  AND data_histogram_bin_info.bin_class = moved_rows.bin_class;
+-- WITH moved_rows AS
+--   ( DELETE
+--    FROM proc_observations a USING observation_types b,
+--                                   submission c
+--    WHERE a.variable_id = b.variable_id
+--      AND b.variable_name LIKE 'Hist%'
+--      AND a.submission_id = c.submission_id) RETURNING bin_id, 
+--                                               cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
+--                                               variable_value)
+-- UPDATE data_histogram_bin_info
+-- SET max_value = moved_rows.variable_value
+-- FROM moved_rows
+-- WHERE data_histogram_bin_info.bin_id = moved_rows.bin_id
+--   AND data_histogram_bin_info.bin_class = moved_rows.bin_class;
 
 -- -- data_histogram_bin_data
 
@@ -117,7 +116,12 @@ WHERE data_histogram_bin_info.bin_id = moved_rows.bin_id
 --                                   submission c
 --    WHERE a.variable_id = b.variable_id
 --      AND b.variable_name LIKE 'TimeAt%'
---      AND a.submission_id = c.submission_id)
+--      AND a.submission_id = c.submission_id) RETURNING a.submission_id, 
+--                                                       c.tag_id,
+--                                                       bin_id,
+--                                                       cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
+--                                                       a.date_time,
+--                                                       variable_value)
 -- INSERT INTO data_histogram_bin_data
 -- SELECT *
 -- FROM moved_rows;

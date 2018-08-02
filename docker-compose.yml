@@ -1,4 +1,4 @@
-version: '3.2'
+version: '3.3'
 services:
   postgres:
     build:
@@ -16,3 +16,17 @@ services:
       - "5433:5433"
     links:
       - postgres
+  pgadmin4:
+    build:
+      context: .
+      dockerfile: Dockerfile-pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=oiip@jpl.nasa.gov
+      - PGADMIN_DEFAULT_PASSWORD=tagbase
+    depends_on:
+      - postgres
+    ports:
+      - "5434:80"
+    links:
+      - postgres
+

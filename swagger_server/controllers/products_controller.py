@@ -60,6 +60,8 @@ def ingest_etuff_get(dmas_granule_id, file):
     submission_filename = data_file[data_file.rindex('/') + 1:]
 
     try:
+        # conn = psycopg2.connect("dbname='%s' user='%s' host='%s' port=%d password='%s'" %
+        #                         ('tagbase', 'tagbase', 'postgres', 5432, ''))
         conn = psycopg2.connect("dbname='%s' user='%s' host='%s' port=%d password='%s'" %
                                 ('tagbase', 'tagbase', 'postgres', 5432, ''))
     except:

@@ -5,7 +5,7 @@ info:
     HTTP endpoints for ingestion of various files into the tagbase SQL database.
   version: 1.0.0
   title: Tagbase API
-host: 'localhost:5433'
+host: '0.0.0.0:5433'
 basePath: /v1/tagbase
 schemes:
   - https
@@ -32,7 +32,7 @@ paths:
           in: query
           description: >-
             Location of a network accessible (file, ftp, http, https) eTUFF file
-            e.g. 'ftp:///Users/nchung/Downloads/eTUFF-sailfish-117259.txt'
+            e.g. 'file:///usr/src/app/data/eTUFF-sailfish-117259.txt'
           required: true
           type: string
       responses:
