@@ -23,13 +23,13 @@ except ImportError:
 from werkzeug.exceptions import InternalServerError
 
 
-def ingest_etuff_get(dmas_granule_id, file):
+def ingest_etuff_get(granule_id, file):
     """Get eTUFF file and execute ingestion.
 
-    The etuff endpoint associates an eTUFF file with a given DMAS identifier before splitting the file, populating mappings to the Tagbase DB structure and executing ingestion.  # noqa: E501
+    The etuff endpoint associates an eTUFF file with a given unique identifier before splitting the file, populating mappings to the Tagbase DB structure and executing ingestion.  # noqa: E501
 
-    :param dmas_granule_id: Corresponding PO.DAAC DMAS identifier for the eTUFF file.
-    :type dmas_granule_id: str
+    :param granule_id: Unique identifier for the eTUFF file.
+    :type granule_id: str
     :param file: Location of a network accessible (file, ftp, http, https) eTUFF file.
     :type file: str
 
@@ -37,7 +37,7 @@ def ingest_etuff_get(dmas_granule_id, file):
     """
     start = time()
     variable_lookup = {}
-    dmas_granule_id = dmas_granule_id
+    granule_id = granule_id
     # Check if file exists locally, if not download it to /tmp
     data_file = file
     local_data_file = data_file[re.search("[file|ftp|http|https]:\/\/[^\/]*", data_file).end():]
@@ -70,7 +70,7 @@ def ingest_etuff_get(dmas_granule_id, file):
 
     cur = conn.cursor()
 
-    cur.execute("INSERT INTO submission (tag_id, filename, dmas_granule_id, date_time) VALUES ((SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) FROM submission WHERE filename = %s), %s, %s, %s)", (submission_filename, submission_filename, dmas_granule_id, datetime.now(tz=pytz.utc).astimezone(get_localzone())))
+    cur.execute("INSERT INTO submission (tag_id, filename, dmas_granule_id, date_time) VALUES ((SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) FROM submission WHERE filename = %s), %s, %s, %s)", (submission_filename, submission_filename, granule_id, datetime.now(tz=pytz.utc).astimezone(get_localzone())))
     #app.logger.info("Successfully staged INSERT into tagbase.submission")
     cur.execute("SELECT currval('submission_submission_id_seq')")
     submission_id = cur.fetchone()[0]
@@ -87,8 +87,10 @@ def ingest_etuff_get(dmas_granule_id, file):
     with open(data_file, 'r') as data:
         lines = data.readlines()
         etag = False
+        line_num = 0
         for line in lines:
-
+            line_num += 1
+            print(line_num)
             if line.startswith('//'):
                 if 'etag' in line:
                     etag = True
@@ -111,33 +113,35 @@ def ingest_etuff_get(dmas_granule_id, file):
                 # Parse variable values
                 tokens = line.split(',')
                 tokens = [token.replace('"', '') for token in tokens]
-                variable_name = tokens[3]
-                if variable_name in variable_lookup:
-                    variable_id = variable_lookup[variable_name]
-                else:
-                    cur.execute("SELECT variable_id FROM observation_types WHERE variable_name = %s", (variable_name,))
-                    row = cur.fetchone()
-                    if row:
-                        variable_id = row[0]
+                print(tokens)
+                if tokens:
+                    variable_name = tokens[3]
+                    if variable_name in variable_lookup:
+                        variable_id = variable_lookup[variable_name]
                     else:
-                        # TODO Log error if variable_name doesn't already exist in observation_types
-                        cur.execute(
-                            "INSERT INTO observation_types(variable_name, variable_units) VALUES (%s, %s) ON CONFLICT (variable_name) DO NOTHING",
-                            (variable_name, tokens[4].strip()))
-                        #app.logger.info("Successfully staged INSERT into tagbase.proc_observations")
-                        cur.execute("SELECT currval('observation_types_variable_id_seq')")
-                        variable_id = cur.fetchone()[0]
-                    variable_lookup[variable_name] = variable_id
-                date_time = None
-                if tokens[0] != '""' and tokens[0] != '':
-                    if tokens[0].startswith('"'):
-                    	tokens[0].replace('"', '')
-                    date_time = datetime.strptime(tokens[0], '%Y-%m-%d %H:%M:%S').astimezone(pytz.utc)
-                else:
-                    #row begins with an empty datetime string, ignore
-                    continue
+                        cur.execute("SELECT variable_id FROM observation_types WHERE variable_name = %s", (variable_name,))
+                        row = cur.fetchone()
+                        if row:
+                            variable_id = row[0]
+                        else:
+                            # TODO Log error if variable_name doesn't already exist in observation_types
+                            cur.execute(
+                                "INSERT INTO observation_types(variable_name, variable_units) VALUES (%s, %s) ON CONFLICT (variable_name) DO NOTHING",
+                                (variable_name, tokens[4].strip()))
+                            #app.logger.info("Successfully staged INSERT into tagbase.proc_observations")
+                            cur.execute("SELECT currval('observation_types_variable_id_seq')")
+                            variable_id = cur.fetchone()[0]
+                        variable_lookup[variable_name] = variable_id
+                    date_time = None
+                    if tokens[0] != '""' and tokens[0] != '':
+                        if tokens[0].startswith('"'):
+                           tokens[0].replace('"', '')
+                        date_time = datetime.strptime(tokens[0], '%Y-%m-%d %H:%M:%S').astimezone(pytz.utc)
+                    else:
+                        #row begins with an empty datetime string, ignore
+                        continue
 
-                proc_obs.append((date_time, variable_id, tokens[2], submission_id))
+                    proc_obs.append((date_time, variable_id, tokens[2], submission_id))
 
     for x in metadata:
         a = x[0]

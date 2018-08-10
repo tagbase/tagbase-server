@@ -1508,8 +1508,8 @@ ALTER TABLE ONLY observation_types
 -- Name: proc_observations proc_observations_pkey; Type: CONSTRAINT; Schema: public; Owner: tagbase
 --
 
-ALTER TABLE ONLY proc_observations
-    ADD CONSTRAINT proc_observations_pkey PRIMARY KEY (date_time, variable_id, submission_id);
+-- ALTER TABLE ONLY proc_observations
+--     ADD CONSTRAINT proc_observations_pkey PRIMARY KEY (date_time, variable_id, submission_id);
 
 
 --

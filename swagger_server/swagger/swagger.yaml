@@ -18,14 +18,14 @@ paths:
         - Products
       summary: Get eTUFF file and execute ingestion.
       description: >
-        The etuff endpoint associates an eTUFF file with a given DMAS identifier
+        The etuff endpoint associates an eTUFF file with a given unique identifier
         before splitting the file, populating mappings to the Tagbase DB
         structure and executing ingestion.
       operationId: ingest_etuff_get
       parameters:
-        - name: dmas_granule_id
+        - name: granule_id
           in: query
-          description: Corresponding PO.DAAC DMAS identifier for the eTUFF file e.g. '888'
+          description: Unique identifier for the eTUFF file e.g. '888'
           required: true
           type: string
         - name: file

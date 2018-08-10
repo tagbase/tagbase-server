@@ -9,7 +9,7 @@ various files into the Tagbase SQL database.
 ## Running with Docker
 
 ### Introduction
-[Docker](https://www.docker.com/what-docker) enables rapid simplified deployment of Tagbase by removing
+[Docker](https://www.docker.com/why-docker) enables rapid simplified deployment of Tagbase by removing
 all services setup and configuration e.g. PostgreSQL, tagbase-server, etc. 
 This is achieved via [Docker Compose]](https://docs.docker.com/compose/overview/); a tool for defining and 
 running multi-container Docker applications.
@@ -19,8 +19,7 @@ See below for prerequisite installation requirements.
 ### Prerequisites
 
 * [Git](https://git-scm.com/downloads)
-* [Docker](https://www.docker.com/get-docker)
-* [Docker Compose](https://docs.docker.com/compose/install/)
+* [Docker](https://www.docker.com/products/docker-desktop)
 
 Either [download tabase-server](https://git.earthdata.nasa.gov/rest/api/latest/projects/OIIP/repos/tagbase-server/archive?format=zip) OR clone the source code with Git
 
@@ -38,7 +37,22 @@ $ cd tagbase-server
 
 ### Deployment
 
-To orchestrate and deploy the Tagbase services execute the following from this root directory:
+**N.B.** Due to the size of the input datasets we ingest into tagbase-server, it is essential that the container running the service has sufficient available memory (4GB should do the trick). 
+
+See this for Mac:
+
+https://docs.docker.com/docker-for-mac/#memory
+
+
+***MEMORY By default, Docker for Mac is set to use 2 GB runtime memory, allocated from the total available memory on your Mac. You can increase the RAM on the app to get faster performance by setting this number higher (for example to 3) or lower (to 1) if you want Docker for Mac to use less memory.***
+
+For Windows:
+
+https://docs.docker.com/docker-for-windows/#advanced
+
+***Memory - Change the amount of memory the Docker for Windows Linux VM uses***
+
+Once sufficient memory is available, to orchestrate and deploy the Tagbase services execute the following from this root directory:
 
 ```bash
 $ docker-compose build
@@ -62,13 +76,13 @@ ingestion of some sample eTUFF-sailfish-117259.txt data present on the server.
 using curl...
 
 ```bash
-curl -X GET --header 'Accept: application/json' 'http://localhost:5433/v1/tagbase/ingest/etuff?dmas_granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt'
+curl -X GET --header 'Accept: application/json' 'http://localhost:5433/v1/tagbase/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt'
 ```
 
 ...or using a Request URL
 
 ```bash
-http://localhost:5433/v1/tagbase/ingest/etuff?dmas_granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt
+http://localhost:5433/v1/tagbase/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt
 ```
 
 **N.B.** The REST server is capable of ingesting data from many sources e.g. file, ftp, http and https.
