@@ -1,4 +1,5 @@
-\connect tagbase
+-- Uncomment the line below if you run this from the terminal.
+--\connect tagbase
 
 -- MATERIALIZED VIEW
 
