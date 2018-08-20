@@ -64,7 +64,15 @@ After a short while, you will now have a completely Dockerized deployment of Tag
 
 See below for accessing the Web Applications.
 
+To stop the docker-compose deployment, simply open a new terminal, navigate to the tagbase-server root directory and execute 
+```
+$ docker-compose stop
+```
+You will see the services graciously shutdown.
+
 ### Tagbase Server
+
+**N.B.** The URI's below may alternate between ***localhost*** and ***0.0.0.0*** depending on whether your workstation is Windows (localhost) or Linux/Mac (0.0.0.0)
 
 Navigate to [http://localhost:5433/v1/tagbase/ui/](http://0.0.0.0:5433/v1/tagbase/ui/) 
 to see the tagbase-server UI running. 
@@ -76,13 +84,13 @@ ingestion of some sample eTUFF-sailfish-117259.txt data present on the server.
 using curl...
 
 ```bash
-curl -X GET --header 'Accept: application/json' 'http://localhost:5433/v1/tagbase/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt'
+curl -X GET --header 'Accept: application/json' 'http://0.0.0.0:5433/v1/tagbase/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt'
 ```
 
 ...or using a Request URL
 
 ```bash
-http://localhost:5433/v1/tagbase/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt
+http://0.0.0.0:5433/v1/tagbase/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt
 ```
 
 **N.B.** The REST server is capable of ingesting data from many sources e.g. file, ftp, http and https.
@@ -91,7 +99,7 @@ http://localhost:5433/v1/tagbase/ingest/etuff?granule_id=1234&file=file%3A%2F%2F
 
 Navigate to [http://0.0.0.0:5434/browser/](http://0.0.0.0:5434/browser/) and enter 
 
-**username** ***oiip@jpl.nasa.gov***
+**username** ***tagbase***
 **password** ***tagbase***
 
 You can now:
@@ -103,7 +111,32 @@ You can now:
 * Connection Tab --> Maintenance database: postgres 
 * Connection Tab --> Username: tagbase
 
-On the left hand side navigation panel, you will now see the persistent connection to the tagbase database.
+On the left hand side navigation panel, you will now see the persistent connection to the tagbase database. 
+
+#### Generating Meterialized views
+
+Upon successful ingestion of files into Tagbase, you are required to generate materialized views in order to 
+access the 'application ready' tagbase data. 
+
+**N.B.** Previously, it was necessary to execute a data migration command which essentially 
+populated initial staging data around the DB. This is now managed by a trigger such that 
+all we need to worry about it generating materialized views.
+
+[PostgreSQL Materialized Views](https://www.postgresql.org/docs/current/static/rules-materializedviews.html) 
+extend the concept of database views; virtual tables which represent data of the underlying tables, 
+to the next level that allows views to store data physically, and we call those views materialized views. 
+A materialized view caches the result of a complex expensive query and then allows you to refresh this result periodically. 
+
+You can generate the Tagbase materialized views by simply opening the 
+[following file](https://git.earthdata.nasa.gov/projects/OIIP/repos/tagbase-server/browse/sql/tagbase-materialized-views.sql)
+```
+$ open tagbase-server/sql/tagbase-materialized-views.sql
+```
+... and executing the contents as a query within the PostgreSQL Query Tool.
+
+Similar to the ingestion and migration routines, generation of the materialized views may take a while so be patient. Once it has completed however, you can browse the materialized views. 
+
+**N.B.** It should be noted that materialized views can only be generated once... this process should not be executed every time a file is ingested! 
 
 ## Running Manually
 

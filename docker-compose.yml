@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: Dockerfile-postgres
     ports:
-      - "5432:5432"
+      - 5432
     expose:
       - "5432"
   tagbase:
@@ -24,7 +24,7 @@ services:
       context: .
       dockerfile: Dockerfile-pgadmin4
     environment:
-      - PGADMIN_DEFAULT_EMAIL=oiip@jpl.nasa.gov
+      - PGADMIN_DEFAULT_EMAIL=tagbase
       - PGADMIN_DEFAULT_PASSWORD=tagbase
     depends_on:
       - postgres

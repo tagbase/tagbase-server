@@ -60,8 +60,6 @@ def ingest_etuff_get(granule_id, file):
     submission_filename = data_file[data_file.rindex('/') + 1:]
 
     try:
-        # conn = psycopg2.connect("dbname='%s' user='%s' host='%s' port=%d password='%s'" %
-        #                         ('tagbase', 'tagbase', 'postgres', 5432, ''))
         conn = psycopg2.connect("dbname='%s' user='%s' host='%s' port=%d password='%s'" %
                                 ('tagbase', 'tagbase', 'postgres', 5432, ''))
     except:
@@ -87,10 +85,7 @@ def ingest_etuff_get(granule_id, file):
     with open(data_file, 'r') as data:
         lines = data.readlines()
         etag = False
-        line_num = 0
         for line in lines:
-            line_num += 1
-            print(line_num)
             if line.startswith('//'):
                 if 'etag' in line:
                     etag = True
@@ -113,7 +108,6 @@ def ingest_etuff_get(granule_id, file):
                 # Parse variable values
                 tokens = line.split(',')
                 tokens = [token.replace('"', '') for token in tokens]
-                print(tokens)
                 if tokens:
                     variable_name = tokens[3]
                     if variable_name in variable_lookup:
@@ -151,14 +145,28 @@ def ingest_etuff_get(granule_id, file):
         cur.execute("INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES " + mog.decode("utf-8"))
         #app.logger.info("Successfully staged INSERT into tagbase.metadata")
 
-    for x in proc_obs:
+    #The following logic is necessary in order to automate the execution of the data migration trigger. We do this by making an explicit 
+    #reference to a 'final_value' column in the proc_observations table where the 'final_value' is indicated with a FALSE boolean value unless
+    #it is the last observation (last row insert) meaning that its value is changed to TRUE. A TRUE value trigger a data migration.
+    for x in proc_obs[:-1]:
         a = x[0]
         b = x[1]
         c = x[2]
         d = x[3]
-        mog = cur.mogrify("(%s, %s, %s, %s, %s)", (a, b, c, d, str(submission_id)))
-        cur.execute("INSERT INTO proc_observations (date_time, variable_id, variable_value, submission_id, tag_id) VALUES " + mog.decode("utf-8"))
-        #app.logger.info("Successfully staged INSERT into tagbase.proc_observations")
+        
+        mog = cur.mogrify("(%s, %s, %s, %s, %s, %s)", (a, b, c, d, str(submission_id), 'FALSE'))
+        cur.execute("INSERT INTO proc_observations (date_time, variable_id, variable_value, submission_id, tag_id, final_value) VALUES " + mog.decode("utf-8"))
+
+    #For the final value sensor reading we enter a 'final_value' of TRUE to invoke the trigger function for migration.
+    x = proc_obs[-1]
+    a = x[0]
+    b = x[1]
+    c = x[2]
+    d = x[3]
+        
+    mog = cur.mogrify("(%s, %s, %s, %s, %s, %s)", (a, b, c, d, str(submission_id), 'TRUE'))
+    cur.execute("INSERT INTO proc_observations (date_time, variable_id, variable_value, submission_id, tag_id, final_value) VALUES " + mog.decode("utf-8"))
+    #app.logger.info("Successfully staged INSERT into tagbase.proc_observations")
 
     conn.commit()
 
