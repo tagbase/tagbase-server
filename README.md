@@ -21,15 +21,9 @@ See below for prerequisite installation requirements.
 * [Git](https://git-scm.com/downloads)
 * [Docker](https://www.docker.com/products/docker-desktop)
 
-Either [download tabase-server](https://git.earthdata.nasa.gov/rest/api/latest/projects/OIIP/repos/tagbase-server/archive?format=zip) OR clone the source code with Git
+Either [download tabase-server](https://github.com/tagbase/tagbase-server/raw/master/tagbase-server-master.zip) OR clone the source code with Git
 
-```bash
-$ git clone https://${urs_username}@git.earthdata.nasa.gov/scm/oiip/tagbase-server.git
-```
-
-N.B. you should replace ```${urs_username}``` with your URS username.
-
-Either way, once you've acquired the tagbase-server source code on your workstation, you need to navigate to the source root directory e.g.
+Once you've acquired the tagbase-server source code on your workstation, you need to navigate to the source root directory e.g.
 
 ```bash
 $ cd tagbase-server
