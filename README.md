@@ -11,7 +11,7 @@ various files into the Tagbase SQL database.
 ### Introduction
 [Docker](https://www.docker.com/why-docker) enables rapid simplified deployment of Tagbase by removing
 all services setup and configuration e.g. PostgreSQL, tagbase-server, etc. 
-This is achieved via [Docker Compose]](https://docs.docker.com/compose/overview/); a tool for defining and 
+This is achieved via [Docker Compose](https://docs.docker.com/compose/overview/); a tool for defining and 
 running multi-container Docker applications.
 
 See below for prerequisite installation requirements.
