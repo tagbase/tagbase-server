@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: Dockerfile-postgres
     ports:
-      - 5432
+      - "5432:5432"
     expose:
       - "5432"
   tagbase:
