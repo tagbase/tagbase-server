@@ -1,8 +1,10 @@
-connexion == 1.1.15
-Flask==0.12.3
+connexion == 2.0.2
+Flask==1.1.0
 flask-swagger-ui
-psycopg2==2.7.4
+#psycopg2-binary
+psycopg2==2.8.3
 python_dateutil == 2.6.0
 pytz
+swagger-ui-bundle == 0.0.2
 setuptools >= 21.0.0
 tzlocal
