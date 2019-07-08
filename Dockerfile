@@ -19,4 +19,4 @@ EXPOSE 5433
 
 ENTRYPOINT ["python3"]
 
-CMD ["-m", "swagger_server"]
+CMD ["-m", "openapi_server"]

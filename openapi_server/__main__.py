@@ -6,7 +6,7 @@ import logging
 #from flask_swagger_ui import get_swaggerui_blueprint
 from logging.handlers import RotatingFileHandler
 from logging import Formatter
-from swagger_server import encoder
+from openapi_server import encoder
 
 def main():
     handler = RotatingFileHandler('tagbase.log', maxBytes=10000, backupCount=10)
@@ -18,9 +18,9 @@ def main():
 
     logger = logging.getLogger('werkzeug')
     logger.addHandler(handler)
-    app = connexion.FlaskApp(__name__, specification_dir='./swagger/')
+    app = connexion.FlaskApp(__name__, specification_dir='./openapi/')
     app.app.json_encoder = encoder.JSONEncoder
-    app.add_api('swagger.yaml', arguments={'title': 'Tagbase API'})
+    app.add_api('openapi.yaml', arguments={'title': 'Tagbase API'})
 
     ## Uncomment the following code if you wish the swagger ui to be available at
     ## http://localhost:5433/api/docs/
