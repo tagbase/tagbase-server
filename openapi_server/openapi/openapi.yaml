@@ -1,0 +1,124 @@
+openapi: 3.0.0
+info:
+  description: Tagbase is a [Flask](http://flask.pocoo.org/) application which provides
+    HTTP endpoints for ingestion of various files into the tagbase SQL database.
+  title: Tagbase API
+  version: 2.0.0
+servers:
+- url: http://0.0.0.0:5433/v2/tagbase
+paths:
+  /ingest/etuff:
+    get:
+      description: |
+        The etuff endpoint associates an eTUFF file with a given unique identifier before splitting the file, populating mappings to the Tagbase DB structure and executing ingestion.
+      operationId: ingest_etuff_get
+      parameters:
+      - description: Unique identifier for the eTUFF file e.g. '888'
+        explode: true
+        in: query
+        name: granule_id
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: Location of a network accessible (file, ftp, http, https) eTUFF
+          file e.g. 'file:///usr/src/app/data/eTUFF-sailfish-117259.txt'
+        explode: true
+        in: query
+        name: file
+        required: true
+        schema:
+          type: string
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+          description: A success message confirming ingestion.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Unexpected error
+      summary: Get eTUFF file and execute ingestion.
+      tags:
+      - Products
+      x-swagger-router-controller: swagger_server.controllers.products_controller
+      x-openapi-router-controller: openapi_server.controllers.products_controller
+  /ingest/ncingester:
+    get:
+      description: |
+        The ncingester endpoint associates a netCDF file with a given in-situ profile before splitting the file, populating mappings to the Tagbase DB structure and executing ingestion.
+      operationId: ingest_ncingester_get
+      parameters:
+      - description: blah blah blah
+        explode: true
+        in: query
+        name: source_file_path
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: blah blah blah
+        explode: true
+        in: query
+        name: source_ingest_file
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: Profile to map the ingestion to. Options include ACDD, CF
+        explode: true
+        in: query
+        name: profile
+        required: true
+        schema:
+          type: string
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+          description: A success message confirming ingestion.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Unexpected error
+      summary: Get X file and execute specific profile ingestion.
+      tags:
+      - Products
+      x-swagger-router-controller: swagger_server.controllers.products_controller
+      x-openapi-router-controller: openapi_server.controllers.products_controller
+components:
+  schemas:
+    Success:
+      example:
+        code: 0
+        message: message
+        fields: fields
+      properties:
+        code:
+          format: int32
+          type: integer
+        message:
+          type: string
+        fields:
+          type: string
+      type: object
+    Error:
+      properties:
+        code:
+          format: int32
+          type: integer
+        message:
+          type: string
+        fields:
+          type: string
+      type: object

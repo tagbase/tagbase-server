@@ -8,9 +8,9 @@ from datetime import datetime
 from time import time
 from tzlocal import get_localzone
 
-from swagger_server.models.error import Error
-from swagger_server.models.success import Success
-from swagger_server import util
+from openapi_server.models.error import Error  # noqa: E501
+from openapi_server.models.success import Success  # noqa: E501
+from openapi_server import util
 
 # Needed Python 2/3 urllib compatability
 try:
@@ -21,7 +21,6 @@ except ImportError:
     from urllib2 import urlopen
 
 from werkzeug.exceptions import InternalServerError
-
 
 def ingest_etuff_get(granule_id, file):
     """Get eTUFF file and execute ingestion.
