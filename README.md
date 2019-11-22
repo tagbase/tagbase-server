@@ -55,7 +55,7 @@ $ docker-compose up
 ```
 
 After a short while, you will now have a completely Dockerized deployment of Tagbase (master), 
-[PosgreSQL 10.X](https://www.postgresql.org) and [pgAdmin](https://www.pgadmin.org).
+[PosgreSQL 12.X](https://www.postgresql.org) and [pgAdmin](https://www.pgadmin.org).
 
 See below for accessing the Web Applications.
 
