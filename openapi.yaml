@@ -1,11 +1,42 @@
-openapi: 3.0.0
+openapi: 3.0.3
+components:
+  schemas:
+    Error:
+      properties:
+        code:
+          format: int32
+          type: integer
+        message:
+          type: string
+        fields:
+          type: string
+      type: object
+    Success:
+      example:
+        code: 0
+        fields: fields
+        message: message
+      properties:
+        code:
+          format: int32
+          type: integer
+        fields:
+          type: string
+        message:
+          type: string
+      type: object
 info:
-  description: Tagbase is a [Flask](http://flask.pocoo.org/) application which provides
-    HTTP endpoints for ingestion of various files into the tagbase SQL database.
-  title: Tagbase API
-  version: 2.0.0
-servers:
-- url: http://0.0.0.0:5433/v2/tagbase
+  contact:
+    email: tagtuna@gmail.com
+    name: Tagbase Dev Team
+    url: https://github.com/tagbase/tagbase-server/issues
+  description: tagbse-server provides HTTP endpoints for ingestion of various files into the Tagbase SQL database. Input file support includes eTUFF (see [here](https://doi.org/10.6084/m9.figshare.10032848.v4) and [here](https://doi.org/10.6084/m9.figshare.10159820.v1)) and [nc-eTAG](https://github.com/oceandatainterop/nc-eTAG/) files; a metadata and data interoperability standard for (non-acoustic) electronic tagging datasets. The REST API complies with [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html) until the tooling for OpenAPI v3.1.0 improves.
+  license:
+    name: Apache License v2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+  termsOfService: TODO
+  title: tagbase-server API
+  version: 1.0.0
 paths:
   /ingest/etuff:
     get:
@@ -45,7 +76,7 @@ paths:
           description: Unexpected error
       summary: Get eTUFF file and execute ingestion.
       tags:
-      - Products
+      - ingest
       x-swagger-router-controller: swagger_server.controllers.products_controller
       x-openapi-router-controller: openapi_server.controllers.products_controller
   /ingest/ncingester:
@@ -93,32 +124,16 @@ paths:
           description: Unexpected error
       summary: Get X file and execute specific profile ingestion.
       tags:
-      - Products
+      - ingest
       x-swagger-router-controller: swagger_server.controllers.products_controller
       x-openapi-router-controller: openapi_server.controllers.products_controller
-components:
-  schemas:
-    Success:
-      example:
-        code: 0
-        message: message
-        fields: fields
-      properties:
-        code:
-          format: int32
-          type: integer
-        message:
-          type: string
-        fields:
-          type: string
-      type: object
-    Error:
-      properties:
-        code:
-          format: int32
-          type: integer
-        message:
-          type: string
-        fields:
-          type: string
-      type: object
+servers:
+- description: Local development server
+  url: http://0.0.0.0:5433/v1/tagbase
+- description: Staging (non-production) server
+  url: https://staging.tagbase.com/v1/tagbase
+- description: Production server
+  url: https://tagbase.com/v1/tagbase
+tags:
+- description: Operations relating to the ingestion of data into tagbase-server.
+  name: ingest
