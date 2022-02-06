@@ -1,5 +1,17 @@
 # Tagbase server
 
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=bugs)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=coverage)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
+
 ## Overview
 
 [tagbase-server](https://github.com/tagbase/tagbase-server) is a data management web service for working with eTUFF [1](https://doi.org/10.6084/m9.figshare.10032848.v4) [2](https://doi.org/10.6084/m9.figshare.10159820.v1)) and [nc-eTAG](https://github.com/oceandatainterop/nc-eTAG/) files.
