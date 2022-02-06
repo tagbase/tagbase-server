@@ -1,7 +1,7 @@
 name: main pr build
 
 on:
-  # Trigger analysis when pushing in master or pull requests, and when creating
+  # Trigger analysis when pushing to main or pull requests, and when creating
   # a pull request.
   push:
     branches:
@@ -10,6 +10,11 @@ on:
       types: [opened, synchronize, reopened]
 name: Main Workflow
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: psf/black@stable
   sonarcloud:
     runs-on: ubuntu-latest
     steps:

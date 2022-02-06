@@ -1749,8 +1749,8 @@ ALTER TABLE ONLY proc_observations
 
 --
 -- The following TRIGGER ensures that upon ingestion of an arbitary eTUFF file into tagbase-server,
--- the data migration phase is auotmated. This means that the only manual database administration 
--- involves the creation of the materialized views. This can simply be done by executing 
+-- the data migration phase is auotmated. This means that the only manual database administration
+-- involves the creation of the materialized views. This can simply be done by executing
 -- 'tagbase-materialized-view.sql' in the pgAdmin4 Web application Query Tool.
 CREATE OR REPLACE FUNCTION execute_data_migration() RETURNS trigger AS $BODY$
   BEGIN
@@ -1787,7 +1787,7 @@ CREATE OR REPLACE FUNCTION execute_data_migration() RETURNS trigger AS $BODY$
                                                      a.submission_id,
                                                      b.tag_id,
                                                      cast(('0.0') AS double precision) AS initial_lat)
-    INSERT INTO data_position (date_time, lat, lon, submission_id, tag_id) 
+    INSERT INTO data_position (date_time, lat, lon, submission_id, tag_id)
     SELECT date_time,
            initial_lat,
            variable_value,
@@ -1849,7 +1849,7 @@ CREATE OR REPLACE FUNCTION execute_data_migration() RETURNS trigger AS $BODY$
                                       submission c
        WHERE a.variable_id = b.variable_id
          AND b.variable_name LIKE 'Hist%'
-         AND a.submission_id = c.submission_id RETURNING a.submission_id AS bin_id, 
+         AND a.submission_id = c.submission_id RETURNING a.submission_id AS bin_id,
                                                   cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
                                                   variable_value)
     INSERT INTO data_histogram_bin_info
@@ -1861,7 +1861,7 @@ CREATE OR REPLACE FUNCTION execute_data_migration() RETURNS trigger AS $BODY$
                                       submission c
        WHERE a.variable_id = b.variable_id
          AND b.variable_name LIKE 'Hist%'
-         AND a.submission_id = c.submission_id RETURNING a.submission_id AS bin_id, 
+         AND a.submission_id = c.submission_id RETURNING a.submission_id AS bin_id,
                                                   cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
                                                   variable_value)
     UPDATE data_histogram_bin_info
@@ -1876,7 +1876,7 @@ CREATE OR REPLACE FUNCTION execute_data_migration() RETURNS trigger AS $BODY$
                                       submission c
        WHERE a.variable_id = b.variable_id
          AND b.variable_name LIKE 'TimeAt%'
-         AND a.submission_id = c.submission_id RETURNING a.submission_id, 
+         AND a.submission_id = c.submission_id RETURNING a.submission_id,
                                                           c.tag_id,
                                                           a.submission_id AS bin_id,
                                                           cast(substring(variable_name, '(\d+)') AS int) AS bin_class,

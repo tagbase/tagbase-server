@@ -25,24 +25,16 @@ class Success(Model):
         :param message: The message of this Success.  # noqa: E501
         :type message: str
         """
-        self.openapi_types = {
-            'code': int,
-            'fields': str,
-            'message': str
-        }
+        self.openapi_types = {"code": int, "fields": str, "message": str}
 
-        self.attribute_map = {
-            'code': 'code',
-            'fields': 'fields',
-            'message': 'message'
-        }
+        self.attribute_map = {"code": "code", "fields": "fields", "message": "message"}
 
         self._code = code
         self._fields = fields
         self._message = message
 
     @classmethod
-    def from_dict(cls, dikt) -> 'Success':
+    def from_dict(cls, dikt) -> "Success":
         """Returns the dict as a model
 
         :param dikt: A dict.
