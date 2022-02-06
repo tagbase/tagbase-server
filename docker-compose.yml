@@ -1,35 +1,31 @@
-# Note we are using version 2 because there is no requirement 
-# to deploy with docker swarm at this stage.
-version: '2.4'
+version: '3.9'
 services:
-  postgres:
-    build:
-      context: .
-      dockerfile: Dockerfile-postgres
-    ports:
-      - "5432:5432"
-    expose:
-      - "5432"
-  tagbase:
-    build:
-      context: .
-      dockerfile: Dockerfile-tagbase
-    ports:
-      - "5433:5433"
-    links:
-      - postgres
-    mem_limit: 4000m
   pgadmin4:
     build:
-      context: .
-      dockerfile: Dockerfile-pgadmin4
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=tagbase
-      - PGADMIN_DEFAULT_PASSWORD=tagbase
+      context: ./services/pgadmin4
     depends_on:
+      - postgres
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+    links:
       - postgres
     ports:
       - "5434:80"
+  postgres:
+    build:
+      context: ./services/postgres
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    expose:
+      - "5432"
+    ports:
+      - "5432:5432"
+  tagbase:
+    build:
+      context: ./tagbase_server
     links:
       - postgres
-
+    mem_limit: 4000m
+    ports:
+      - "5433:5433"
