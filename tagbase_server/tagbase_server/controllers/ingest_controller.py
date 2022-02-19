@@ -34,14 +34,16 @@ def ingest_etuff_get(granule_id, file):  # noqa: E501
     # Check if file exists locally, if not download it to /tmp
     data_file = file
     local_data_file = data_file[
-        re.search("[file|ftp|http|https]:\/\/[^\/]*", data_file).end():
+        re.search("[file|ftp|http|https]:\/\/[^\/]*", data_file).end() :
     ]
     # app.logger.info("Locating %s" % local_data_file)
     if os.path.isfile(local_data_file):
         data_file = local_data_file
     else:
         # Download data file
-        filename = tempfile.TemporaryFile(dir="/tmp/" + data_file[data_file.rindex("/") + 1:], mode='"w+"')
+        filename = tempfile.TemporaryFile(
+            dir="/tmp/" + data_file[data_file.rindex("/") + 1 :], mode='"w+"'
+        )
         response = urlopen(data_file)
         chunk_size = 16 * 1024
         with open(filename, "wb") as f:
@@ -52,12 +54,12 @@ def ingest_etuff_get(granule_id, file):  # noqa: E501
                 f.write(chunk)
 
         data_file = filename
-    submission_filename = data_file[data_file.rindex("/") + 1:]
+    submission_filename = data_file[data_file.rindex("/") + 1 :]
 
     try:
         conn = psycopg2.connect(
             "dbname='%s' user='%s' host='%s' port=%d password='%s'"
-            % ("tagbase", "tagbase", "postgres", 5432, os.getenv('TAGBASE_PW'))
+            % ("tagbase", "tagbase", "postgres", 5432, os.getenv("TAGBASE_PW"))
         )
     except:
         # app.logger.error("Unable to connect to the database")
@@ -79,7 +81,9 @@ def ingest_etuff_get(granule_id, file):  # noqa: E501
     submission_id = cur.fetchone()[0]
 
     if data_file.endswith(".gz"):
-        filename = tempfile.TemporaryFile(dir="/tmp/" + data_file[data_file.rindex("/") + 1: -3], mode='"w+"')
+        filename = tempfile.TemporaryFile(
+            dir="/tmp/" + data_file[data_file.rindex("/") + 1 : -3], mode='"w+"'
+        )
         with gzip.open(data_file, "rb") as f_in:
             with open(filename, "wb") as f_out:
                 shutil.copyfileobj(f_in, f_out)
