@@ -1,21 +1,20 @@
 import connexion
 import os
 import psycopg2
+import pytz
 import re
 import six
-import pytz
+import tempfile
 from datetime import datetime
-from time import time
-from tzlocal import get_localzone
-
 from tagbase_server.models.error import Error  # noqa: E501
 from tagbase_server.models.success import Success  # noqa: E501
-from tagbase_server import util
-
+from time import time
+from tzlocal import get_localzone
 from urllib.parse import urlencode
 from urllib.request import urlopen
-
 from werkzeug.exceptions import InternalServerError
+
+from tagbase_server import util
 
 
 def ingest_etuff_get(granule_id, file):  # noqa: E501
@@ -32,18 +31,17 @@ def ingest_etuff_get(granule_id, file):  # noqa: E501
     """
     start = time()
     variable_lookup = {}
-    granule_id = granule_id
     # Check if file exists locally, if not download it to /tmp
     data_file = file
     local_data_file = data_file[
-        re.search("[file|ftp|http|https]:\/\/[^\/]*", data_file).end() :
+        re.search("[file|ftp|http|https]:\/\/[^\/]*", data_file).end():
     ]
     # app.logger.info("Locating %s" % local_data_file)
     if os.path.isfile(local_data_file):
         data_file = local_data_file
     else:
         # Download data file
-        filename = "/tmp/" + data_file[data_file.rindex("/") + 1 :]
+        filename = tempfile.TemporaryFile(dir="/tmp/" + data_file[data_file.rindex("/") + 1:], mode='"w+"')
         response = urlopen(data_file)
         chunk_size = 16 * 1024
         with open(filename, "wb") as f:
@@ -54,12 +52,12 @@ def ingest_etuff_get(granule_id, file):  # noqa: E501
                 f.write(chunk)
 
         data_file = filename
-    submission_filename = data_file[data_file.rindex("/") + 1 :]
+    submission_filename = data_file[data_file.rindex("/") + 1:]
 
     try:
         conn = psycopg2.connect(
             "dbname='%s' user='%s' host='%s' port=%d password='%s'"
-            % ("tagbase", "tagbase", "postgres", 5432, "")
+            % ("tagbase", "tagbase", "postgres", 5432, os.getenv('TAGBASE_PW'))
         )
     except:
         # app.logger.error("Unable to connect to the database")
@@ -81,7 +79,7 @@ def ingest_etuff_get(granule_id, file):  # noqa: E501
     submission_id = cur.fetchone()[0]
 
     if data_file.endswith(".gz"):
-        filename = "/tmp/" + data_file[data_file.rindex("/") + 1 : -3]
+        filename = tempfile.TemporaryFile(dir="/tmp/" + data_file[data_file.rindex("/") + 1: -3], mode='"w+"')
         with gzip.open(data_file, "rb") as f_in:
             with open(filename, "wb") as f_out:
                 shutil.copyfileobj(f_in, f_out)
