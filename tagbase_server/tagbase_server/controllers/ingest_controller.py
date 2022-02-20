@@ -5,7 +5,7 @@ import pytz
 import re
 import six
 import tempfile
-from datetime import datetime
+from datetime import datetime as dt, timedelta
 from tagbase_server.models.error import Error  # noqa: E501
 from tagbase_server.models.success import Success  # noqa: E501
 from time import time
@@ -64,7 +64,7 @@ def ingest_etuff_get(granule_id, file):  # noqa: E501
                 "tagbase",
                 "postgres",
                 5432,
-                "",
+                "tagbase",
             )  # os.getenv("POSTGRES_PORT"), os.getenv("POSTGRES_PASSWORD"))
         )
     except:
@@ -79,7 +79,7 @@ def ingest_etuff_get(granule_id, file):  # noqa: E501
             submission_filename,
             submission_filename,
             granule_id,
-            datetime.now(tz=pytz.utc).astimezone(get_localzone()),
+            dt.now(tz=pytz.utc).astimezone(get_localzone()),
         ),
     )
     # app.logger.info("Successfully staged INSERT into tagbase.submission")
@@ -156,7 +156,7 @@ def ingest_etuff_get(granule_id, file):  # noqa: E501
                     if tokens[0] != '""' and tokens[0] != "":
                         if tokens[0].startswith('"'):
                             tokens[0].replace('"', "")
-                        date_time = datetime.strptime(
+                        date_time = dt.strptime(
                             tokens[0], "%Y-%m-%d %H:%M:%S"
                         ).astimezone(pytz.utc)
                     else:
@@ -216,11 +216,13 @@ def ingest_etuff_get(granule_id, file):  # noqa: E501
 
     end = time()
     # app.logger.info("Data file %s has been ingested into tagbase. Time took to ingest file: %s s" % (data, (end - start)))
-
-    return (
-        "Data file %s has been ingested into tagbase. Time took to ingest file: %s s"
-        % (data, (end - start))
-    )
+    r = {
+        "code": 200,
+        "message": "Data file %s successfully ingested into Tagbase DB."
+        % (submission_filename),
+        "elapsed": str(timedelta(seconds=(end - start))),
+    }
+    return r
 
 
 def tz_aware(dt):

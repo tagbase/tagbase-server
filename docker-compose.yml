@@ -3,6 +3,7 @@ services:
   pgadmin4:
     build:
       context: ./services/pgadmin4
+      #container_name: pgadmin4_container
     depends_on:
       - postgres
     environment:
@@ -15,15 +16,17 @@ services:
   postgres:
     build:
       context: ./services/postgres
+      #container_name: postgres_container
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     expose:
       - ${POSTGRES_PORT}
     ports:
       - ${POSTGRES_PORT}:${POSTGRES_PORT}
-  tagbase:
+  tagbase_server:
     build:
       context: ./tagbase_server
+      #container_name: tagbase_servercontainer
     depends_on:
       - postgres
     environment:
