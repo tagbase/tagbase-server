@@ -14,12 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout 
-      uses: actions/checkout@v2 # Required to mount the Github Workspace to a volume 
+      uses: actions/checkout@v2 # Required to mount the Github Workspace to a volume
+      with:
+        # Disabling shallow clone is recommended for improving relevancy of reporting
+        fetch-depth: 0
     - uses: addnab/docker-run-action@v3
       with:
-        #username: ${{ secrets.DOCKER_USERNAME }}
-        #password: ${{ secrets.DOCKER_PASSWORD }}
-        #registry: gcr.io
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        registry: gcr.io
         image: jamescooke/openapi-validator:latest
         options: -v ${{ github.workspace }}:/data
         run: |
