@@ -22,7 +22,9 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           image: jamescooke/openapi-validator:latest
           options: -v ${{ github.workspace }}:/data
-          run: lint-openapi openapi.yaml
+          run: |
+            lint-openapi openapi.yaml
+            exit $?
   sonarcloud:
     runs-on: ubuntu-latest
     steps:
