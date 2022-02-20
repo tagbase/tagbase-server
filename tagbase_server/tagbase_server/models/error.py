@@ -25,24 +25,16 @@ class Error(Model):
         :param fields: The fields of this Error.  # noqa: E501
         :type fields: str
         """
-        self.openapi_types = {
-            'code': int,
-            'message': str,
-            'fields': str
-        }
+        self.openapi_types = {"code": int, "message": str, "fields": str}
 
-        self.attribute_map = {
-            'code': 'code',
-            'message': 'message',
-            'fields': 'fields'
-        }
+        self.attribute_map = {"code": "code", "message": "message", "fields": "fields"}
 
         self._code = code
         self._message = message
         self._fields = fields
 
     @classmethod
-    def from_dict(cls, dikt) -> 'Error':
+    def from_dict(cls, dikt) -> "Error":
         """Returns the dict as a model
 
         :param dikt: A dict.
