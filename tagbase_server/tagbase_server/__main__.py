@@ -10,21 +10,22 @@ from tagbase_server import encoder
 
 
 def main():
-    handler = RotatingFileHandler('tagbase.log', maxBytes=10000, backupCount=10)
+    handler = RotatingFileHandler("tagbase.log", maxBytes=10000, backupCount=10)
     handler.setLevel(logging.INFO)
-    handler.setFormatter(Formatter(
-        '%(asctime)s %(levelname)s: %(message)s '
-        '[in %(pathname)s:%(lineno)d]'
-    ))
+    handler.setFormatter(
+        Formatter(
+            "%(asctime)s %(levelname)s: %(message)s " "[in %(pathname)s:%(lineno)d]"
+        )
+    )
 
-    logger = logging.getLogger('werkzeug')
+    logger = logging.getLogger("werkzeug")
     logger.addHandler(handler)
 
-    app = connexion.App(__name__, specification_dir='./openapi/')
+    app = connexion.App(__name__, specification_dir="./openapi/")
     app.app.json_encoder = encoder.JSONEncoder
-    app.add_api('openapi.yaml',
-                arguments={'title': 'tagbase-server API'},
-                pythonic_params=True)
+    app.add_api(
+        "openapi.yaml", arguments={"title": "tagbase-server API"}, pythonic_params=True
+    )
 
     ## Uncomment the following code if you wish the swagger ui to be available at
     ## http://localhost:5433/api/docs/
@@ -54,8 +55,8 @@ def main():
     # # (URL must match the one given to factory function above)
     # app.app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
-    app.run(port=5433, host='0.0.0.0', threaded=True)
+    app.run(port=5433, host="0.0.0.0", threaded=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -13,7 +13,7 @@ RUN apk update && \
  python3 -m pip install -r requirements.txt --no-cache-dir && \
  apk --purge del .build-deps
 
-RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime 
+RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
 #&& \ dpkg-reconfigure -f noninteractive tzdata
 
 RUN pip3 install --no-cache-dir -r requirements.txt

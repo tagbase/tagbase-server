@@ -24,7 +24,7 @@ components:
           format: int32
           type: integer
         fields:
-          description: 
+          description:
           type: string
         message:
           description: A string detailing specifics of the successful operation
