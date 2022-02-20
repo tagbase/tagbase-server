@@ -24,7 +24,7 @@ components:
           format: int32
           type: integer
         fields:
-          description:
+          description: abc
           type: string
         message:
           description: A string detailing specifics of the successful operation
@@ -84,11 +84,11 @@ paths:
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
 servers:
 - description: Local development server
-  url: http://0.0.0.0:5433/v1/tagbase
+  url: http://0.0.0.0:5433/v1.0.0
 - description: Staging (non-production) server
-  url: https://staging.tagbase.com/v1/tagbase
+  url: https://staging.tagbase.com/v1.0.0
 - description: Production server
-  url: https://tagbase.com/v1/tagbase
+  url: https://tagbase.com/v1.0.0
 tags:
 - description: Operations relating to the ingestion of data into tagbase-server.
   name: ingest

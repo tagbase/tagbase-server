@@ -14,7 +14,7 @@
 
 ## Overview
 
-[tagbase-server](https://github.com/tagbase/tagbase-server) is a data management web service for working with eTUFF [1](https://doi.org/10.6084/m9.figshare.10032848.v4) [2](https://doi.org/10.6084/m9.figshare.10159820.v1)) and [nc-eTAG](https://github.com/oceandatainterop/nc-eTAG/) files.
+[tagbase-server](https://github.com/tagbase/tagbase-server) is a data management web service for working with eTUFF [1](https://doi.org/10.6084/m9.figshare.10032848.v4) [2](https://doi.org/10.6084/m9.figshare.10159820.v1.0.0)) and [nc-eTAG](https://github.com/oceandatainterop/nc-eTAG/) files.
 
 tagbase-server facilitates ingestion operations via REST courtesy of the [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html).
 
@@ -80,23 +80,22 @@ You will see the services graciously shutdown.
 
 **N.B.** The URI's below may alternate between ***localhost*** and ***0.0.0.0*** depending on whether your workstation is Windows (localhost) or Linux/Mac (0.0.0.0)
 
-Navigate to [http://localhost:5433/v1/tagbase/ui/](http://0.0.0.0:5433/v1/tagbase/ui/)
+Navigate to [http://localhost:5433/v1.0.0/ui/](http://0.0.0.0:5433/v1.0.0/ui/)
 to see the tagbase-server UI running.
 **It will really help for you to read the API documentation provided in the Web Application.**
-Using the [eTUFF API](http://0.0.0.0:5433/v1/tagbase/ui/#!/Products/ingest_etuff_get),
-you can execute the following commands to initiate a primitive test
+Using the `/ingest/etuff` API, you can execute the following commands to initiate a primitive test
 ingestion of some sample eTUFF-sailfish-117259.txt data present on the server.
 
 using curl...
 
 ```bash
-curl -X GET --header 'Accept: application/json' 'http://0.0.0.0:5433/v1/tagbase/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt'
+curl -X GET --header 'Accept: application/json' 'http://0.0.0.0:5433/v1.0.0/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt'
 ```
 
 ...or using a Request URL
 
 ```bash
-http://0.0.0.0:5433/v1/tagbase/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt
+http://0.0.0.0:5433/v1.0.0/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt
 ```
 
 **N.B.** The REST server is capable of ingesting data from many sources e.g. file, ftp, http and https.
@@ -133,12 +132,9 @@ extend the concept of database views; virtual tables which represent data of the
 to the next level that allows views to store data physically, and we call those views materialized views.
 A materialized view caches the result of a complex expensive query and then allows you to refresh this result periodically.
 
-You can generate the Tagbase materialized views by simply opening the
-[following file](https://git.earthdata.nasa.gov/projects/OIIP/repos/tagbase-server/browse/sql/tagbase-materialized-views.sql)
-```
-$ open tagbase-server/sql/tagbase-materialized-views.sql
-```
-... and executing the contents as a query within the PostgreSQL Query Tool.
+You can generate the Tagbase materialized views by opening [tagbase-materialized-views.sql](https://github.com/tagbase/tagbase-server/blob/main/services/postgres/sqldb/tagbase-materialized-views.sql)
+
+... and executing the contents as a query within the pgAdmin4 Query Tool.
 
 Similar to the ingestion and migration routines, generation of the materialized views may take a while so be patient. Once it has completed however, you can browse the materialized views.
 
