@@ -1,37 +1,51 @@
 openapi: 3.0.3
+components:
+  schemas:
+    Error:
+      description: A generic error response
+      properties:
+        code:
+          format: int32
+          type: integer
+        message:
+          type: string
+        fields:
+          type: string
+      type: object
+    Success:
+      description: A generic success response
+      example:
+        code: 0
+        fields: fields
+        message: message
+      properties:
+        code:
+          description: abc
+          format: int32
+          type: integer
+        fields:
+          description: abc
+          type: string
+        message:
+          description: A string detailing specifics of the successful operation
+          type: string
+      type: object
 info:
   contact:
     email: tagtuna@gmail.com
     name: Tagbase Dev Team
     url: https://github.com/tagbase/tagbase-server/issues
-  description: tagbse-server provides HTTP endpoints for ingestion of various files
-    into the Tagbase SQL database. Input file support includes eTUFF (see [here](https://doi.org/10.6084/m9.figshare.10032848.v4)
-    and [here](https://doi.org/10.6084/m9.figshare.10159820.v1)) and [nc-eTAG](https://github.com/oceandatainterop/nc-eTAG/)
-    files; a metadata and data interoperability standard for (non-acoustic) electronic
-    tagging datasets. The REST API complies with [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html)
-    until the tooling for OpenAPI v3.1.0 improves.
+  description: tagbse-server provides HTTP endpoints for ingestion of various files into the Tagbase SQL database. Input file support includes eTUFF (see [here](https://doi.org/10.6084/m9.figshare.10032848.v4) and [here](https://doi.org/10.6084/m9.figshare.10159820.v1)) and [nc-eTAG](https://github.com/oceandatainterop/nc-eTAG/) files; a metadata and data interoperability standard for (non-acoustic) electronic tagging datasets. The REST API complies with [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html) until the tooling for OpenAPI v3.1.0 improves.
   license:
     name: Apache License v2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
   termsOfService: TODO
   title: tagbase-server API
   version: 1.0.0
-servers:
-- description: Local development server
-  url: http://0.0.0.0:5433/v1/tagbase
-- description: Staging (non-production) server
-  url: https://staging.tagbase.com/v1/tagbase
-- description: Production server
-  url: https://tagbase.com/v1/tagbase
-tags:
-- description: Operations relating to the ingestion of data into tagbase-server.
-  name: ingest
 paths:
   /ingest/etuff:
     get:
-      description: The etuff endpoint associates an eTUFF file with a given unique
-        identifier before splitting the file, populating mappings to the Tagbase DB
-        structure and executing ingestion.
+      description: The etuff endpoint associates an eTUFF file with a given unique identifier before splitting the file, populating mappings to the Tagbase DB structure and executing ingestion.
       operationId: ingest_etuff_get
       parameters:
       - description: Unique identifier for the eTUFF file e.g. '888'
@@ -52,7 +66,7 @@ paths:
           type: string
         style: form
       responses:
-        "200":
+        200:
           content:
             application/json:
               schema:
@@ -68,86 +82,13 @@ paths:
       tags:
       - ingest
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
-  /ingest/netcdf:
-    get:
-      description: |
-        The ncingester endpoint associates a netCDF file with a given in-situ profile before splitting the file, populating mappings to the Tagbase DB structure and executing ingestion.
-      operationId: ingest_netcdf_get
-      parameters:
-      - description: blah blah blah
-        explode: true
-        in: query
-        name: source_file_path
-        required: true
-        schema:
-          type: string
-        style: form
-      - description: blah blah blah
-        explode: true
-        in: query
-        name: source_ingest_file
-        required: true
-        schema:
-          type: string
-        style: form
-      - description: Profile to map the ingestion to. Options include ACDD, CF
-        explode: true
-        in: query
-        name: profile
-        required: true
-        schema:
-          type: string
-        style: form
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Success'
-          description: A success message confirming ingestion.
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: Unexpected error
-      summary: Get X file and execute specific profile ingestion.
-      tags:
-      - ingest
-      x-openapi-router-controller: tagbase_server.controllers.ingest_controller
-components:
-  schemas:
-    Error:
-      description: A generic error response
-      properties:
-        code:
-          format: int32
-          title: code
-          type: integer
-        message:
-          title: message
-          type: string
-        fields:
-          title: fields
-          type: string
-      title: Error
-      type: object
-    Success:
-      description: A generic success response
-      example:
-        code: 0
-        fields: fields
-        message: message
-      properties:
-        code:
-          description: abc
-          format: int32
-          type: integer
-        fields:
-          description: "null"
-          type: string
-        message:
-          description: A string detailing specifics of the successful operation
-          type: string
-      title: Success
-      type: object
+servers:
+- description: Local development server
+  url: http://0.0.0.0:5433/v1.0.0
+- description: Staging (non-production) server
+  url: https://staging.tagbase.com/v1.0.0
+- description: Production server
+  url: https://tagbase.com/v1.0.0
+tags:
+- description: Operations relating to the ingestion of data into tagbase-server.
+  name: ingest

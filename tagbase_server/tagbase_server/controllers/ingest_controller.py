@@ -59,7 +59,13 @@ def ingest_etuff_get(granule_id, file):  # noqa: E501
     try:
         conn = psycopg2.connect(
             "dbname='%s' user='%s' host='%s' port=%d password='%s'"
-            % ("tagbase", "tagbase", "postgres", 5432, os.getenv("TAGBASE_PW"))
+            % (
+                "tagbase",
+                "tagbase",
+                "postgres",
+                5432,
+                "",
+            )  # os.getenv("POSTGRES_PORT"), os.getenv("POSTGRES_PASSWORD"))
         )
     except:
         # app.logger.error("Unable to connect to the database")
