@@ -26,13 +26,14 @@ jobs:
             lint-openapi openapi.yaml
             exit $?
   sonarcloud:
+    name: SonarCloud Analysis
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
       with:
         # Disabling shallow clone is recommended for improving relevancy of reporting
         fetch-depth: 0
-    - name: SonarCloud Scan
+    - name: SonarCloud Analysis
       if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }}
       uses: sonarsource/sonarcloud-github-action@master
       env:
