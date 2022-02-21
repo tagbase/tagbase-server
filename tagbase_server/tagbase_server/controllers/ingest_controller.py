@@ -34,7 +34,9 @@ def ingest_etuff_get(granule_id, file):  # noqa: E501
     # Check if file exists locally, if not download it to /tmp
     data_file = file
     local_data_file = data_file[
-        re.search("[file|ftp|http|https]:\/\/[^\/]*", data_file).end() :
+        re.search(
+
+            "[file|ftp|http|https]:\/\/[^\/]*", data_file).end() :
     ]
     # app.logger.info("Locating %s" % local_data_file)
     if os.path.isfile(local_data_file):
