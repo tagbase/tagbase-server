@@ -41,7 +41,7 @@ info:
     url: https://www.apache.org/licenses/LICENSE-2.0
   termsOfService: TODO
   title: tagbase-server API
-  version: 0.3.0
+  version: v0.3.0
 paths:
   /ingest/etuff:
     get:
