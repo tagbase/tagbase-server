@@ -21,7 +21,7 @@ REQUIRES = [
     "setuptools>=21.0.0",
     "tzlocal>=4.1",
     "werkzeug==2.0.3",
-    "Flask==2.0.3"
+    "Flask==2.0.3",
 ]
 
 setup(
