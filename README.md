@@ -80,7 +80,7 @@ You will see the services graciously shutdown.
 
 **N.B.** The URI's below may alternate between ***localhost*** and ***0.0.0.0*** depending on whether your workstation is Windows (localhost) or Linux/Mac (0.0.0.0)
 
-Navigate to [http://localhost:5433/0.3.0/ui/](http://0.0.0.0:5433/0.3.0/ui/)
+Navigate to [http://localhost:5433/v0.3.0/ui/](http://0.0.0.0:5433/v0.3.0/ui/)
 to see the tagbase-server UI running.
 **It will really help for you to read the API documentation provided in the Web Application.**
 Using the `/ingest/etuff` API, you can execute the following commands to initiate a primitive test
