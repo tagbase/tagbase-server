@@ -1,23 +1,31 @@
 openapi: 3.0.3
 components:
   schemas:
+    HTTPStatusCode:
+      description: 'HTTP status code'
+      example:
+        code: 200
+        format: int32
+        type: integer
+    HTTPMessage:
+      description: 'A string detailing specifics of an HTTP operation'
+      example:
+        code: 200
+        type: string
     200Response:
       description: 'A generic success response'
       example:
         code: 200
+        elapsed: '0:00:58.506691'
         message: 'Data file eTUFF-sailfish-117259.txt successfully ingested into Tagbase DB.'
-        elapsed: ''
       properties:
         code:
-          description: 'HTTP status code'
-          format: int32
-          type: integer
-        message:
-          description: 'A string detailing specifics of the operation'
-          type: string
+          $ref: '#/components/schemas/HTTPStatusCode'
         elapsed:
           description: 'Elapsed time for the operation'
           type: string
+        message:
+          $ref: '#/components/schemas/HTTPMessage'
       type: object
     500Response:
       description: '500 Internal Server Error'
@@ -27,18 +35,13 @@ components:
         title: 'Internal Server Error'
         type: 'about:blank'
       properties:
-        detail:
-          description: 'Server specific internal error message. For example, the server may have encountered an internal error and was unable to complete your request, the server may be overloaded or there may be an error in the application.'
-          type: string
         code:
-          description: 'HTTP status code'
-          format: int32
-          type: integer
-        title:
-          description: 'Natural language description of response'
-          type: string
-        type:
-          description: 'Additional information (if available)'
+          $ref: '#/components/schemas/HTTPStatusCode'
+        message:
+          $ref: '#/components/schemas/HTTPMessage'
+        trace:
+          description: 'Trace diagnostic information related to the response'
+          format: uuid
           type: string
       type: object
 info:
@@ -74,6 +77,8 @@ paths:
         name: file
         required: true
         schema:
+          maxLength: 50
+          minLength: 1
           type: string
         style: form
       responses:
@@ -89,7 +94,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/500Response'
           description: 'A success message confirming ingestion.'
-      summary: 'Get eTUFF file and execute ingestion.'
+      summary: 'Get eTUFF file and execute ingestion'
       tags:
       - ingest
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
