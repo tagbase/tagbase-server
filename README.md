@@ -89,13 +89,13 @@ ingestion of some sample eTUFF-sailfish-117259.txt data present on the server.
 using curl...
 
 ```bash
-curl -X GET --header 'Accept: application/json' 'http://0.0.0.0:5433/0.3.0/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt'
+curl -X GET --header 'Accept: application/json' 'http://0.0.0.0:5433/v0.3.0/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt'
 ```
 
 ...or using a Request URL
 
 ```bash
-http://0.0.0.0:5433/0.3.0/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt
+http://0.0.0.0:5433/v0.3.0/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt
 ```
 
 **N.B.** The REST server is capable of ingesting data from many sources e.g. file, ftp, http and https.
