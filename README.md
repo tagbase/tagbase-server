@@ -1,5 +1,7 @@
 # Tagbase server
 
+[version]: 0.3.0
+
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=bugs)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=coverage)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
@@ -80,7 +82,7 @@ You will see the services graciously shutdown.
 
 **N.B.** The URI's below may alternate between ***localhost*** and ***0.0.0.0*** depending on whether your workstation is Windows (localhost) or Linux/Mac (0.0.0.0)
 
-Navigate to [http://localhost:5433/v1.0.0/ui/](http://0.0.0.0:5433/v1.0.0/ui/)
+Navigate to [http://localhost:5433/[version]/ui/](http://0.0.0.0:5433/[version]/ui/)
 to see the tagbase-server UI running.
 **It will really help for you to read the API documentation provided in the Web Application.**
 Using the `/ingest/etuff` API, you can execute the following commands to initiate a primitive test
@@ -89,13 +91,13 @@ ingestion of some sample eTUFF-sailfish-117259.txt data present on the server.
 using curl...
 
 ```bash
-curl -X GET --header 'Accept: application/json' 'http://0.0.0.0:5433/v1.0.0/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt'
+curl -X GET --header 'Accept: application/json' 'http://0.0.0.0:5433/[version]/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt'
 ```
 
 ...or using a Request URL
 
 ```bash
-http://0.0.0.0:5433/v1.0.0/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt
+http://0.0.0.0:5433/[version]/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt
 ```
 
 **N.B.** The REST server is capable of ingesting data from many sources e.g. file, ftp, http and https.
@@ -145,4 +147,4 @@ Similar to the ingestion and migration routines, generation of the materialized 
 See https://wiki.earthdata.nasa.gov/display/OIIP/Manual+Installation+of+tagbase-server
 
 ## Development, Support and Community
-Please reach out to the OIIP project team at <oiip@jpl.nasa.gov>
+Please create a [issue](https://github.com/tagbase/tagbase-server/issues).
