@@ -4,7 +4,7 @@ import sys
 from setuptools import setup, find_packages
 
 NAME = "tagbase_server"
-VERSION = "1.0.0"
+VERSION = "v0.3.0"
 
 # To install the library, run the following
 #
@@ -13,14 +13,23 @@ VERSION = "1.0.0"
 # prerequisite: setuptools
 # http://pypi.python.org/pypi/setuptools
 
-REQUIRES = ["connexion>=2.0.2", "swagger-ui-bundle>=0.0.2", "python_dateutil>=2.6.0"]
+REQUIRES = [
+    "connexion[swagger-ui]==2.12.0",
+    "python_dateutil>=2.6.0",
+    "pytz>=2021.3",
+    "psycopg2>=2.9.3",
+    "setuptools>=21.0.0",
+    "tzlocal>=4.1",
+    "werkzeug==2.0.3",
+    "Flask==2.0.3",
+]
 
 setup(
     name=NAME,
     version=VERSION,
     description="tagbase-server API",
     author_email="tagtuna@gmail.com",
-    url="",
+    url="https://github.com/tagbase/tagbase-server/",
     keywords=["OpenAPI", "tagbase-server API"],
     install_requires=REQUIRES,
     packages=find_packages(),
