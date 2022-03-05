@@ -55,7 +55,7 @@ info:
     url: https://www.apache.org/licenses/LICENSE-2.0
   termsOfService: TODO
   title: tagbase-server API
-  version: 1.0.0
+  version: v0.3.0
 paths:
   /ingest/etuff:
     get:
@@ -99,12 +99,19 @@ paths:
       - ingest
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
 servers:
-- description: Local development server
-  url: http://0.0.0.0:5433/v1.0.0
-- description: Staging (non-production) server
-  url: https://staging.tagbase.com/v1.0.0
-- description: Production server
-  url: https://tagbase.com/v1.0.0
+- description: Local development tagbase-server
+  variables:
+    basePath:
+      default: v0.3.0
+      description: this value should be synchronized with the API version above
+    port:
+      default: '5433'
+      enum:
+        - '5433'
+    hostname:
+      default: '0.0.0.0'
+      description: this value is assigned by the service provider
+  url: https://{hostname}:{port}/{basePath}
 tags:
 - description: Operations relating to the ingestion of data into tagbase-server.
   name: ingest
