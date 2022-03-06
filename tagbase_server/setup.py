@@ -19,6 +19,7 @@ REQUIRES = [
     "pytz>=2021.3",
     "psycopg2>=2.9.3",
     "setuptools>=21.0.0",
+    "tornado==6.1",
     "tzlocal>=4.1",
     "werkzeug==2.0.3",
     "Flask==2.0.3",
