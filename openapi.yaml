@@ -3,19 +3,16 @@ components:
   schemas:
     HTTPStatusCode:
       description: 'HTTP status code'
-      example:
-        code: 200
-        format: int32
-        type: integer
+      example: '200'
+      type: string
     HTTPMessage:
       description: 'A string detailing specifics of an HTTP operation'
+      example: 'Data file eTUFF-sailfish-117259.txt successfully ingested into Tagbase DB.'
+      type: string
+    Response200:
+      description: 'HTTP 200 success response'
       example:
-        code: 200
-        type: string
-    200Response:
-      description: 'A generic success response'
-      example:
-        code: 200
+        code: '200'
         elapsed: '0:00:58.506691'
         message: 'Data file eTUFF-sailfish-117259.txt successfully ingested into Tagbase DB.'
       properties:
@@ -27,7 +24,7 @@ components:
         message:
           $ref: '#/components/schemas/HTTPMessage'
       type: object
-    500Response:
+    Response500:
       description: '500 Internal Server Error'
       example:
         detail: 'Unable to connect to the Tagbase database'
@@ -39,6 +36,10 @@ components:
           $ref: '#/components/schemas/HTTPStatusCode'
         message:
           $ref: '#/components/schemas/HTTPMessage'
+        more_info:
+          description: 'Additional details (if available) to diagnose the 500 response.'
+          example: 'https://httpwg.org/specs/rfc7231.html#status.500'
+          type: string
         trace:
           description: 'Trace diagnostic information related to the response'
           format: uuid
@@ -68,7 +69,8 @@ paths:
         name: granule_id
         required: true
         schema:
-          type: string
+          format: int32
+          type: integer
         style: form
       - description: "Location of a network accessible (file, ftp, http, https) eTUFF
           file e.g. 'file:///usr/src/app/data/eTUFF-sailfish-117259.txt'"
@@ -77,8 +79,9 @@ paths:
         name: file
         required: true
         schema:
-          maxLength: 50
-          minLength: 1
+          maxLength: 100
+          minLength: 10
+          pattern: '^(?!\s*$).+'
           type: string
         style: form
       responses:
@@ -86,32 +89,34 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/200Response'
+                $ref: '#/components/schemas/Response200'
           description: 'A success message confirming ingestion.'
         500:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/500Response'
-          description: 'A success message confirming ingestion.'
+                $ref: '#/components/schemas/Response500'
+          description: 'Internal tagbase-server error. Contact admin detailed in openapi.yaml.'
       summary: 'Get eTUFF file and execute ingestion'
       tags:
       - ingest
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
 servers:
 - description: Local development tagbase-server
-  variables:
-    basePath:
-      default: v0.3.0
-      description: this value should be synchronized with the API version above
-    port:
-      default: '5433'
-      enum:
-        - '5433'
-    hostname:
-      default: '0.0.0.0'
-      description: this value is assigned by the service provider
-  url: https://{hostname}:{port}/{basePath}
+  # See https://github.com/tagbase/tagbase-server/issues/51
+  # variables:
+  #   basePath:
+  #     default: v0.3.0
+  #     description: this value should be synchronized with the API version above
+  #   port:
+  #     default: '5433'
+  #     enum:
+  #       - '5433'
+  #   hostname:
+  #     default: '0.0.0.0'
+  #     description: this value is assigned by the service provider
+  # url: https://{hostname}:{port}/{basePath}
+  url: 'https://0.0.0.0:5433/v0.3.0'
 tags:
 - description: Operations relating to the ingestion of data into tagbase-server.
   name: ingest

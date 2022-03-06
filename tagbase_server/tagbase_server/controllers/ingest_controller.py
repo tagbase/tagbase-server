@@ -6,37 +6,35 @@ import re
 import six
 import tempfile
 from datetime import datetime as dt, timedelta
-from tagbase_server.models.error import Error  # noqa: E501
-from tagbase_server.models.success import Success  # noqa: E501
 from time import time
 from tzlocal import get_localzone
 from urllib.parse import urlencode
 from urllib.request import urlopen
 from werkzeug.exceptions import InternalServerError
 
+from tagbase_server.models.response200 import Response200  # noqa: E501
+from tagbase_server.models.response500 import Response500  # noqa: E501
 from tagbase_server import util
 
 
 def ingest_etuff_get(granule_id, file):  # noqa: E501
-    """Get eTUFF file and execute ingestion.
+    """Get eTUFF file and execute ingestion
 
     The etuff endpoint associates an eTUFF file with a given unique identifier before splitting the file, populating mappings to the Tagbase DB structure and executing ingestion. # noqa: E501
 
     :param granule_id: Unique identifier for the eTUFF file e.g. &#39;888&#39;
-    :type granule_id: str
+    :type granule_id: int
     :param file: Location of a network accessible (file, ftp, http, https) eTUFF file e.g. &#39;file:///usr/src/app/data/eTUFF-sailfish-117259.txt&#39;
     :type file: str
 
-    :rtype: Success
+    :rtype: Response200
     """
     start = time()
     variable_lookup = {}
     # Check if file exists locally, if not download it to /tmp
     data_file = file
     local_data_file = data_file[
-        re.search(
-
-            "[file|ftp|http|https]:\/\/[^\/]*", data_file).end() :
+        re.search("[file|ftp|http|https]:\/\/[^\/]*", data_file).end() :
     ]
     # app.logger.info("Locating %s" % local_data_file)
     if os.path.isfile(local_data_file):
@@ -66,7 +64,7 @@ def ingest_etuff_get(granule_id, file):  # noqa: E501
                 "tagbase",
                 "postgres",
                 5432,
-                "tagbase",
+                "",
             )  # os.getenv("POSTGRES_PORT"), os.getenv("POSTGRES_PASSWORD"))
         )
     except:
@@ -236,20 +234,3 @@ def tz_aware(dt):
         return False
     elif dt.tzinfo is not None and dt.tzinfo.utcoffset(dt) is not None:
         return True
-
-
-def ingest_netcdf_get(source_file_path, source_ingest_file, profile):  # noqa: E501
-    """Get X file and execute specific profile ingestion.
-
-    The ncingester endpoint associates a netCDF file with a given in-situ profile before splitting the file, populating mappings to the Tagbase DB structure and executing ingestion.  # noqa: E501
-
-    :param source_file_path: blah blah blah
-    :type source_file_path: str
-    :param source_ingest_file: blah blah blah
-    :type source_ingest_file: str
-    :param profile: Profile to map the ingestion to. Options include ACDD, CF
-    :type profile: str
-
-    :rtype: Success
-    """
-    return "Not implemented yet in tagbase-server."

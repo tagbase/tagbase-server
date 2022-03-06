@@ -4,5 +4,5 @@
 from __future__ import absolute_import
 
 # import models into model package
-from tagbase_server.models.error import Error
-from tagbase_server.models.success import Success
+from tagbase_server.models.response200 import Response200
+from tagbase_server.models.response500 import Response500
