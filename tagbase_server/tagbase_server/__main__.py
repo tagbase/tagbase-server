@@ -26,7 +26,7 @@ def main():
     app.add_api(
         "openapi.yaml", arguments={"title": "tagbase-server API"}, pythonic_params=True
     )
-    app.run(server='tornado', port=5433, host="0.0.0.0")
+    app.run(server="tornado", port=5433, host="0.0.0.0")
 
 
 if __name__ == "__main__":
