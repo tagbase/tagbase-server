@@ -4,7 +4,7 @@
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=coverage)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
 [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
-![Github Action Workflow](https://github.com/tagbase/tagbase-server/actions/workflows/build.yaml/badge.svg)
+![tagbase-server CI](https://github.com/tagbase/tagbase-server/actions/workflows/build.yaml/badge.svg)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
@@ -66,8 +66,7 @@ $ docker-compose build
 $ docker-compose up
 ```
 
-After a short while, you will now have a completely Dockerized deployment of Tagbase (master),
-[PosgreSQL 10.X](https://www.postgresql.org) and [pgAdmin](https://www.pgadmin.org).
+After a short while, you will now have a running docker composition comprising tagbase-sever (main branch), [PostgreSQL 14.X](https://www.postgresql.org) and [pgAdmin4](https://www.pgadmin.org).
 
 See below for accessing the Web Applications.
 
@@ -99,7 +98,7 @@ curl -X GET --header 'Accept: application/json' 'http://0.0.0.0:5433/v0.3.0/inge
 http://0.0.0.0:5433/v0.3.0/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt
 ```
 
-**N.B.** The REST server is capable of ingesting data from many sources e.g. file, ftp, http and https.
+**N.B.** The REST server is capable of ingesting data over `file`, `ftp`, `http` and `https` protocols.
 
 ### pgAdmin
 
