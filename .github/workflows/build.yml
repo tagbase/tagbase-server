@@ -64,4 +64,4 @@ jobs:
         run: pip install tox
       - name: Run tox
         # Run tox using the version of Python in `PATH`
-        run: tox -e py --workdir ./tagbase-server
+        run: cd tagbase-server && tox -e py
