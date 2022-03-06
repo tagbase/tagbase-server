@@ -15,9 +15,9 @@ VERSION = "v0.3.0"
 
 REQUIRES = [
     "connexion[swagger-ui]==2.12.0",
+    "psycopg2-binary==2.9.3",
     "python_dateutil>=2.6.0",
     "pytz>=2021.3",
-    "psycopg2>=2.9.3",
     "setuptools>=21.0.0",
     "tornado==6.1",
     "tzlocal>=4.1",
