@@ -65,4 +65,4 @@ jobs:
       - name: Run tox
         working-directory: ../tagbase-server
         # Run tox using the version of Python in `PATH`
-        run: tox -e py
+        run: pwd && ls * && tox -e py
