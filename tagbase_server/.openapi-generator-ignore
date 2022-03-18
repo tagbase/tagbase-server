@@ -27,3 +27,4 @@ setup.py
 tagbase_server/__main__.py
 requirements.txt
 test-requirements.txt
+tox.ini

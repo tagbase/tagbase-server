@@ -20,14 +20,13 @@ class TestIngestController(BaseTestCase):
         Get eTUFF file and execute ingestion.
         """
         query_string = [
-            ("granule_id", 1),
             ("file", "file:///usr/src/app/data/eTUFF-sailfish-117259.txt"),
         ]
         headers = {
             "Accept": "application/json",
         }
         response = self.client.open(
-            "/v0.3.0/ingest/etuff",
+            "/v0.4.0/ingest/etuff",
             method="GET",
             headers=headers,
             query_string=query_string,
