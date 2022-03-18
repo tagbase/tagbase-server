@@ -16,5 +16,3 @@ tagbase_server/openapi/openapi.yaml
 tagbase_server/test/__init__.py
 tagbase_server/typing_utils.py
 tagbase_server/util.py
-test-requirements.txt
-tox.ini

@@ -17,13 +17,11 @@ from tagbase_server.models.response500 import Response500  # noqa: E501
 from tagbase_server import util
 
 
-def ingest_etuff_get(granule_id, file):  # noqa: E501
+def ingest_etuff_get(file):  # noqa: E501
     """Get eTUFF file and execute ingestion
 
-    The etuff endpoint associates an eTUFF file with a given unique identifier before splitting the file, populating mappings to the Tagbase DB structure and executing ingestion. # noqa: E501
+    GET an eTUFF file from a network accessible location and perform an ingest operation. # noqa: E501
 
-    :param granule_id: Unique identifier for the eTUFF file e.g. &#39;888&#39;
-    :type granule_id: int
     :param file: Location of a network accessible (file, ftp, http, https) eTUFF file e.g. &#39;file:///usr/src/app/data/eTUFF-sailfish-117259.txt&#39;
     :type file: str
 
@@ -67,18 +65,27 @@ def ingest_etuff_get(granule_id, file):  # noqa: E501
                 "",
             )  # os.getenv("POSTGRES_PORT"), os.getenv("POSTGRES_PASSWORD"))
         )
-    except:
+    except Exception:
         # app.logger.error("Unable to connect to the database")
-        raise InternalServerError("Unable to connect to the Tagbase database")
+        raise Response500.from_dict(
+            {
+                "code": "500",
+                "message": "Unable to establish a connection to the Tagbase PostgreSQL database.",
+                "more_info": "Contact the service administrator.",
+                "trace": "Check that tagbase-server is correctly configured with the PostgreSQL password.",
+            }
+        )
 
     cur = conn.cursor()
 
     cur.execute(
-        "INSERT INTO submission (tag_id, filename, dmas_granule_id, date_time) VALUES ((SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) FROM submission WHERE filename = %s), %s, %s, %s)",
+        "INSERT INTO submission (tag_id, filename, date_time) "
+        "VALUES "
+        "((SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) FROM submission WHERE filename = %s), "
+        "%s, %s)",
         (
             submission_filename,
             submission_filename,
-            granule_id,
             dt.now(tz=pytz.utc).astimezone(get_localzone()),
         ),
     )
@@ -216,13 +223,14 @@ def ingest_etuff_get(granule_id, file):  # noqa: E501
 
     end = time()
     # app.logger.info("Data file %s has been ingested into tagbase. Time took to ingest file: %s s" % (data, (end - start)))
-    r = {
-        "code": 200,
-        "message": "Data file %s successfully ingested into Tagbase DB."
-        % (submission_filename),
-        "elapsed": str(timedelta(seconds=(end - start))),
-    }
-    return r
+    return Response200.from_dict(
+        {
+            "code": "200",
+            "elapsed": str(timedelta(seconds=(end - start))),
+            "message": "Data file %s successfully ingested into Tagbase DB."
+            % (submission_filename),
+        }
+    )
 
 
 def tz_aware(dt):
@@ -234,3 +242,16 @@ def tz_aware(dt):
         return False
     elif dt.tzinfo is not None and dt.tzinfo.utcoffset(dt) is not None:
         return True
+
+
+def ingest_etuff_post(file=None):  # noqa: E501
+    """Get eTUFF file and execute ingestion
+
+    POST an eTUFF file and perform a ingest operation. # noqa: E501
+
+    :param file: The file content to be ingested into tagbase-server
+    :type file: str
+
+    :rtype: Response200
+    """
+    return "do some magic!"
