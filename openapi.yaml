@@ -86,9 +86,10 @@ components:
       content:
         multipart/form-data:
           schema:
+            description: The file to be ingested into tagbase-server
             properties:
               file:
-                description: The file content to be ingested into tagbase-server
+                description: The file content
                 format: binary
                 maxLength: 1000000
                 minLength: 1000
