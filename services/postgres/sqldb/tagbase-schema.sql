@@ -825,7 +825,6 @@ COMMENT ON COLUMN proc_observations.final_value IS 'Boolean flag used to trigger
 CREATE TABLE submission (
     submission_id bigint NOT NULL,
     tag_id bigint NOT NULL,
-    dmas_granule_id bigint,
     date_time timestamp(6) with time zone DEFAULT now() NOT NULL,
     filename character varying(255) NOT NULL,
     version character varying(50)
@@ -859,15 +858,6 @@ COMMENT ON COLUMN submission.submission_id IS 'Unique numeric ID assigned upon s
 --
 
 COMMENT ON COLUMN submission.tag_id IS 'Unique numeric Tag ID associated with the ingested tag eTUFF data file';
-
-
---
--- TOC entry 2974 (class 0 OID 0)
--- Dependencies: 206
--- Name: COLUMN submission.dmas_granule_id; Type: COMMENT; Schema: public; Owner: tagbase
---
-
-COMMENT ON COLUMN submission.dmas_granule_id IS 'Unique numeric file identifier in the PODAAC DMAS catalog for the ingested tag eTUFF data file';
 
 
 --
@@ -1394,7 +1384,7 @@ COPY proc_observations (date_time, variable_id, variable_value, submission_id, t
 -- Data for Name: submission; Type: TABLE DATA; Schema: public; Owner: tagbase
 --
 
-COPY submission (submission_id, tag_id, dmas_granule_id, date_time, filename, version) FROM stdin;
+COPY submission (submission_id, tag_id, date_time, filename, version) FROM stdin;
 \.
 
 

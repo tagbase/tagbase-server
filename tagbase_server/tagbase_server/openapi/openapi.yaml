@@ -25,20 +25,10 @@ tags:
 paths:
   /ingest/etuff:
     get:
-      description: The etuff endpoint associates an eTUFF file with a given unique
-        identifier before splitting the file, populating mappings to the Tagbase DB
-        structure and executing ingestion.
+      description: GET an eTUFF file from a network accessible location and perform
+        an ingest operation.
       operationId: ingest_etuff_get
       parameters:
-      - description: Unique identifier for the eTUFF file e.g. '888'
-        explode: true
-        in: query
-        name: granule_id
-        required: true
-        schema:
-          format: int32
-          type: integer
-        style: form
       - description: Location of a network accessible (file, ftp, http, https) eTUFF
           file e.g. 'file:///usr/src/app/data/eTUFF-sailfish-117259.txt'
         explode: true
@@ -68,7 +58,49 @@ paths:
       tags:
       - ingest
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
+    post:
+      description: POST an eTUFF file and perform a ingest operation.
+      operationId: ingest_etuff_post
+      requestBody:
+        $ref: '#/components/requestBodies/inline_object'
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                file:
+                  description: The file content to be ingested into tagbase-server
+                  format: binary
+                  maxLength: 1000000
+                  minLength: 1000
+                  type: string
+              type: object
+        description: The file to be ingested into tagbase-server
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response200'
+          description: A success message confirming ingestion.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response500'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: POST an eTUFF file and perform a ingest operation.
+      tags:
+      - ingest
+      x-openapi-router-controller: tagbase_server.controllers.ingest_controller
 components:
+  requestBodies:
+    inline_object:
+      content:
+        multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/inline_object'
+      required: true
   schemas:
     HTTPStatusCode:
       description: HTTP status code
@@ -104,10 +136,10 @@ components:
     Response500:
       description: 500 Internal Server Error
       example:
-        detail: Unable to connect to the Tagbase database
-        status: 500
-        title: Internal Server Error
-        type: about:blank
+        code: "200"
+        message: Unable to connect to the Tagbase database
+        more_info: https://httpwg.org/specs/rfc7231.html#status.500
+        trace: 123e4567-e89b-12d3-a456-426614174000
       properties:
         code:
           description: HTTP status code
@@ -124,7 +156,16 @@ components:
           type: string
         trace:
           description: Trace diagnostic information related to the response
-          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174000
           type: string
       title: Response500
+      type: object
+    inline_object:
+      properties:
+        file:
+          description: The file content to be ingested into tagbase-server
+          format: binary
+          maxLength: 1000000
+          minLength: 1000
+          type: string
       type: object
