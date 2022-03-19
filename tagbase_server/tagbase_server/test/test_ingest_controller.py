@@ -22,7 +22,7 @@ class TestIngestController(BaseTestCase):
         """
         query_string = [
             ("file", "file:///usr/src/app/data/eTUFF-sailfish-117259.txt"),
-            ("type", "etuff")
+            ("type", "etuff"),
         ]
         headers = {
             "Accept": "application/json",
