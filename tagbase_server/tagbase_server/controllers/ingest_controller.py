@@ -17,13 +17,15 @@ from tagbase_server.models.response500 import Response500  # noqa: E501
 from tagbase_server import util
 
 
-def ingest_etuff_get(file):  # noqa: E501
+def ingest_etuff_get(file, type=None):  # noqa: E501
     """Get eTUFF file and execute ingestion
 
-    GET an eTUFF file from a network accessible location and perform an ingest operation. # noqa: E501
+    Ingest a network-accessible file. # noqa: E501
 
-    :param file: Location of a network accessible (file, ftp, http, https) eTUFF file e.g. &#39;file:///usr/src/app/data/eTUFF-sailfish-117259.txt&#39;
+    :param file: Location of a network accessible (file, ftp, http, https) file e.g. &#39;file:///usr/src/app/data/eTUFF-sailfish-117259.txt&#39;
     :type file: str
+    :param type: Type of file to be ingested, defaults to &#39;etuff&#39;
+    :type type: str
 
     :rtype: Response200
     """
@@ -62,7 +64,7 @@ def ingest_etuff_get(file):  # noqa: E501
                 "tagbase",
                 "postgres",
                 5432,
-                "",
+                "tagbase",
             )  # os.getenv("POSTGRES_PORT"), os.getenv("POSTGRES_PASSWORD"))
         )
     except Exception:
@@ -244,14 +246,16 @@ def tz_aware(dt):
         return True
 
 
-def ingest_etuff_post(file=None):  # noqa: E501
-    """Get eTUFF file and execute ingestion
+def ingest_etuff_post(type=None, etuff_body=None):  # noqa: E501
+    """POST an eTUFF file and perform a ingest operation
 
     POST an eTUFF file and perform a ingest operation. # noqa: E501
 
-    :param file: The file content to be ingested into tagbase-server
-    :type file: str
+    :param type: Type of file to be ingested, defaults to &#39;etuff&#39;
+    :type type: str
+    :param etuff_body:
+    :type etuff_body: str
 
     :rtype: Response200
     """
-    return "do some magic!"
+    return "Not implemented yet!"
