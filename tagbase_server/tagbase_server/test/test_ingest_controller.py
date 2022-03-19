@@ -15,18 +15,20 @@ class TestIngestController(BaseTestCase):
     """IngestController integration tests"""
 
     def test_ingest_etuff_get_500(self):
-        """Test case for ingest_etuff_get without PostgreSQL backend. We expect HTTP 500.
+        """Test case for ingest_etuff_get with absent PostgreSQL connection credentials.
+        We expect HTTP 500.
 
         Get eTUFF file and execute ingestion.
         """
         query_string = [
             ("file", "file:///usr/src/app/data/eTUFF-sailfish-117259.txt"),
+            ("type", "etuff")
         ]
         headers = {
             "Accept": "application/json",
         }
         response = self.client.open(
-            "/v0.4.0/ingest/etuff",
+            "/v0.4.0/ingest",
             method="GET",
             headers=headers,
             query_string=query_string,
