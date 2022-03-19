@@ -4,11 +4,12 @@ info:
     email: tagtuna@gmail.com
     name: Tagbase Dev Team
     url: https://github.com/tagbase/tagbase-server/issues
-  description: tagbse-server provides HTTP endpoints for ingestion of various files
-    into the Tagbase SQL database. Input file support includes eTUFF (see [here](https://doi.org/10.6084/m9.figshare.10032848.v4)
-    and [here](https://doi.org/10.6084/m9.figshare.10159820.v1)) and [nc-eTAG](https://github.com/oceandatainterop/nc-eTAG/)
-    files; a metadata and data interoperability standard for (non-acoustic) electronic
-    tagging datasets. The REST API complies with [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html)
+  description: |
+    tagbse-server provides HTTP endpoints for ingestion of various files \
+    into the Tagbase SQL database. Input file support includes eTUFF (see [here](https://doi.org/10.6084/m9.figshare.10032848.v4) \
+    and [here](https://doi.org/10.6084/m9.figshare.10159820.v1)) and [nc-eTAG](https://github.com/oceandatainterop/nc-eTAG/) \
+    files; a metadata and data interoperability standard for (non-acoustic) electronic \
+    tagging datasets. The REST API complies with [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html) \
     until the tooling for OpenAPI v3.1.0 improves.
   license:
     name: Apache License v2.0
@@ -23,13 +24,12 @@ tags:
 - description: Operations relating to the ingestion of data into tagbase-server.
   name: ingest
 paths:
-  /ingest/etuff:
+  /ingest:
     get:
-      description: GET an eTUFF file from a network accessible location and perform
-        an ingest operation.
+      description: Ingest a network-accessible file.
       operationId: ingest_etuff_get
       parameters:
-      - description: Location of a network accessible (file, ftp, http, https) eTUFF
+      - description: Location of a network accessible (file, ftp, http, https)
           file e.g. 'file:///usr/src/app/data/eTUFF-sailfish-117259.txt'
         explode: true
         in: query
@@ -41,6 +41,7 @@ paths:
           pattern: ^(?!\s*$).+
           type: string
         style: form
+      - $ref: '#/components/parameters/type'
       responses:
         "200":
           content:
@@ -61,8 +62,17 @@ paths:
     post:
       description: POST an eTUFF file and perform a ingest operation.
       operationId: ingest_etuff_post
+      parameters:
+      - $ref: '#/components/parameters/type'
       requestBody:
-        $ref: '#/components/requestBodies/inline_object'
+        content:
+          text/plain:
+            schema:
+              description: text file containing eTUFF data
+              format: binary
+              maxLength: 1000000
+              minLength: 1
+              type: string
       responses:
         "200":
           content:
@@ -79,29 +89,29 @@ paths:
       summary: POST an eTUFF file and perform a ingest operation
       tags:
       - ingest
+      x-codegen-request-body-name: etuff_body
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
 components:
-  requestBodies:
-    inline_object:
-      content:
-        multipart/form-data:
-          schema:
-            description: The file to be ingested into tagbase-server
-            properties:
-              file:
-                description: The file content
-                format: binary
-                maxLength: 1000000
-                minLength: 1000
-                type: string
-            type: object
-      required: true
+  parameters:
+    type:
+      description: Type of file to be ingested, defaults to 'etuff'
+      explode: true
+      in: query
+      name: type
+      required: false
+      schema:
+        default: etuff
+        enum:
+          - etuff
+          - netcdf
+        type: string
+      style: form
   schemas:
     Response200:
       description: HTTP 200 success response
       example:
         code: "200"
-        elapsed: 0:00:58.506691
+        elapsed: '0:00:58.506691'
         message: Data file eTUFF-sailfish-117259.txt successfully ingested into Tagbase
           DB.
       properties:

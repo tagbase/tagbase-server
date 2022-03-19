@@ -1,0 +1,4 @@
+extends: '@ibm-cloud/openapi-ruleset'
+rules:
+  #toggled off as this is IBM-specific
+  request-body-object: off
