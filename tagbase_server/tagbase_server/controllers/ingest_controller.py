@@ -64,7 +64,7 @@ def ingest_etuff_get(file, type=None):  # noqa: E501
                 "tagbase",
                 "postgres",
                 5432,
-                "tagbase",
+                "",
             )  # os.getenv("POSTGRES_PORT"), os.getenv("POSTGRES_PASSWORD"))
         )
     except Exception:
