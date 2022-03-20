@@ -52,7 +52,7 @@ jobs:
         args: >
           -Dsonar.exclusions=tagbase_server/tagbase_server/test/**
           -Dsonar.host.url=https://sonarcloud.io
-          -Dsonar.login=$SONAR_TOKEN
+          -Dsonar.login=db778d0f6a28d761feb01ab0b45cc9981da168f7
           -Dsonar.organization=tagbase
           -Dsonar.projectKey=tagbase-server
           -Dsonar.python.coverage.reportPaths=tagbase_server/coverage.xml
@@ -60,6 +60,7 @@ jobs:
           -Dsonar.sources=.
           -Dsonar.tests=tagbase_server/tagbase_server/test
           -Dsonar.test.inclusions=tagbase_server/tagbase_server/test/**
+          -Dsonar.verbose=true
   tox_tests:
     name: Tox Testing
     runs-on: ubuntu-latest
