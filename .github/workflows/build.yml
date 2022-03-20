@@ -52,8 +52,7 @@ jobs:
         projectBaseDir: tagbase_server
         args: >
           -Dsonar.exclusions=tagbase_server/test/**
-          -Dsonar.host.url=https://sonarcloud.io
-          -Dsonar.login=$SONAR_TOKEN
+          -Dsonar.login=35f9ef0c6d604d088bec9a2bd5b1a1c3021eced9
           -Dsonar.organization=tagbase
           -Dsonar.projectKey=tagbase_tagbase-server
           -Dsonar.python.coverage.reportPaths=coverage.xml
