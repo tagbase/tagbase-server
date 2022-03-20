@@ -52,6 +52,7 @@ jobs:
         args: >
           -Dsonar.exclusions=tagbase_server/tagbase_server/test/**
           -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.login=$SONAR_TOKEN
           -Dsonar.organization=tagbase
           -Dsonar.projectKey=tagbase_tagbase-server
           -Dsonar.python.coverage.reportPaths=tagbase_server/coverage.xml
