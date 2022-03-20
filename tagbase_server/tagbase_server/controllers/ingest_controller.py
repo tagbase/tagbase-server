@@ -64,17 +64,18 @@ def ingest_etuff_get(file, type=None):  # noqa: E501
                 "tagbase",
                 "postgres",
                 5432,
-                "",
+                "tagbase",
             )  # os.getenv("POSTGRES_PORT"), os.getenv("POSTGRES_PASSWORD"))
         )
-    except Exception:
+    except psycopg2.OperationalError as poe:
         # app.logger.error("Unable to connect to the database")
-        raise Response500.from_dict(
+        return Response500.from_dict(
             {
                 "code": "500",
-                "message": "Unable to establish a connection to the Tagbase PostgreSQL database.",
-                "more_info": "Contact the service administrator.",
-                "trace": "Check that tagbase-server is correctly configured with the PostgreSQL password.",
+                "message": "Encountered psycopg2.OperationalError when attemtping to establish a connection "
+                           "to the Tagbase PostgreSQL database.",
+                "more_info": "Contact the service administrator - " + os.getenv("PGADMIN_DEFAULT_EMAIL"),
+                "trace": poe,
             }
         )
 
