@@ -72,7 +72,7 @@ def ingest_etuff_get(file, type=None):  # noqa: E501
         return Response500.from_dict(
             {
                 "code": "500",
-                "message": "Encountered psycopg2.OperationalError when attemtping to establish a connection "
+                "message": "Encountered psycopg2.OperationalError when attempting to establish a connection "
                 "to the Tagbase PostgreSQL database.",
                 "more_info": "Contact the service administrator - "
                 + os.getenv("PGADMIN_DEFAULT_EMAIL"),
