@@ -43,7 +43,7 @@ jobs:
       working-directory: tagbase_server
       run: tox -e py
     - name: SonarCloud Analysis
-      #if: ${{ (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }} #github.event_name != 'pull_request' || 
+      if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }}
       uses: sonarsource/sonarcloud-github-action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -52,7 +52,7 @@ jobs:
         args: >
           -Dsonar.exclusions=tagbase_server/tagbase_server/test/**
           -Dsonar.host.url=https://sonarcloud.io
-          -Dsonar.login=${env.SONAR_TOKEN}
+          -Dsonar.login=$SONAR_TOKEN
           -Dsonar.organization=tagbase
           -Dsonar.projectKey=tagbase_tagbase-server
           -Dsonar.python.coverage.reportPaths=tagbase_server/coverage.xml
