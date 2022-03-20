@@ -23,7 +23,7 @@ jobs:
           image: jamescooke/openapi-validator:latest
           options: -v ${{ github.workspace }}:/data
           run: |
-            lint-openapi --ruleset tagbase-server-openapi-rules.yaml openapi.yaml
+            lint-openapi --ruleset ${{ github.workspace }}/tagbase-server-openapi-rules.yaml openapi.yaml
             exit $?
   sonarcloud:
     name: SonarCloud Analysis
