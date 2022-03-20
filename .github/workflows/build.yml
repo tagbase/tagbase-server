@@ -40,6 +40,7 @@ jobs:
     - name: Install tox and any other packages
       run: pip install tox
     - name: Run tox
+      working-directory: tagbase_server
       run: tox -e py
     - name: SonarCloud Analysis
       if: ${{ (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }} #github.event_name != 'pull_request' || 
