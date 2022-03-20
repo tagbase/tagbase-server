@@ -73,8 +73,9 @@ def ingest_etuff_get(file, type=None):  # noqa: E501
             {
                 "code": "500",
                 "message": "Encountered psycopg2.OperationalError when attemtping to establish a connection "
-                           "to the Tagbase PostgreSQL database.",
-                "more_info": "Contact the service administrator - " + os.getenv("PGADMIN_DEFAULT_EMAIL"),
+                "to the Tagbase PostgreSQL database.",
+                "more_info": "Contact the service administrator - "
+                + os.getenv("PGADMIN_DEFAULT_EMAIL"),
                 "trace": poe,
             }
         )
