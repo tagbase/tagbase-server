@@ -55,7 +55,7 @@ jobs:
           -Dsonar.login=$SONAR_TOKEN
           -Dsonar.organization=tagbase
           -Dsonar.projectKey=tagbase-server
-          -Dsonar.python.coverage.reportPaths=tagbase_server/tagbase_server/coverage.xml
+          -Dsonar.python.coverage.reportPaths=tagbase_server/coverage.xml
           -Dsonar.python.version=3.7,3.8,3.9,3.10
           -Dsonar.sources=.
           -Dsonar.tests=tagbase_server/tagbase_server/test
