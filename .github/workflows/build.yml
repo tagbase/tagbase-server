@@ -43,7 +43,7 @@ jobs:
       working-directory: tagbase_server
       run: tox -e py
     - name: SonarCloud Analysis
-      if: ${{ (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }} #github.event_name != 'pull_request' || 
+      #if: ${{ (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }} #github.event_name != 'pull_request' || 
       uses: sonarsource/sonarcloud-github-action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
