@@ -22,7 +22,7 @@ REQUIRES = [
     "tornado==6.1",
     "tzlocal>=4.1",
     "werkzeug==2.1.0",
-    "Flask==2.1.0",
+    "Flask==2.1.1",
 ]
 
 setup(
