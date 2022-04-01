@@ -16,18 +16,20 @@ info:
     url: https://www.apache.org/licenses/LICENSE-2.0
   termsOfService: TODO
   title: tagbase-server API
-  version: v0.4.0
+  version: v0.5.0
 servers:
 - description: Local development tagbase-server
-  url: https://0.0.0.0:5433/v0.4.0
+  url: https://0.0.0.0:5433/v0.5.0
 tags:
 - description: Operations relating to the ingestion of data into tagbase-server.
   name: ingest
+- description: Operations for querying tags ingested into Tagbase.
+  name: tag
 paths:
   /ingest:
     get:
-      description: Ingest a network-accessible file.
-      operationId: ingest_etuff_get
+      description: Get network accessible file and execute ingestion
+      operationId: ingest_get
       parameters:
       - description: Location of a network accessible (file, ftp, http, https)
           file e.g. 'file:///usr/src/app/data/eTUFF-sailfish-117259.txt'
@@ -55,13 +57,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Response500'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
-      summary: Get eTUFF file and execute ingestion
+      summary: Get network accessible file and execute ingestion
       tags:
       - ingest
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
     post:
-      description: POST an eTUFF file and perform a ingest operation.
-      operationId: ingest_etuff_post
+      description: POST a local file and perform a ingest operation
+      operationId: ingest_post
       parameters:
       - $ref: '#/components/parameters/type'
       requestBody:
@@ -86,11 +88,60 @@ paths:
               schema:
                 $ref: '#/components/schemas/Response500'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
-      summary: POST an eTUFF file and perform a ingest operation
+      summary: POST a local file and perform a ingest operation
       tags:
       - ingest
       x-codegen-request-body-name: etuff_body
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
+  /tag:
+    get:
+      description: Get information about all tags
+      operationId: list_tags
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response200'
+          description: A success message confirming ingestion.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response500'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Get information about all tags
+      tags:
+      - tag
+      x-openapi-router-controller: tagbase_server.controllers.tag_controller
+  /tag/{tag_id}:
+    get:
+      description: Get information about an individual tag
+      operationId: get_tag
+      parameters:
+      - description: submission id for an existing tag
+        in: path
+        name: tag_id
+        required: true
+        schema:
+          type: number
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response200'
+          description: A success message confirming ingestion.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response500'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Get information about an individual tag
+      tags:
+      - tag
+      x-openapi-router-controller: tagbase_server.controllers.tag_controller
 components:
   parameters:
     type:
