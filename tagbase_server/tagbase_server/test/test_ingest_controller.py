@@ -28,7 +28,7 @@ class TestIngestController(BaseTestCase):
             "Accept": "application/json",
         }
         response = self.client.open(
-            "/v0.4.0/ingest",
+            "/v0.5.0/ingest",
             method="GET",
             headers=headers,
             query_string=query_string,

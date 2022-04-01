@@ -7,6 +7,7 @@ tagbase_server/__init__.py
 tagbase_server/controllers/__init__.py
 tagbase_server/controllers/ingest_controller.py
 tagbase_server/controllers/security_controller_.py
+tagbase_server/controllers/tag_controller.py
 tagbase_server/encoder.py
 tagbase_server/models/__init__.py
 tagbase_server/models/base_model_.py
@@ -14,5 +15,6 @@ tagbase_server/models/response200.py
 tagbase_server/models/response500.py
 tagbase_server/openapi/openapi.yaml
 tagbase_server/test/__init__.py
+tagbase_server/test/test_tag_controller.py
 tagbase_server/typing_utils.py
 tagbase_server/util.py
