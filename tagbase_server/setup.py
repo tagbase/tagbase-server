@@ -4,7 +4,7 @@ import sys
 from setuptools import setup, find_packages
 
 NAME = "tagbase_server"
-VERSION = "v0.3.0"
+VERSION = "v0.5.0"
 
 # To install the library, run the following
 #
@@ -14,15 +14,15 @@ VERSION = "v0.3.0"
 # http://pypi.python.org/pypi/setuptools
 
 REQUIRES = [
-    "connexion[swagger-ui]==2.12.0",
+    "connexion[swagger-ui]==2.13.0",
     "psycopg2-binary==2.9.3",
     "python_dateutil>=2.6.0",
     "pytz>=2021.3",
     "setuptools>=21.0.0",
     "tornado==6.1",
     "tzlocal>=4.1",
-    "werkzeug==2.0.3",
-    "Flask==2.0.3",
+    "werkzeug==2.1.1",
+    "Flask==2.1.1",
 ]
 
 setup(

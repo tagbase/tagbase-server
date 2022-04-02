@@ -16,18 +16,20 @@ info:
     url: https://www.apache.org/licenses/LICENSE-2.0
   termsOfService: TODO
   title: tagbase-server API
-  version: v0.4.0
+  version: v0.5.0
 servers:
 - description: Local development tagbase-server
-  url: https://0.0.0.0:5433/v0.4.0
+  url: https://0.0.0.0:5433/v0.5.0
 tags:
 - description: Operations relating to the ingestion of data into tagbase-server.
   name: ingest
+- description: Operations for querying tags ingested into Tagbase.
+  name: tags
 paths:
   /ingest:
     get:
-      description: Ingest a network-accessible file.
-      operationId: ingest_etuff_get
+      description: Get network accessible file and execute ingestion
+      operationId: ingest_get
       parameters:
       - description: Location of a network accessible (file, ftp, http, https)
           file e.g. 'file:///usr/src/app/data/eTUFF-sailfish-117259.txt'
@@ -47,7 +49,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response200'
+                $ref: '#/components/schemas/Ingest200'
           description: A success message confirming ingestion.
         "500":
           content:
@@ -55,13 +57,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Response500'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
-      summary: Get eTUFF file and execute ingestion
+      summary: Get network accessible file and execute ingestion
       tags:
       - ingest
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
     post:
-      description: POST an eTUFF file and perform a ingest operation.
-      operationId: ingest_etuff_post
+      description: Post a local file and perform a ingest operation
+      operationId: ingest_post
       parameters:
       - $ref: '#/components/parameters/type'
       requestBody:
@@ -78,7 +80,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response200'
+                $ref: '#/components/schemas/Ingest200'
           description: A success message confirming ingestion.
         "500":
           content:
@@ -86,11 +88,60 @@ paths:
               schema:
                 $ref: '#/components/schemas/Response500'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
-      summary: POST an eTUFF file and perform a ingest operation
+      summary: Post a local file and perform a ingest operation
       tags:
       - ingest
       x-codegen-request-body-name: etuff_body
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
+  /tags:
+    get:
+      description: Get information about all tags
+      operationId: list_tags
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tags200'
+          description: A success message confirming ingestion.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response500'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Get information about all tags
+      tags:
+      - tags
+      x-openapi-router-controller: tagbase_server.controllers.tags_controller
+  /tags/{tag_id}:
+    get:
+      description: Get information about an individual tag
+      operationId: get_tag
+      parameters:
+      - description: submission id for an existing tag
+        in: path
+        name: tag_id
+        required: true
+        schema:
+          type: number
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag200'
+          description: A success message confirming ingestion.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response500'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Get information about an individual tag
+      tags:
+      - tags
+      x-openapi-router-controller: tagbase_server.controllers.tags_controller
 components:
   parameters:
     type:
@@ -107,7 +158,7 @@ components:
         type: string
       style: form
   schemas:
-    Response200:
+    Ingest200:
       description: HTTP 200 success response
       example:
         code: "200"
@@ -127,7 +178,7 @@ components:
           example: Data file eTUFF-sailfish-117259.txt successfully ingested into
             Tagbase DB.
           type: string
-      title: Response200
+      title: Ingest200
       type: object
     Response500:
       description: 500 Internal Server Error
@@ -142,7 +193,7 @@ components:
           example: "200"
           type: string
         message:
-          description: A string detailing specifics of an HTTP operation
+          description: A string detailing specifics of the HTTP 500 response
           example: Data file eTUFF-sailfish-117259.txt successfully ingested into
             Tagbase DB.
           type: string
@@ -155,4 +206,73 @@ components:
           example: 123e4567-e89b-12d3-a456-426614174000
           type: string
       title: Response500
+      type: object
+    Tag200:
+      description: Information for a given tag
+      example:
+        tag:
+        - date_time: '2022-04-01T04:58:21.319061+00:00'
+          filename: 'eTUFF-sailfish-117259_2.txt'
+          submission_id: 5
+          tag_id: 3
+          version: '2.0'
+        - date_time: '2022-04-01T05:39:46.896088+00:00'
+          filename: 'eTUFF-sailfish-117259_2.txt'
+          submission_id: 6
+          tag_id: 3
+          version: '2.0'
+      properties:
+        tag:
+          description: List containing one or more submissions for a given tag
+          items:
+            type: object
+            properties:
+              date_time:
+                description: Local datetime stamp at the time of eTUFF tag data file ingestion
+                example: '2022-04-01T04:58:21.319061+00:00'
+                #format: date
+                #pattern: '^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?$'
+                type: string
+              filename:
+                description: Full name and extension of the ingested eTUFF tag data file
+                example: "eTUFF-sailfish-117259_2.txt"
+                type: string
+              submission_id:
+                description: Unique numeric ID assigned upon submission of a tag eTUFF data file for ingest/importation into Tagbase
+                example: 5
+                type: integer
+              tag_id:
+                description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
+                example: 3
+                type: integer
+              version:
+                description: Version identifier for the eTUFF tag data file ingested
+                example: '2.0'
+                type: string
+          type: array
+      title: Tag200
+      type: object
+    Tags200:
+      description: Response detailing all unique tags available in TagbaseDB
+      example:
+        count: 2
+        tag_ids:
+        - 1
+        - 3
+      properties:
+        count:
+          description: Total count of unique tags
+          example: 2
+          type: integer
+        tag_ids:
+          description: List of unique numeric Tag IDs
+          type: array
+          items:
+            description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
+            example:
+            - 1
+            - 3
+            additionalProperties:
+              type: integer
+      title: Tags200
       type: object
