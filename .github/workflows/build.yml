@@ -51,7 +51,6 @@ jobs:
       with:
         projectBaseDir: tagbase_server/tagbase_server
         args: >
-          -Dsonar.core.codeCoveragePlugin=cobertura
           -Dsonar.exclusions=test/**
           -Dsonar.login=35f9ef0c6d604d088bec9a2bd5b1a1c3021eced9
           -Dsonar.organization=tagbase
