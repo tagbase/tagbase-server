@@ -6,8 +6,8 @@ from time import time
 from urllib.request import urlopen
 
 import pytz
-from tagbase_server.models.response200 import Response200  # noqa: E501
 from tagbase_server.db_utils import connect
+from tagbase_server.models.ingest200 import Ingest200  # noqa: E501
 from tzlocal import get_localzone
 
 
@@ -21,22 +21,22 @@ def ingest_get(file, type=None):  # noqa: E501
     :param type: Type of file to be ingested, defaults to &#39;etuff&#39;
     :type type: str
 
-    :rtype: Response200
+    :rtype: Ingest200
     """
     start = time()
     variable_lookup = {}
     # Check if file exists locally, if not download it to /tmp
     data_file = file
     local_data_file = data_file[
-                      re.search(r"[file|ftp|http|https]://[^/]*", data_file).end():
-                      ]
+        re.search(r"[file|ftp|http|https]://[^/]*", data_file).end() :
+    ]
     # app.logger.info("Locating %s" % local_data_file)
     if os.path.isfile(local_data_file):
         data_file = local_data_file
     else:
         # Download data file
         filename = tempfile.TemporaryFile(
-            dir="/tmp/" + data_file[data_file.rindex("/") + 1:], mode='"w+"'
+            dir="/tmp/" + data_file[data_file.rindex("/") + 1 :], mode='"w+"'
         )
         response = urlopen(data_file)
         chunk_size = 16 * 1024
@@ -48,7 +48,7 @@ def ingest_get(file, type=None):  # noqa: E501
                 f.write(chunk)
 
         data_file = filename
-    submission_filename = data_file[data_file.rindex("/") + 1:]
+    submission_filename = data_file[data_file.rindex("/") + 1 :]
 
     conn = connect()
     with conn:
@@ -69,7 +69,7 @@ def ingest_get(file, type=None):  # noqa: E501
 
             if data_file.endswith(".gz"):
                 filename = tempfile.TemporaryFile(
-                    dir="/tmp/" + data_file[data_file.rindex("/") + 1: -3], mode='"w+"'
+                    dir="/tmp/" + data_file[data_file.rindex("/") + 1 : -3], mode='"w+"'
                 )
                 with gzip.open(data_file, "rb") as f_in:
                     with open(filename, "wb") as f_out:
@@ -123,7 +123,7 @@ def ingest_get(file, type=None):  # noqa: E501
                                 if row:
                                     variable_id = row[0]
                                 else:
-                                    #Log error if variable_name doesn't already exist in observation_types
+                                    # Log error if variable_name doesn't already exist in observation_types
                                     cur.execute(
                                         "INSERT INTO observation_types(variable_name, variable_units) VALUES (%s, %s) "
                                         "ON CONFLICT (variable_name) DO NOTHING",
@@ -146,7 +146,9 @@ def ingest_get(file, type=None):  # noqa: E501
                                 # row begins with an empty datetime string, ignore
                                 continue
 
-                            proc_obs.append((date_time, variable_id, tokens[2], submission_id))
+                            proc_obs.append(
+                                (date_time, variable_id, tokens[2], submission_id)
+                            )
             for x in metadata:
                 a = x[0]
                 b = x[1]
@@ -169,7 +171,8 @@ def ingest_get(file, type=None):  # noqa: E501
                 d = x[3]
 
                 mog = cur.mogrify(
-                    "(%s, %s, %s, %s, %s, %s)", (a, b, c, d, str(submission_id), "FALSE")
+                    "(%s, %s, %s, %s, %s, %s)",
+                    (a, b, c, d, str(submission_id), "FALSE"),
                 )
                 cur.execute(
                     "INSERT INTO proc_observations ("
@@ -203,12 +206,12 @@ def ingest_get(file, type=None):  # noqa: E501
     end = time()
     # app.logger.info(
     # "Data file %s has been ingested into tagbase. Time took to ingest file: %s s" % (data, (end - start)))
-    return Response200.from_dict(
+    return Ingest200.from_dict(
         {
             "code": "200",
             "elapsed": str(timedelta(seconds=(end - start))),
             "message": "Data file %s successfully ingested into Tagbase DB."
-                       % (submission_filename),
+            % submission_filename,
         }
     )
 
@@ -225,15 +228,15 @@ def tz_aware(dt):
 
 
 def ingest_post(type=None, etuff_body=None):  # noqa: E501
-    """POST a local file and perform a ingest operation
+    """Post a local file and perform a ingest operation
 
-    POST a local file and perform a ingest operation # noqa: E501
+    Post a local file and perform a ingest operation # noqa: E501
 
     :param type: Type of file to be ingested, defaults to &#39;etuff&#39;
     :type type: str
     :param etuff_body:
     :type etuff_body: str
 
-    :rtype: Response200
+    :rtype: Ingest200
     """
     return "do some magic!"
