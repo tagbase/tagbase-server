@@ -86,7 +86,7 @@ class Response500(Model):
     def message(self):
         """Gets the message of this Response500.
 
-        A string detailing specifics of an HTTP operation  # noqa: E501
+        A string detailing specifics of the HTTP 500 response  # noqa: E501
 
         :return: The message of this Response500.
         :rtype: str
@@ -97,7 +97,7 @@ class Response500(Model):
     def message(self, message):
         """Sets the message of this Response500.
 
-        A string detailing specifics of an HTTP operation  # noqa: E501
+        A string detailing specifics of the HTTP 500 response  # noqa: E501
 
         :param message: The message of this Response500.
         :type message: str

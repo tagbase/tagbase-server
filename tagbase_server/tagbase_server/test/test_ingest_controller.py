@@ -1,13 +1,7 @@
 # coding: utf-8
 
-from __future__ import absolute_import
 import unittest
 
-from flask import json
-from six import BytesIO
-
-from tagbase_server.models.response200 import Response200  # noqa: E501
-from tagbase_server.models.response500 import Response500  # noqa: E501
 from tagbase_server.test import BaseTestCase
 
 
@@ -28,7 +22,7 @@ class TestIngestController(BaseTestCase):
             "Accept": "application/json",
         }
         response = self.client.open(
-            "/v0.4.0/ingest",
+            "/v0.5.0/ingest",
             method="GET",
             headers=headers,
             query_string=query_string,
