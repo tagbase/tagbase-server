@@ -45,7 +45,7 @@ jobs:
     - name: Fix code coverage paths
       working-directory: tagbase_server/tagbase_server
       run: |
-        sed -i "s@'$GITHUB_WORKSPACE'@/github/workspace/@g" coverage.xml
+        sed -i "s/\/home\/runner\/work\/tagbase-server\/tagbase-server\/tagbase_server\/tagbase_server/\/github\/workspace\/tagbase_server\/tagbase_server\//g" coverage.xml
     - name: SonarCloud Analysis
       if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }}
       uses: sonarsource/sonarcloud-github-action@master
