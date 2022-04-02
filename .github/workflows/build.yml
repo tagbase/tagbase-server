@@ -49,6 +49,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       with:
+        projectBaseDir: tagbase_server/tagbase_server
         args: >
           -Dsonar.core.codeCoveragePlugin=cobertura
           -Dsonar.exclusions=test/**
