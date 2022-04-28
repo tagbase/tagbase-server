@@ -14,7 +14,7 @@ VERSION = "v0.5.0"
 # http://pypi.python.org/pypi/setuptools
 
 REQUIRES = [
-    "connexion[swagger-ui]==2.13.0",
+    "connexion[swagger-ui]==2.13.1",
     "psycopg2-binary==2.9.3",
     "python_dateutil>=2.6.0",
     "pytz>=2021.3",
