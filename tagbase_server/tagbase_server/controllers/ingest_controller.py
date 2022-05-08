@@ -189,7 +189,8 @@ def ingest_get(file, type=None):  # noqa: E501
             d = x[3]
 
             mog = cur.mogrify(
-                "(%s, %s, %s, %s, %s, %s)", (a, b, str(c), d, str(submission_id), "TRUE")
+                "(%s, %s, %s, %s, %s, %s)",
+                (a, b, str(c), d, str(submission_id), "TRUE"),
             )
             cur.execute(
                 "INSERT INTO proc_observations ("
