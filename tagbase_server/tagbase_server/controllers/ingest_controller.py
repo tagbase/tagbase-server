@@ -78,8 +78,8 @@ def ingest_get(file, type=None):  # noqa: E501
 
             metadata = []
             proc_obs = []
-            with open(data_file, "r") as data:
-                lines = data.readlines()
+            with open(data_file, "rb") as data:
+                lines = [line.decode('utf-8', 'ignore') for line in data.readlines()]  # data.readlines()
                 etag = False
                 for line in lines:
                     if line.startswith("//"):
