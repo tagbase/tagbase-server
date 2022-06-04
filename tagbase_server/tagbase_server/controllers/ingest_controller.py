@@ -6,6 +6,8 @@ from time import time
 from urllib.request import urlopen
 
 import pytz
+import psycopg2.extras
+from tagbase_server.__main__ import logger
 from tagbase_server.db_utils import connect
 from tagbase_server.models.ingest200 import Ingest200  # noqa: E501
 from tzlocal import get_localzone
@@ -30,7 +32,7 @@ def ingest_get(file, type=None):  # noqa: E501
     local_data_file = data_file[
         re.search(r"[file|ftp|http|https]://[^/]*", data_file).end() :
     ]
-    # app.logger.info("Locating %s" % local_data_file)
+    logger.info("Locating %s" % local_data_file)
     if os.path.isfile(local_data_file):
         data_file = local_data_file
     else:
@@ -61,9 +63,10 @@ def ingest_get(file, type=None):  # noqa: E501
                     submission_filename,
                     submission_filename,
                     dt.now(tz=pytz.utc).astimezone(get_localzone()),
+
                 ),
             )
-            # app.logger.info("Successfully staged INSERT into tagbase.submission")
+            logger.info("Successful INSERT into tagbase.submission")
             cur.execute("SELECT currval('submission_submission_id_seq')")
             submission_id = cur.fetchone()[0]
 
@@ -79,16 +82,16 @@ def ingest_get(file, type=None):  # noqa: E501
             metadata = []
             proc_obs = []
             with open(data_file, "rb") as data:
-                lines = [line.decode('utf-8', 'ignore') for line in data.readlines()]  # data.readlines()
-                etag = False
+                lines = [line.decode("utf-8", "ignore") for line in data.readlines()]
+                e_tag = False
                 for line in lines:
                     if line.startswith("//"):
-                        if "etag" in line:
-                            etag = True
+                        if "e_tag" in line:
+                            e_tag = True
                         else:
-                            etag = False
+                            e_tag = False
                     elif line.strip().startswith(":"):
-                        if etag:
+                        if e_tag:
                             # Parse global attributes
                             tokens = line.strip()[1:].split(" = ")
                             cur.execute(
@@ -97,8 +100,10 @@ def ingest_get(file, type=None):  # noqa: E501
                             )
                             rows = cur.fetchall()
                             if len(rows) == 0:
-                                # app.logger.warning(
-                                # "Unable to locate attribute_name = %s in metadata_types" % tokens[0])
+                                logger.warning(
+                                    "Unable to locate attribute_name = %s in metadata_types"
+                                    % tokens[0]
+                                )
                                 continue
                             else:
                                 str_submission_id = str(submission_id)
@@ -129,7 +134,9 @@ def ingest_get(file, type=None):  # noqa: E501
                                         "ON CONFLICT (variable_name) DO NOTHING",
                                         (variable_name, tokens[4].strip()),
                                     )
-                                    # app.logger.info("Successfully staged INSERT into tagbase.proc_observations")
+                                    logger.info(
+                                        "Successfully staged INSERT into tagbase.proc_observations"
+                                    )
                                     cur.execute(
                                         "SELECT currval('observation_types_variable_id_seq')"
                                     )
@@ -145,7 +152,6 @@ def ingest_get(file, type=None):  # noqa: E501
                             else:
                                 # row begins with an empty datetime string, ignore
                                 continue
-
                             proc_obs.append(
                                 (date_time, variable_id, tokens[2], submission_id)
                             )
@@ -153,51 +159,62 @@ def ingest_get(file, type=None):  # noqa: E501
                 a = x[0]
                 b = x[1]
                 c = x[2]
-                mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, c, str(submission_id)))
+                mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, str(c), submission_id))
                 cur.execute(
                     "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES "
                     + mog.decode("utf-8")
                 )
-                # app.logger.info("Successfully staged INSERT into tagbase.metadata")
+            logger.info("metadata: %s" % metadata)
 
-            # The following logic is necessary in order to automate the execution of the data migration trigger.
-            # We do this by making an explicit reference to a 'final_value' column in the proc_observations table
-            # where the 'final_value' is indicated with a FALSE boolean value unless it is the last observation
-            # (last row insert) meaning that its value is changed to TRUE. A TRUE value trigger a data migration.
+            # The following logic is necessary in order to automate the execution of the 'data_migration' trigger.
+            # This is accomplished by making an explicit reference to a 'final_value' column in the proc_observations
+            # table where the 'final_value' is indicated with a FALSE boolean value unless it is the last observation
+            # (last row insert) meaning that its value is changed to TRUE. A TRUE value triggers a data migration.
+            s_time = time()
+            args_list = []
             for x in proc_obs[:-1]:
-                a = x[0]
-                b = x[1]
-                c = x[2]
-                d = x[3]
-
-                mog = cur.mogrify(
-                    "(%s, %s, %s, %s, %s, %s)",
-                    (a, b, str(c), d, str(submission_id), "FALSE"),
+                args_list.append(
+                    {
+                        "date_time": x[0],
+                        "variable_id": x[1],
+                        "variable_value": str(x[2]),
+                        "submission_id": x[3],
+                        "tag_id": str(submission_id),
+                        "final_value": "FALSE"
+                    }
                 )
-                cur.execute(
-                    "INSERT INTO proc_observations ("
-                    "date_time, variable_id, variable_value, submission_id, tag_id, final_value) VALUES "
-                    + mog.decode("utf-8")
-                )
+            psycopg2.extras.execute_batch(
+                cur,
+                r"INSERT INTO proc_observations "
+                "(date_time, variable_id, variable_value, submission_id, tag_id, final_value) "
+                "VALUES (%(date_time)s, %(variable_id)s, %(variable_value)s, "
+                "%(submission_id)s, %(tag_id)s, %(final_value)s)", args_list, page_size=100000
+            )
+            e_time = time()
+            logger.info("Successful batch INSERT of %s observations into tagbase.proc_observations."
+                        " Executing 'data_migration' trigger. Elapsed time: %s" %
+                        (str(len(proc_obs[:-1])), str(timedelta(seconds=(e_time - s_time)))))
 
             # For the final value sensor reading we enter a 'final_value' of
             # TRUE to invoke the trigger function for migration.
+            s_time = time()
             x = proc_obs[-1]
-            a = x[0]
-            b = x[1]
-            c = x[2]
-            d = x[3]
+            date_time = x[0]
+            variable_id = x[1]
+            variable_value = x[2]
+            submission_id = x[3]
 
             mog = cur.mogrify(
                 "(%s, %s, %s, %s, %s, %s)",
-                (a, b, str(c), d, str(submission_id), "TRUE"),
+                (date_time, variable_id, str(variable_value), submission_id, str(submission_id), "TRUE"),
             )
             cur.execute(
                 "INSERT INTO proc_observations ("
                 "date_time, variable_id, variable_value, submission_id, tag_id, final_value) VALUES "
                 + mog.decode("utf-8")
             )
-            # app.logger.info("Successfully staged INSERT into tagbase.proc_observations")
+            e_time = time()
+            logger.info("Successful data migration. Elapsed time: %s" % str(timedelta(seconds=(e_time - s_time))))
 
     conn.commit()
 
@@ -205,8 +222,10 @@ def ingest_get(file, type=None):  # noqa: E501
     conn.close()
 
     end = time()
-    # app.logger.info(
-    # "Data file %s has been ingested into tagbase. Time took to ingest file: %s s" % (data, (end - start)))
+    logger.info(
+        "Data file %s successfully ingested into Tagbase DB. Total time: %s"
+        % (submission_filename, str(timedelta(seconds=(end - start))))
+    )
     return Ingest200.from_dict(
         {
             "code": "200",
@@ -217,10 +236,13 @@ def ingest_get(file, type=None):  # noqa: E501
     )
 
 
-def tz_aware(dt):
-    """Convenience function to determine whether a datetime
+def tz_aware(datetime):
+    """
+    Convenience function to determine whether a datetime
     has been localized or not. If it has, tzinfo and utcoffset
     information will be present.
+    :param datetime: A datetime to check for localization.
+    :rtype: boolean
     """
     if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
         return False
@@ -229,7 +251,8 @@ def tz_aware(dt):
 
 
 def ingest_post(type=None, etuff_body=None):  # noqa: E501
-    """Post a local file and perform a ingest operation
+    """
+    Post a local file and perform a ingest operation
 
     Post a local file and perform a ingest operation # noqa: E501
 

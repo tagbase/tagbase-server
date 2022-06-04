@@ -17,7 +17,7 @@ def get_tag(tag_id):  # noqa: E501
     with conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT * FROM submission WHERE tag_id = %s ORDER BY tag_id", (tag_id,)
+                "SELECT * FROM submission WHERE tag_id = %s ORDER BY submission_id", (tag_id,)
             )
             results = cur.fetchall()
             tags = []
@@ -29,6 +29,7 @@ def get_tag(tag_id):  # noqa: E501
                         "date_time": row[2],
                         "filename": row[3],
                         "version": row[4],
+                        "notes": row[5],
                     }
                 )
             return Tag200.from_dict({"tag": tags})
