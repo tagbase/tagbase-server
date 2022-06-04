@@ -7,7 +7,7 @@
 
 CREATE ROLE tagbase WITH SUPERUSER LOGIN;
 
-CREATE DATABASE tagbase WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE = 'English_United States.1252' OWNER = 'tagbase';
+CREATE DATABASE tagbase WITH ENCODING = 'UTF8' OWNER = 'tagbase';
 
 ALTER USER tagbase PASSWORD 'tagbase';
 

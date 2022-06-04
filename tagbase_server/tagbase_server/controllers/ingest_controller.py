@@ -2,9 +2,11 @@ import os
 import re
 import tempfile
 from datetime import datetime as dt, timedelta
+from io import StringIO
 from time import time
 from urllib.request import urlopen
 
+import pandas as pd
 import pytz
 import psycopg2.extras
 from tagbase_server.__main__ import logger
@@ -63,7 +65,6 @@ def ingest_get(file, type=None):  # noqa: E501
                     submission_filename,
                     submission_filename,
                     dt.now(tz=pytz.utc).astimezone(get_localzone()),
-
                 ),
             )
             logger.info("Successful INSERT into tagbase.submission")
@@ -153,8 +154,16 @@ def ingest_get(file, type=None):  # noqa: E501
                                 # row begins with an empty datetime string, ignore
                                 continue
                             proc_obs.append(
-                                (date_time, variable_id, tokens[2], submission_id)
+                                [
+                                    date_time,
+                                    variable_id,
+                                    tokens[2],
+                                    submission_id,
+                                    str(submission_id),
+                                    "FALSE",
+                                ]
                             )
+
             for x in metadata:
                 a = x[0]
                 b = x[1]
@@ -164,49 +173,60 @@ def ingest_get(file, type=None):  # noqa: E501
                     "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES "
                     + mog.decode("utf-8")
                 )
-            logger.info("metadata: %s" % metadata)
+            logger.debug("metadata: %s" % metadata)
 
-            # The following logic is necessary in order to automate the execution of the 'data_migration' trigger.
-            # This is accomplished by making an explicit reference to a 'final_value' column in the proc_observations
-            # table where the 'final_value' is indicated with a FALSE boolean value unless it is the last observation
-            # (last row insert) meaning that its value is changed to TRUE. A TRUE value triggers a data migration.
             s_time = time()
-            args_list = []
-            for x in proc_obs[:-1]:
-                args_list.append(
-                    {
-                        "date_time": x[0],
-                        "variable_id": x[1],
-                        "variable_value": str(x[2]),
-                        "submission_id": x[3],
-                        "tag_id": str(submission_id),
-                        "final_value": "FALSE"
-                    }
-                )
-            psycopg2.extras.execute_batch(
-                cur,
-                r"INSERT INTO proc_observations "
-                "(date_time, variable_id, variable_value, submission_id, tag_id, final_value) "
-                "VALUES (%(date_time)s, %(variable_id)s, %(variable_value)s, "
-                "%(submission_id)s, %(tag_id)s, %(final_value)s)", args_list, page_size=100000
+            df = pd.DataFrame.from_records(
+                proc_obs[:-1],
+                columns=[
+                    "date_time",
+                    "variable_id",
+                    "variable_value",
+                    "submission_id",
+                    "tag_id",
+                    "final_value",
+                ],
+                # index=False,
             )
+            logger.debug("DF Info: %s" % df.info)
+            logger.debug("DF Memory Usage: %s" % df.memory_usage(True))
+            # save dataframe to an in memory buffer
+            buffer = StringIO()
+            df.to_csv(buffer, header=False, index=False)
+            buffer.seek(0)
+            try:
+                cur.copy_from(buffer, "proc_observations", sep=",")
+            except (Exception, psycopg2.DatabaseError) as error:
+                logger.error("Error: %s" % error)
+                conn.rollback()
+                return 1
             e_time = time()
-            logger.info("Successful batch INSERT of %s observations into tagbase.proc_observations."
-                        " Executing 'data_migration' trigger. Elapsed time: %s" %
-                        (str(len(proc_obs[:-1])), str(timedelta(seconds=(e_time - s_time)))))
+            logger.info(
+                "Successful copy of %s observations into 'proc_observations'."
+                " Executing 'data_migration' trigger. Elapsed time: %s"
+                % (str(len(proc_obs[:-1])), str(timedelta(seconds=(e_time - s_time))))
+            )
 
             # For the final value sensor reading we enter a 'final_value' of
             # TRUE to invoke the trigger function for migration.
             s_time = time()
-            x = proc_obs[-1]
-            date_time = x[0]
-            variable_id = x[1]
-            variable_value = x[2]
-            submission_id = x[3]
+            final_observation = proc_obs[-1]
+            date_time = final_observation[0]
+            variable_id = final_observation[1]
+            variable_value = final_observation[2]
+            submission_id = final_observation[3]
+            tag_id = final_observation[4]
 
             mog = cur.mogrify(
                 "(%s, %s, %s, %s, %s, %s)",
-                (date_time, variable_id, str(variable_value), submission_id, str(submission_id), "TRUE"),
+                (
+                    date_time,
+                    variable_id,
+                    str(variable_value),
+                    submission_id,
+                    str(tag_id),
+                    "TRUE",
+                ),
             )
             cur.execute(
                 "INSERT INTO proc_observations ("
@@ -214,7 +234,10 @@ def ingest_get(file, type=None):  # noqa: E501
                 + mog.decode("utf-8")
             )
             e_time = time()
-            logger.info("Successful data migration. Elapsed time: %s" % str(timedelta(seconds=(e_time - s_time))))
+            logger.info(
+                "Successful data migration. Elapsed time: %s"
+                % str(timedelta(seconds=(e_time - s_time)))
+            )
 
     conn.commit()
 

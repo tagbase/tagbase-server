@@ -1,6 +1,7 @@
 import os
 import psycopg2
 
+from tagbase_server.__main__ import logger
 from tagbase_server.models.response500 import Response500  # noqa: E501
 
 
@@ -10,6 +11,7 @@ def connect():
     if they occur.
     :rtype: connection
     """
+    logger.info("Attempting connection to TagbaseDB...")
     try:
         conn = psycopg2.connect(
             "dbname='%s' user='%s' host='%s' port=%d password='%s'"
@@ -33,4 +35,5 @@ def connect():
                 "trace": poe,
             }
         )
+    logger.info("Successfully connected to TagbaseDB.")
     return conn
