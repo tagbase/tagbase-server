@@ -753,7 +753,7 @@ CREATE TABLE submission (
     tag_id bigint NOT NULL,
     date_time timestamp(6) with time zone DEFAULT now() NOT NULL,
     filename character varying(255) NOT NULL,
-    version character varying(50) DEFAULT 1,
+    version character varying(50) DEFAULT '1',
     notes text
 );
 
@@ -806,7 +806,7 @@ COMMENT ON COLUMN submission.version IS 'Version identifier for the eTUFF tag da
 -- Name: COLUMN submission.notes; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN submission.notes IS 'Free-form text field where details of submitted eTUFF file for ingest can be provided (eg. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just  secondary solutionpositional meta/data )';
+COMMENT ON COLUMN submission.notes IS 'Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just  secondary solutionpositional meta/data)';
 
 
 --

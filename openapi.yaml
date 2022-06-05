@@ -6,11 +6,8 @@ info:
     url: https://github.com/tagbase/tagbase-server/issues
   description: |
     tagbse-server provides HTTP endpoints for ingestion of various files \
-    into the Tagbase SQL database. Input file support includes eTUFF (see [here](https://doi.org/10.6084/m9.figshare.10032848.v4) \
-    and [here](https://doi.org/10.6084/m9.figshare.10159820.v1)) and [nc-eTAG](https://github.com/oceandatainterop/nc-eTAG/) \
-    files; a metadata and data interoperability standard for (non-acoustic) electronic \
-    tagging datasets. The REST API complies with [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html) \
-    until the tooling for OpenAPI v3.1.0 improves.
+    into a Tagbase SQL database. Input file support currently includes eTUFF (see [here](https://doi.org/10.6084/m9.figshare.10032848.v4) \
+    and [here](https://doi.org/10.6084/m9.figshare.10159820.v1)). The REST API complies with [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html).
   license:
     name: Apache License v2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -21,9 +18,9 @@ servers:
 - description: Local development tagbase-server
   url: https://0.0.0.0:5433/v0.5.0
 tags:
-- description: Operations relating to the ingestion of data into tagbase-server.
+- description: Ingestion operations.
   name: ingest
-- description: Operations for querying tags ingested into Tagbase.
+- description: Operations for querying tags.
   name: tags
 paths:
   /ingest:
@@ -32,7 +29,7 @@ paths:
       operationId: ingest_get
       parameters:
       - description: Location of a network accessible (file, ftp, http, https)
-          file e.g. 'file:///usr/src/app/data/eTUFF-sailfish-117259.txt'
+          file e.g. 'file:///usr/src/app/data/eTUFF-sailfish-117259.txt'.
         explode: true
         in: query
         name: file
@@ -43,7 +40,9 @@ paths:
           pattern: ^(?!\s*$).+
           type: string
         style: form
+      - $ref: '#/components/parameters/notes'
       - $ref: '#/components/parameters/type'
+      - $ref: '#/components/parameters/version'
       responses:
         "200":
           content:
@@ -65,14 +64,16 @@ paths:
       description: Post a local file and perform a ingest operation
       operationId: ingest_post
       parameters:
+      - $ref: '#/components/parameters/notes'
       - $ref: '#/components/parameters/type'
+      - $ref: '#/components/parameters/version'
       requestBody:
         content:
           text/plain:
             schema:
               description: text file containing eTUFF data
               format: binary
-              maxLength: 1000000
+              maxLength: 1000000000
               minLength: 1
               type: string
       responses:
@@ -144,6 +145,18 @@ paths:
       x-openapi-router-controller: tagbase_server.controllers.tags_controller
 components:
   parameters:
+    notes:
+      description: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just  secondary solutionpositional meta/data)
+      explode: true
+      in: query
+      name: notes
+      required: false
+      schema:
+        maxLength: 100
+        minLength: 10
+        pattern: ^(?!\s*$).+
+        type: string
+      style: form
     type:
       description: Type of file to be ingested, defaults to 'etuff'
       explode: true
@@ -157,12 +170,25 @@ components:
           - netcdf
         type: string
       style: form
+    version:
+      description: Version identifier for the eTUFF tag data file ingested.
+      explode: true
+      in: query
+      name: version
+      required: false
+      schema:
+        maxLength: 100
+        minLength: 1
+        pattern: ^(?!\s*$).+
+        type: string
+        default: '1'
+      style: form
   schemas:
     Ingest200:
       description: HTTP 200 success response
       example:
         code: "200"
-        elapsed: '0:00:58.506691'
+        elapsed: '0:00:06.506691'
         message: Data file eTUFF-sailfish-117259.txt successfully ingested into Tagbase
           DB.
       properties:
