@@ -11,7 +11,7 @@ def connect():
     if they occur.
     :rtype: connection
     """
-    logger.info("Attempting connection to TagbaseDB...")
+    logger.debug("Attempting connection to TagbaseDB...")
     try:
         conn = psycopg2.connect(
             "dbname='%s' user='%s' host='%s' port=%d password='%s'"
@@ -35,5 +35,5 @@ def connect():
                 "trace": poe,
             }
         )
-    logger.info("Successfully connected to TagbaseDB.")
+    logger.debug("Successfully connected to TagbaseDB.")
     return conn

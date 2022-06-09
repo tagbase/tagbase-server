@@ -11,7 +11,7 @@ def get_tag(tag_id):  # noqa: E501
     :param tag_id: submission id for an existing tag
     :type tag_id:
 
-    :rtype: Union[Tag200, Tuple[Tag200, int], Tuple[Tag200, int, Dict[str, str]]
+    :rtype: Tag200
     """
     conn = connect()
     with conn:
@@ -42,7 +42,7 @@ def list_tags():  # noqa: E501
     Get information about all tags # noqa: E501
 
 
-    :rtype: Union[Tags200, Tuple[Tags200, int], Tuple[Tags200, int, Dict[str, str]]
+    :rtype: Tags200
     """
     conn = connect()
     with conn:

@@ -67,3 +67,4 @@ target/
 .env
 
 postgres-data
+tagbase_server/tagbase_server/coverage.xml

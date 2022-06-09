@@ -4,13 +4,10 @@ info:
     email: tagtuna@gmail.com
     name: Tagbase Dev Team
     url: https://github.com/tagbase/tagbase-server/issues
-  description: |
-    tagbse-server provides HTTP endpoints for ingestion of various files \
-    into the Tagbase SQL database. Input file support includes eTUFF (see [here](https://doi.org/10.6084/m9.figshare.10032848.v4) \
-    and [here](https://doi.org/10.6084/m9.figshare.10159820.v1)) and [nc-eTAG](https://github.com/oceandatainterop/nc-eTAG/) \
-    files; a metadata and data interoperability standard for (non-acoustic) electronic \
-    tagging datasets. The REST API complies with [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html) \
-    until the tooling for OpenAPI v3.1.0 improves.
+  description: "tagbse-server provides HTTP endpoints for ingestion of various files\
+    \ \\\ninto a Tagbase SQL database. Input file support currently includes eTUFF\
+    \ (see [here](https://doi.org/10.6084/m9.figshare.10032848.v4) \\\nand [here](https://doi.org/10.6084/m9.figshare.10159820.v1)).\
+    \ The REST API complies with [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html).\n"
   license:
     name: Apache License v2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -21,9 +18,9 @@ servers:
 - description: Local development tagbase-server
   url: https://0.0.0.0:5433/v0.5.0
 tags:
-- description: Operations relating to the ingestion of data into tagbase-server.
+- description: Ingestion operations.
   name: ingest
-- description: Operations for querying tags ingested into Tagbase.
+- description: Operations for querying tags.
   name: tags
 paths:
   /ingest:
@@ -31,8 +28,8 @@ paths:
       description: Get network accessible file and execute ingestion
       operationId: ingest_get
       parameters:
-      - description: Location of a network accessible (file, ftp, http, https)
-          file e.g. 'file:///usr/src/app/data/eTUFF-sailfish-117259.txt'
+      - description: "Location of a network accessible (file, ftp, http, https) file\
+          \ e.g. 'file:///usr/src/app/data/eTUFF-sailfish-117259.txt'."
         explode: true
         in: query
         name: file
@@ -43,7 +40,44 @@ paths:
           pattern: ^(?!\s*$).+
           type: string
         style: form
-      - $ref: '#/components/parameters/type'
+      - description: "Free-form text field where details of submitted eTUFF file for\
+          \ ingest can be provided e.g. submitter name, etuff data contents (tag metadata\
+          \ and measurements + primary position data, or just  secondary solutionpositional\
+          \ meta/data)"
+        explode: true
+        in: query
+        name: notes
+        required: false
+        schema:
+          maxLength: 100
+          minLength: 10
+          pattern: ^(?!\s*$).+
+          type: string
+        style: form
+      - description: "Type of file to be ingested, defaults to 'etuff'"
+        explode: true
+        in: query
+        name: type
+        required: false
+        schema:
+          default: etuff
+          enum:
+          - etuff
+          - netcdf
+          type: string
+        style: form
+      - description: Version identifier for the eTUFF tag data file ingested.
+        explode: true
+        in: query
+        name: version
+        required: false
+        schema:
+          default: "1"
+          maxLength: 100
+          minLength: 1
+          pattern: ^(?!\s*$).+
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -65,14 +99,51 @@ paths:
       description: Post a local file and perform a ingest operation
       operationId: ingest_post
       parameters:
-      - $ref: '#/components/parameters/type'
+      - description: "Free-form text field where details of submitted eTUFF file for\
+          \ ingest can be provided e.g. submitter name, etuff data contents (tag metadata\
+          \ and measurements + primary position data, or just  secondary solutionpositional\
+          \ meta/data)"
+        explode: true
+        in: query
+        name: notes
+        required: false
+        schema:
+          maxLength: 100
+          minLength: 10
+          pattern: ^(?!\s*$).+
+          type: string
+        style: form
+      - description: "Type of file to be ingested, defaults to 'etuff'"
+        explode: true
+        in: query
+        name: type
+        required: false
+        schema:
+          default: etuff
+          enum:
+          - etuff
+          - netcdf
+          type: string
+        style: form
+      - description: Version identifier for the eTUFF tag data file ingested.
+        explode: true
+        in: query
+        name: version
+        required: false
+        schema:
+          default: "1"
+          maxLength: 100
+          minLength: 1
+          pattern: ^(?!\s*$).+
+          type: string
+        style: form
       requestBody:
         content:
           text/plain:
             schema:
               description: text file containing eTUFF data
               format: binary
-              maxLength: 1000000
+              maxLength: 1000000000
               minLength: 1
               type: string
       responses:
@@ -120,11 +191,13 @@ paths:
       operationId: get_tag
       parameters:
       - description: submission id for an existing tag
+        explode: false
         in: path
         name: tag_id
         required: true
         schema:
           type: number
+        style: simple
       responses:
         "200":
           content:
@@ -144,8 +217,23 @@ paths:
       x-openapi-router-controller: tagbase_server.controllers.tags_controller
 components:
   parameters:
+    notes:
+      description: "Free-form text field where details of submitted eTUFF file for\
+        \ ingest can be provided e.g. submitter name, etuff data contents (tag metadata\
+        \ and measurements + primary position data, or just  secondary solutionpositional\
+        \ meta/data)"
+      explode: true
+      in: query
+      name: notes
+      required: false
+      schema:
+        maxLength: 100
+        minLength: 10
+        pattern: ^(?!\s*$).+
+        type: string
+      style: form
     type:
-      description: Type of file to be ingested, defaults to 'etuff'
+      description: "Type of file to be ingested, defaults to 'etuff'"
       explode: true
       in: query
       name: type
@@ -153,8 +241,21 @@ components:
       schema:
         default: etuff
         enum:
-          - etuff
-          - netcdf
+        - etuff
+        - netcdf
+        type: string
+      style: form
+    version:
+      description: Version identifier for the eTUFF tag data file ingested.
+      explode: true
+      in: query
+      name: version
+      required: false
+      schema:
+        default: "1"
+        maxLength: 100
+        minLength: 1
+        pattern: ^(?!\s*$).+
         type: string
       style: form
   schemas:
@@ -162,7 +263,7 @@ components:
       description: HTTP 200 success response
       example:
         code: "200"
-        elapsed: '0:00:58.506691'
+        elapsed: 0:00:06.506691
         message: Data file eTUFF-sailfish-117259.txt successfully ingested into Tagbase
           DB.
       properties:
@@ -211,44 +312,24 @@ components:
       description: Information for a given tag
       example:
         tag:
-        - date_time: '2022-04-01T04:58:21.319061+00:00'
-          filename: 'eTUFF-sailfish-117259_2.txt'
+        - date_time: 2022-04-01T04:58:21.319061+00:00
+          filename: eTUFF-sailfish-117259_2.txt
+          notes: Ingested by admin on 2022-06-01 for Sailfish tagging campaign.
           submission_id: 5
           tag_id: 3
-          version: '2.0'
-        - date_time: '2022-04-01T05:39:46.896088+00:00'
-          filename: 'eTUFF-sailfish-117259_2.txt'
+          version: "1"
+        - date_time: 2022-04-01T05:39:46.896088+00:00
+          filename: eTUFF-sailfish-117259_2.txt
+          notes: Ingested by admin on 2022-06-01 for version 1.1 of the Sailfish tagging
+            campaign.
           submission_id: 6
           tag_id: 3
-          version: '2.0'
+          version: "1.1"
       properties:
         tag:
           description: List containing one or more submissions for a given tag
           items:
-            type: object
-            properties:
-              date_time:
-                description: Local datetime stamp at the time of eTUFF tag data file ingestion
-                example: '2022-04-01T04:58:21.319061+00:00'
-                #format: date
-                #pattern: '^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?$'
-                type: string
-              filename:
-                description: Full name and extension of the ingested eTUFF tag data file
-                example: "eTUFF-sailfish-117259_2.txt"
-                type: string
-              submission_id:
-                description: Unique numeric ID assigned upon submission of a tag eTUFF data file for ingest/importation into Tagbase
-                example: 5
-                type: integer
-              tag_id:
-                description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
-                example: 3
-                type: integer
-              version:
-                description: Version identifier for the eTUFF tag data file ingested
-                example: '2.0'
-                type: string
+            $ref: '#/components/schemas/Tag200_tag_inner'
           type: array
       title: Tag200
       type: object
@@ -266,13 +347,54 @@ components:
           type: integer
         tag_ids:
           description: List of unique numeric Tag IDs
-          type: array
           items:
-            description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
+            additionalProperties:
+              type: integer
+            description: Unique numeric Tag ID associated with the ingested tag eTUFF
+              data file
             example:
             - 1
             - 3
-            additionalProperties:
-              type: integer
+            type: object
+          type: array
       title: Tags200
+      type: object
+    Tag200_tag_inner:
+      properties:
+        date_time:
+          description: Local datetime stamp at the time of eTUFF tag data file ingestion
+          example: 2022-04-01T04:58:21.319061+00:00
+          title: date_time
+          type: string
+        filename:
+          description: Full name and extension of the ingested eTUFF tag data file
+          example: eTUFF-sailfish-117259_2.txt
+          title: filename
+          type: string
+        notes:
+          description: "Free-form text field where details of submitted eTUFF file\
+            \ for ingest can be provided e.g. submitter name, etuff data contents\
+            \ (tag metadata and measurements + primary position data, or just secondary\
+            \ solutionpositional meta/data)"
+          example: Ingested by admin on XXXX-XX-XX to backprocess campaign XYZ.
+          title: notes
+          type: string
+        submission_id:
+          description: Unique numeric ID assigned upon submission of a tag eTUFF data
+            file for ingest/importation into Tagbase
+          example: 5
+          title: submission_id
+          type: integer
+        tag_id:
+          description: Unique numeric Tag ID associated with the ingested tag eTUFF
+            data file
+          example: 3
+          title: tag_id
+          type: integer
+        version:
+          description: Version identifier for the eTUFF tag data file ingested
+          example: "2.0"
+          title: version
+          type: string
+      title: Tag200_tag_inner
       type: object

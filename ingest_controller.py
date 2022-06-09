@@ -15,21 +15,17 @@ from tagbase_server.models.ingest200 import Ingest200  # noqa: E501
 from tzlocal import get_localzone
 
 
-def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
+def ingest_get(file, type=None):  # noqa: E501
     """Get network accessible file and execute ingestion
 
     Get network accessible file and execute ingestion # noqa: E501
 
-    :param file: Location of a network accessible (file, ftp, http, https) file e.g. &#39;file:///usr/src/app/data/eTUFF-sailfish-117259.txt&#39;.
+    :param file: Location of a network accessible (file, ftp, http, https) file e.g. &#39;file:///usr/src/app/data/eTUFF-sailfish-117259.txt&#39;
     :type file: str
-    :param notes: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just  secondary solutionpositional meta/data)
-    :type notes: str
     :param type: Type of file to be ingested, defaults to &#39;etuff&#39;
     :type type: str
-    :param version: Version identifier for the eTUFF tag data file ingested.
-    :type version: str
 
-    :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
+    :rtype: Ingest200
     """
     start = time()
     variable_lookup = {}
@@ -62,18 +58,16 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
     with conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO submission (tag_id, filename, date_time, notes, version) "
+                "INSERT INTO submission (tag_id, filename, date_time) "
                 "VALUES ((SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) "
-                "FROM submission WHERE filename = %s), %s, %s, %s, %s)",
+                "FROM submission WHERE filename = %s), %s, %s)",
                 (
                     submission_filename,
                     submission_filename,
                     dt.now(tz=pytz.utc).astimezone(get_localzone()),
-                    notes,
-                    version,
                 ),
             )
-            logger.info("Successful INSERT into 'submission'")
+            logger.info("Successful INSERT into tagbase.submission")
             cur.execute("SELECT currval('submission_submission_id_seq')")
             submission_id = cur.fetchone()[0]
 
@@ -279,20 +273,17 @@ def tz_aware(datetime):
         return True
 
 
-def ingest_post(notes=None, type=None, version=None, etuff_body=None):  # noqa: E501
-    """Post a local file and perform a ingest operation
+def ingest_post(type=None, etuff_body=None):  # noqa: E501
+    """
+    Post a local file and perform a ingest operation
 
     Post a local file and perform a ingest operation # noqa: E501
 
-    :param notes: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just  secondary solutionpositional meta/data)
-    :type notes: str
     :param type: Type of file to be ingested, defaults to &#39;etuff&#39;
     :type type: str
-    :param version: Version identifier for the eTUFF tag data file ingested.
-    :type version: str
     :param etuff_body:
     :type etuff_body: str
 
-    :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
+    :rtype: Ingest200
     """
     return "do some magic!"
