@@ -4,7 +4,7 @@ import sys
 from setuptools import setup, find_packages
 
 NAME = "tagbase_server"
-VERSION = "v0.5.0"
+VERSION = "v0.6.0"
 
 # To install the library, run the following
 #
