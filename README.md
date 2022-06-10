@@ -12,6 +12,7 @@
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
 [![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 ## Overview
 
