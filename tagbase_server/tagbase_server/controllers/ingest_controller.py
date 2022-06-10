@@ -265,20 +265,6 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
     )
 
 
-def tz_aware(datetime):
-    """
-    Convenience function to determine whether a datetime
-    has been localized or not. If it has, tzinfo and utcoffset
-    information will be present.
-    :param datetime: A datetime to check for localization.
-    :rtype: boolean
-    """
-    if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
-        return False
-    elif dt.tzinfo is not None and dt.tzinfo.utcoffset(dt) is not None:
-        return True
-
-
 def ingest_post(notes=None, type=None, version=None, etuff_body=None):  # noqa: E501
     """Post a local file and perform a ingest operation
 
