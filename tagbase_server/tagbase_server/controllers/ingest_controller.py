@@ -2,26 +2,34 @@ import os
 import re
 import tempfile
 from datetime import datetime as dt, timedelta
+from io import StringIO
 from time import time
 from urllib.request import urlopen
 
+import pandas as pd
 import pytz
+import psycopg2.extras
+from tagbase_server.__main__ import logger
 from tagbase_server.db_utils import connect
 from tagbase_server.models.ingest200 import Ingest200  # noqa: E501
 from tzlocal import get_localzone
 
 
-def ingest_get(file, type=None):  # noqa: E501
+def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
     """Get network accessible file and execute ingestion
 
     Get network accessible file and execute ingestion # noqa: E501
 
-    :param file: Location of a network accessible (file, ftp, http, https) file e.g. &#39;file:///usr/src/app/data/eTUFF-sailfish-117259.txt&#39;
+    :param file: Location of a network accessible (file, ftp, http, https) file e.g. &#39;file:///usr/src/app/data/eTUFF-sailfish-117259.txt&#39;.
     :type file: str
+    :param notes: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just  secondary solutionpositional meta/data)
+    :type notes: str
     :param type: Type of file to be ingested, defaults to &#39;etuff&#39;
     :type type: str
+    :param version: Version identifier for the eTUFF tag data file ingested.
+    :type version: str
 
-    :rtype: Ingest200
+    :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
     """
     start = time()
     variable_lookup = {}
@@ -30,7 +38,7 @@ def ingest_get(file, type=None):  # noqa: E501
     local_data_file = data_file[
         re.search(r"[file|ftp|http|https]://[^/]*", data_file).end() :
     ]
-    # app.logger.info("Locating %s" % local_data_file)
+    logger.info("Locating %s" % local_data_file)
     if os.path.isfile(local_data_file):
         data_file = local_data_file
     else:
@@ -54,16 +62,18 @@ def ingest_get(file, type=None):  # noqa: E501
     with conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO submission (tag_id, filename, date_time) "
+                "INSERT INTO submission (tag_id, filename, date_time, notes, version) "
                 "VALUES ((SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) "
-                "FROM submission WHERE filename = %s), %s, %s)",
+                "FROM submission WHERE filename = %s), %s, %s, %s, %s)",
                 (
                     submission_filename,
                     submission_filename,
                     dt.now(tz=pytz.utc).astimezone(get_localzone()),
+                    notes,
+                    version,
                 ),
             )
-            # app.logger.info("Successfully staged INSERT into tagbase.submission")
+            logger.info("Successful INSERT into 'submission'")
             cur.execute("SELECT currval('submission_submission_id_seq')")
             submission_id = cur.fetchone()[0]
 
@@ -78,17 +88,17 @@ def ingest_get(file, type=None):  # noqa: E501
 
             metadata = []
             proc_obs = []
-            with open(data_file, "r") as data:
-                lines = data.readlines()
-                etag = False
+            with open(data_file, "rb") as data:
+                lines = [line.decode("utf-8", "ignore") for line in data.readlines()]
+                e_tag = False
                 for line in lines:
                     if line.startswith("//"):
-                        if "etag" in line:
-                            etag = True
+                        if "e_tag" in line:
+                            e_tag = True
                         else:
-                            etag = False
+                            e_tag = False
                     elif line.strip().startswith(":"):
-                        if etag:
+                        if e_tag:
                             # Parse global attributes
                             tokens = line.strip()[1:].split(" = ")
                             cur.execute(
@@ -97,8 +107,10 @@ def ingest_get(file, type=None):  # noqa: E501
                             )
                             rows = cur.fetchall()
                             if len(rows) == 0:
-                                # app.logger.warning(
-                                # "Unable to locate attribute_name = %s in metadata_types" % tokens[0])
+                                logger.warning(
+                                    "Unable to locate attribute_name = %s in metadata_types"
+                                    % tokens[0]
+                                )
                                 continue
                             else:
                                 str_submission_id = str(submission_id)
@@ -129,7 +141,9 @@ def ingest_get(file, type=None):  # noqa: E501
                                         "ON CONFLICT (variable_name) DO NOTHING",
                                         (variable_name, tokens[4].strip()),
                                     )
-                                    # app.logger.info("Successfully staged INSERT into tagbase.proc_observations")
+                                    logger.info(
+                                        "Successfully staged INSERT into tagbase.proc_observations"
+                                    )
                                     cur.execute(
                                         "SELECT currval('observation_types_variable_id_seq')"
                                     )
@@ -145,59 +159,91 @@ def ingest_get(file, type=None):  # noqa: E501
                             else:
                                 # row begins with an empty datetime string, ignore
                                 continue
-
                             proc_obs.append(
-                                (date_time, variable_id, tokens[2], submission_id)
+                                [
+                                    date_time,
+                                    variable_id,
+                                    tokens[2],
+                                    submission_id,
+                                    str(submission_id),
+                                    "FALSE",
+                                ]
                             )
+
             for x in metadata:
                 a = x[0]
                 b = x[1]
                 c = x[2]
-                mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, c, str(submission_id)))
+                mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, str(c), submission_id))
                 cur.execute(
                     "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES "
                     + mog.decode("utf-8")
                 )
-                # app.logger.info("Successfully staged INSERT into tagbase.metadata")
+            logger.debug("metadata: %s" % metadata)
 
-            # The following logic is necessary in order to automate the execution of the data migration trigger.
-            # We do this by making an explicit reference to a 'final_value' column in the proc_observations table
-            # where the 'final_value' is indicated with a FALSE boolean value unless it is the last observation
-            # (last row insert) meaning that its value is changed to TRUE. A TRUE value trigger a data migration.
-            for x in proc_obs[:-1]:
-                a = x[0]
-                b = x[1]
-                c = x[2]
-                d = x[3]
-
-                mog = cur.mogrify(
-                    "(%s, %s, %s, %s, %s, %s)",
-                    (a, b, str(c), d, str(submission_id), "FALSE"),
-                )
-                cur.execute(
-                    "INSERT INTO proc_observations ("
-                    "date_time, variable_id, variable_value, submission_id, tag_id, final_value) VALUES "
-                    + mog.decode("utf-8")
-                )
+            s_time = time()
+            df = pd.DataFrame.from_records(
+                proc_obs[:-1],
+                columns=[
+                    "date_time",
+                    "variable_id",
+                    "variable_value",
+                    "submission_id",
+                    "tag_id",
+                    "final_value",
+                ],
+                # index=False,
+            )
+            logger.debug("DF Info: %s" % df.info)
+            logger.debug("DF Memory Usage: %s" % df.memory_usage(True))
+            # save dataframe to an in memory buffer
+            buffer = StringIO()
+            df.to_csv(buffer, header=False, index=False)
+            buffer.seek(0)
+            try:
+                cur.copy_from(buffer, "proc_observations", sep=",")
+            except (Exception, psycopg2.DatabaseError) as error:
+                logger.error("Error: %s" % error)
+                conn.rollback()
+                return 1
+            e_time = time()
+            logger.info(
+                "Successful copy of %s observations into 'proc_observations'."
+                " Executing 'data_migration' trigger. Elapsed time: %s"
+                % (str(len(proc_obs[:-1])), str(timedelta(seconds=(e_time - s_time))))
+            )
 
             # For the final value sensor reading we enter a 'final_value' of
             # TRUE to invoke the trigger function for migration.
-            x = proc_obs[-1]
-            a = x[0]
-            b = x[1]
-            c = x[2]
-            d = x[3]
+            s_time = time()
+            final_observation = proc_obs[-1]
+            date_time = final_observation[0]
+            variable_id = final_observation[1]
+            variable_value = final_observation[2]
+            submission_id = final_observation[3]
+            tag_id = final_observation[4]
 
             mog = cur.mogrify(
                 "(%s, %s, %s, %s, %s, %s)",
-                (a, b, str(c), d, str(submission_id), "TRUE"),
+                (
+                    date_time,
+                    variable_id,
+                    str(variable_value),
+                    submission_id,
+                    str(tag_id),
+                    "TRUE",
+                ),
             )
             cur.execute(
                 "INSERT INTO proc_observations ("
                 "date_time, variable_id, variable_value, submission_id, tag_id, final_value) VALUES "
                 + mog.decode("utf-8")
             )
-            # app.logger.info("Successfully staged INSERT into tagbase.proc_observations")
+            e_time = time()
+            logger.info(
+                "Successful data migration. Elapsed time: %s"
+                % str(timedelta(seconds=(e_time - s_time)))
+            )
 
     conn.commit()
 
@@ -205,8 +251,10 @@ def ingest_get(file, type=None):  # noqa: E501
     conn.close()
 
     end = time()
-    # app.logger.info(
-    # "Data file %s has been ingested into tagbase. Time took to ingest file: %s s" % (data, (end - start)))
+    logger.info(
+        "Data file %s successfully ingested into Tagbase DB. Total time: %s"
+        % (submission_filename, str(timedelta(seconds=(end - start))))
+    )
     return Ingest200.from_dict(
         {
             "code": "200",
@@ -217,27 +265,20 @@ def ingest_get(file, type=None):  # noqa: E501
     )
 
 
-def tz_aware(dt):
-    """Convenience function to determine whether a datetime
-    has been localized or not. If it has, tzinfo and utcoffset
-    information will be present.
-    """
-    if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
-        return False
-    elif dt.tzinfo is not None and dt.tzinfo.utcoffset(dt) is not None:
-        return True
-
-
-def ingest_post(type=None, etuff_body=None):  # noqa: E501
+def ingest_post(notes=None, type=None, version=None, etuff_body=None):  # noqa: E501
     """Post a local file and perform a ingest operation
 
     Post a local file and perform a ingest operation # noqa: E501
 
+    :param notes: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just  secondary solutionpositional meta/data)
+    :type notes: str
     :param type: Type of file to be ingested, defaults to &#39;etuff&#39;
     :type type: str
+    :param version: Version identifier for the eTUFF tag data file ingested.
+    :type version: str
     :param etuff_body:
     :type etuff_body: str
 
-    :rtype: Ingest200
+    :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
     """
     return "do some magic!"

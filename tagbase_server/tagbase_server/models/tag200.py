@@ -6,10 +6,10 @@ from datetime import date, datetime  # noqa: F401
 from typing import List, Dict  # noqa: F401
 
 from tagbase_server.models.base_model_ import Model
-from tagbase_server.models.tag200_tag import Tag200Tag
+from tagbase_server.models.tag200_tag_inner import Tag200TagInner
 from tagbase_server import util
 
-from tagbase_server.models.tag200_tag import Tag200Tag  # noqa: E501
+from tagbase_server.models.tag200_tag_inner import Tag200TagInner  # noqa: E501
 
 
 class Tag200(Model):
@@ -22,9 +22,9 @@ class Tag200(Model):
         """Tag200 - a model defined in OpenAPI
 
         :param tag: The tag of this Tag200.  # noqa: E501
-        :type tag: List[Tag200Tag]
+        :type tag: List[Tag200TagInner]
         """
-        self.openapi_types = {"tag": List[Tag200Tag]}
+        self.openapi_types = {"tag": List[Tag200TagInner]}
 
         self.attribute_map = {"tag": "tag"}
 
@@ -48,7 +48,7 @@ class Tag200(Model):
         List containing one or more submissions for a given tag  # noqa: E501
 
         :return: The tag of this Tag200.
-        :rtype: List[Tag200Tag]
+        :rtype: List[Tag200TagInner]
         """
         return self._tag
 
@@ -59,7 +59,7 @@ class Tag200(Model):
         List containing one or more submissions for a given tag  # noqa: E501
 
         :param tag: The tag of this Tag200.
-        :type tag: List[Tag200Tag]
+        :type tag: List[Tag200TagInner]
         """
 
         self._tag = tag

@@ -11,13 +11,14 @@ def get_tag(tag_id):  # noqa: E501
     :param tag_id: submission id for an existing tag
     :type tag_id:
 
-    :rtype: Tag200
+    :rtype: Union[Tag200, Tuple[Tag200, int], Tuple[Tag200, int, Dict[str, str]]
     """
     conn = connect()
     with conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT * FROM submission WHERE tag_id = %s ORDER BY tag_id", (tag_id,)
+                "SELECT * FROM submission WHERE tag_id = %s ORDER BY submission_id",
+                (tag_id,),
             )
             results = cur.fetchall()
             tags = []
@@ -29,6 +30,7 @@ def get_tag(tag_id):  # noqa: E501
                         "date_time": row[2],
                         "filename": row[3],
                         "version": row[4],
+                        "notes": row[5],
                     }
                 )
             return Tag200.from_dict({"tag": tags})
@@ -40,7 +42,7 @@ def list_tags():  # noqa: E501
     Get information about all tags # noqa: E501
 
 
-    :rtype: Tags200
+    :rtype: Union[Tags200, Tuple[Tags200, int], Tuple[Tags200, int, Dict[str, str]]
     """
     conn = connect()
     with conn:
