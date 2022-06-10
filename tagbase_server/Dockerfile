@@ -1,22 +1,16 @@
-FROM python:3-alpine
+FROM python:slim-buster
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 COPY requirements.txt /usr/src/app/
 
-RUN apk update && \
- apk upgrade && \
- apk add bash postgresql-libs && \
- apk add --update tzdata && \
- apk add --virtual .build-deps gcc musl-dev postgresql-dev && \
- python3 -m pip install -r requirements.txt --no-cache-dir && \
- apk --purge del .build-deps
+RUN apt update && \
+ apt -y upgrade && \
+ apt -y install bash gcc musl-dev  tzdata && \
+ python3 -m pip install -r requirements.txt --no-cache-dir
 
 RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
-#&& \ dpkg-reconfigure -f noninteractive tzdata
-
-RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY . /usr/src/app
 

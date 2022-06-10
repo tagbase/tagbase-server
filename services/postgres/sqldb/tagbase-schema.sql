@@ -55,7 +55,7 @@ ALTER TABLE data_histogram_bin_data OWNER TO tagbase;
 -- Name: TABLE data_histogram_bin_data; Type: COMMENT; Schema: public; Owner: tagbase
 --
 
-COMMENT ON TABLE data_histogram_bin_data IS 'Conatins the frequency for corresponding summary data binning schemes (migrated from proc_observations)';
+COMMENT ON TABLE data_histogram_bin_data IS 'Contains the frequency for corresponding summary data binning schemes (migrated from proc_observations)';
 
 
 --

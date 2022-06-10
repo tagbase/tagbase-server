@@ -14,7 +14,7 @@ tagbase_server/models/base_model_.py
 tagbase_server/models/ingest200.py
 tagbase_server/models/response500.py
 tagbase_server/models/tag200.py
-tagbase_server/models/tag200_tag.py
+tagbase_server/models/tag200_tag_inner.py
 tagbase_server/models/tags200.py
 tagbase_server/openapi/openapi.yaml
 tagbase_server/test/__init__.py

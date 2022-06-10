@@ -7,7 +7,7 @@
 
 CREATE ROLE tagbase WITH SUPERUSER LOGIN;
 
-CREATE DATABASE tagbase WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE = 'English_United States.1252' OWNER = 'tagbase';
+CREATE DATABASE tagbase WITH ENCODING = 'UTF8' OWNER = 'tagbase';
 
 ALTER USER tagbase PASSWORD 'tagbase';
 
@@ -53,7 +53,7 @@ ALTER TABLE data_histogram_bin_data OWNER TO postgres;
 -- Name: TABLE data_histogram_bin_data; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON TABLE data_histogram_bin_data IS 'Conatins the frequency for corresponding summary data binning schemes (migrated from proc_observations)';
+COMMENT ON TABLE data_histogram_bin_data IS 'Contains the frequency for corresponding summary data binning schemes (migrated from proc_observations)';
 
 
 --
@@ -109,7 +109,7 @@ COMMENT ON COLUMN data_histogram_bin_data.position_date_time IS 'Date/time stamp
 -- Name: COLUMN data_histogram_bin_data.variable_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_histogram_bin_data.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested.  The variable_id is based on observation or measurment variables listed in the observation_types table.  Note that records in this table are NOT expected to be equivalent to those in the variable_id column of the data_histogram_bin_info table';
+COMMENT ON COLUMN data_histogram_bin_data.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested.  The variable_id is based on observation or measurement variables listed in the observation_types table.  Note that records in this table are NOT expected to be equivalent to those in the variable_id column of the data_histogram_bin_info table';
 
 
 --
@@ -166,7 +166,7 @@ COMMENT ON COLUMN data_histogram_bin_info.max_value IS 'Value of maximum/upper b
 -- Name: COLUMN data_histogram_bin_info.variable_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_histogram_bin_info.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested.  The variable_id is based on observation or measurment variables listed in the observation_types table.  Note that records in this table are NOT expected to be equivalent to those in the variable_id column of the data_histogram_bin_data table';
+COMMENT ON COLUMN data_histogram_bin_info.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested.  The variable_id is based on observation or measurement variables listed in the observation_types table.  Note that records in this table are NOT expected to be equivalent to those in the variable_id column of the data_histogram_bin_data table';
 
 
 --
@@ -220,7 +220,7 @@ COMMENT ON COLUMN data_position.lon IS 'Longitude in decimal degrees of the posi
 -- Name: COLUMN data_position.lat_err; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_position.lat_err IS 'Error associated with the tag record Laitudiinal positional estimate';
+COMMENT ON COLUMN data_position.lat_err IS 'Error associated with the tag record Latitudinal positional estimate';
 
 
 --
@@ -257,7 +257,7 @@ https://www.argos-system.org/wp-content/uploads/2016/08/r363_9_argos_users_manua
 -- Name: COLUMN data_position.solution_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_position.solution_id IS 'Unique numeric identifier for a given tag geolocation dataset solution. solution_id=1 is assigned to the primary or approved solution. Incremented solution_id''s assigned to other postional dataset solutions for a given tag_id and submission_id';
+COMMENT ON COLUMN data_position.solution_id IS 'Unique numeric identifier for a given tag geolocation dataset solution. solution_id=1 is assigned to the primary or approved solution. Incremented solution_id''s assigned to other positional dataset solutions for a given tag_id and submission_id';
 
 
 --
@@ -302,7 +302,7 @@ COMMENT ON COLUMN data_profile.tag_id IS 'Unique numeric Tag ID associated with 
 -- Name: COLUMN data_profile.variable_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_profile.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested.  The variable_id is based on observation or measurment variables listed in the observation_types table';
+COMMENT ON COLUMN data_profile.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested.  The variable_id is based on observation or measurement variables listed in the observation_types table';
 
 
 --
@@ -353,7 +353,7 @@ ALTER TABLE data_time_series OWNER TO postgres;
 -- Name: TABLE data_time_series; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON TABLE data_time_series IS 'Contains the continuous measurement archival time series of tag geophysical measurments (migrated from proc_observations)';
+COMMENT ON TABLE data_time_series IS 'Contains the continuous measurement archival time series of tag geophysical measurements (migrated from proc_observations)';
 
 
 --
@@ -367,7 +367,7 @@ COMMENT ON COLUMN data_time_series.date_time IS 'Date/time stamp of the tag data
 -- Name: COLUMN data_time_series.variable_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_time_series.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested.  The variable_id is based on observation or measurment variables listed in the observation_types table';
+COMMENT ON COLUMN data_time_series.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested.  The variable_id is based on observation or measurement variables listed in the observation_types table';
 
 
 --
@@ -430,7 +430,7 @@ COMMENT ON COLUMN metadata.submission_id IS 'Unique numeric ID assigned upon sub
 -- Name: COLUMN metadata.attribute_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN metadata.attribute_id IS 'Unique numeric metadata atttribute ID based on the eTUFF metadata specification';
+COMMENT ON COLUMN metadata.attribute_id IS 'Unique numeric metadata attribute ID based on the eTUFF metadata specification';
 
 
 --
@@ -480,7 +480,7 @@ COMMENT ON COLUMN metadata_position.submission_id IS 'Unique numeric ID assigned
 -- Name: COLUMN metadata_position.attribute_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN metadata_position.attribute_id IS 'Unique numeric metadata atttribute ID based on the eTUFF metadata specification';
+COMMENT ON COLUMN metadata_position.attribute_id IS 'Unique numeric metadata attribute ID based on the eTUFF metadata specification';
 
 
 --
@@ -501,7 +501,7 @@ COMMENT ON COLUMN metadata_position.tag_id IS 'Unique numeric Tag ID associated 
 -- Name: COLUMN metadata_position.solution_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN metadata_position.solution_id IS 'Unique numeric identifier for a given tag geolocation dataset solution. solution_id=1 is assigned to the primary or approved solution. Incremented solution_id''s assigned to other postional dataset solutions for a given tag_id and submission_id';
+COMMENT ON COLUMN metadata_position.solution_id IS 'Unique numeric identifier for a given tag geolocation dataset solution. solution_id=1 is assigned to the primary or approved solution. Incremented solution_id''s assigned to other positional dataset solutions for a given tag_id and submission_id';
 
 
 --
@@ -533,7 +533,7 @@ COMMENT ON TABLE metadata_types IS 'Contains descriptive information on tag meta
 -- Name: COLUMN metadata_types.attribute_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN metadata_types.attribute_id IS 'Unique numeric metadata atttribute ID based on the eTUFF metadata specification';
+COMMENT ON COLUMN metadata_types.attribute_id IS 'Unique numeric metadata attribute ID based on the eTUFF metadata specification';
 
 
 --
@@ -582,7 +582,7 @@ COMMENT ON COLUMN metadata_types.comments IS 'Comments or notes relating to the 
 -- Name: COLUMN metadata_types.necessity; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN metadata_types.necessity IS 'Deisgnation of the metadata attribute as Required, Recommended, or Optional based on the eTUFF metadata specification';
+COMMENT ON COLUMN metadata_types.necessity IS 'Designation of the metadata attribute as Required, Recommended, or Optional based on the eTUFF metadata specification';
 
 
 --
@@ -713,7 +713,7 @@ COMMENT ON COLUMN proc_observations.date_time IS 'Date/time stamp of data record
 -- Name: COLUMN proc_observations.variable_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN proc_observations.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested.  The variable_id is based on observation or measurment variables listed in the observation_types table';
+COMMENT ON COLUMN proc_observations.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested.  The variable_id is based on observation or measurement variables listed in the observation_types table';
 
 
 --
@@ -753,7 +753,7 @@ CREATE TABLE submission (
     tag_id bigint NOT NULL,
     date_time timestamp(6) with time zone DEFAULT now() NOT NULL,
     filename character varying(255) NOT NULL,
-    version character varying(50),
+    version character varying(50) DEFAULT '1',
     notes text
 );
 
@@ -806,7 +806,7 @@ COMMENT ON COLUMN submission.version IS 'Version identifier for the eTUFF tag da
 -- Name: COLUMN submission.notes; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN submission.notes IS 'Free-form text field where details of submitted eTUFF file for ingest can be provided (eg. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just  secondary solutionpositional meta/data )';
+COMMENT ON COLUMN submission.notes IS 'Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just  secondary solutionpositional meta/data)';
 
 
 --
@@ -919,13 +919,13 @@ COPY metadata_position (submission_id, attribute_id, attribute_value, tag_id, so
 --
 
 COPY metadata_types (attribute_id, category, attribute_name, type, description, example, comments, necessity) FROM stdin;
-1	instrument	instrument_name	string	Append an identifer that is unique within your organization. This is essential if a device is recycled.	16P0100-Refurb2	Devices might be reused, so the serial number will be the same. The only way to distinguish is by providing a unique name for the recycled product. 	required
+1	instrument	instrument_name	string	Append an identifier that is unique within your organization. This is essential if a device is recycled.	16P0100-Refurb2	Devices might be reused, so the serial number will be the same. The only way to distinguish is by providing a unique name for the recycled product. 	required
 2	instrument	instrument_type	string	Type of instrument	archival, popup, satellite, acoustic tag, or acoustic receiver	Should be restricted to the examples provided.	required
 3	instrument	firmware	string	Version number of the firmware used to build the device	\N	\N	required
 4	instrument	manufacturer	string	Name of manufacturer	Wildlife Computers, Microwave Telemetry, Lotek Wireless, Desert Star Systems, CEFAS, StarOddi, Sea Mammal Research Unit, Vemco, Loggerhead Instruments, Biologging Solutions, Little Leonardo, Teleonics etc.	\N	required
 5	instrument	model	string	Model name	MiniPAT	\N	required
 6	instrument	owner_contact	string	Contact email/ telephone/ address	\N	\N	required
-7	instrument	person_owner	string	Researcher/ organization owning the device	\N	PI/scientist/organization is used interchargably here. But best to have a first-last name specified here.	required
+7	instrument	person_owner	string	Researcher/ organization owning the device	\N	PI/scientist/organization is used interchangeably here. But best to have a first-last name specified here.	required
 8	instrument	serial_number	string	Serial number	16P0100	\N	required
 9	instrument	date_shipment	string	Date (yyyy-mm-dd) of receiving the device from manufacturer	2017-07-11T18:24:23+00:00	The device can be fresh off the production line or refurnished with some parts replaced.	recommended
 10	instrument	project	string	Name or identifer for project/ grant number	\N	\N	recommended
@@ -943,21 +943,21 @@ COPY metadata_types (attribute_id, category, attribute_name, type, description, 
 106	programming	seconds_sampling	string	Sampling rate (seconds) for sensor sampling	15	For basic sensors,  e.g., pressure, temperature, light	recommended
 107	programming	seconds_writingdata	string	Time interval in seconds when sampled data are written to onboard storage memory	300	This specifies how frequent data will be stored, and subsequently available for download or summarizing.	recommended
 108	programming	seconds_sampling_highfreq	string	Sampling rate (seconds) for sensor sampling at a higher frequency	\N	For sensors that sample in Hertz (Hz),  e.g., accelerometer, magnetometer	optional
-200	attachment	attachment_method	string	Method used to put the tag on/ in the animal	tow, glue, suction, anchor, mount, implant, harness, backpack	Should be restricted to the examples provided. Tow includes tethered for popup or towed for satellite tags . Glue is using adhensive or epoxy. Mount is using screw, bolt, button, sleeve or backpack. Anchor is equivalent to applying a conventional tag or using a gun (air, spear etc.). Implant implies surgery, ingestion or insertion.	required
+200	attachment	attachment_method	string	Method used to put the tag on/ in the animal	tow, glue, suction, anchor, mount, implant, harness, backpack	Should be restricted to the examples provided. Tow includes tethered for popup or towed for satellite tags . Glue is using adhesive or epoxy. Mount is using screw, bolt, button, sleeve or backpack. Anchor is equivalent to applying a conventional tag or using a gun (air, spear etc.). Implant implies surgery, ingestion or insertion.	required
 201	attachment	anchor_depth_cm	string	How deep (centimeter) should the anchor be in the animal?	8	May be used for cetacean tagging.	recommended
-202	attachment	anchor_dimensions_mm	string	Dimensions (millimeter) as length, width, thichkness or diameter.	20 L x 14 W	Can be used loosely as size: small, medium and large.	recommended
+202	attachment	anchor_dimensions_mm	string	Dimensions (millimeter) as length, width, thickness or diameter.	20 L x 14 W	Can be used loosely as size: small, medium and large.	recommended
 203	attachment	anchor_material	string	Material of anchor	nylon, urethane, stainless steel, titanium	\N	recommended
 204	attachment	anchor_type	string	Type of anchor	Domeier, Wilton, Titanium	\N	recommended
 205	attachment	attachment_product	string	Brand name and/ product for attachment materials used	VetBond, Peel Ply, tesaÃƒâ€šÃ‚Â®	Brand and product name of suture, stainless steel wire, monofilament, bolt, tape, adhesive, epoxy, suction cup, air gun, speargun, pole, applicator and tip.	recommended
 206	attachment	mount_type	string	Type of mount	Fin, tail, carapacial ridge	\N	recommended
-207	attachment	release_method	string	Method to get a tag detached from the animal/ anchor	corrosive burn wire, oxidative/ explosive, galavanizing metal, acoustic release	\N	recommended
+207	attachment	release_method	string	Method to get a tag detached from the animal/ anchor	corrosive burn wire, oxidative/ explosive, galvanizing metal, acoustic release	\N	recommended
 208	attachment	tether_assembly	string	Materials and methods in constructing a tether	heat-shrink or silicon tubing	Use brand name and/ product when possible.	recommended
 209	attachment	tether_length_cm	string	End to end length (centimeter) of a tether	\N	\N	recommended
 210	attachment	tether_material	string	Tether material for a towed tag	stainless steel wire, monofilament	Use brand name and/ product when possible.	recommended
 211	attachment	anesthetic_product	string	Brand name and/ product of anesthesia used during the attachment	metomidate, Aqua-S	\N	optional
-212	attachment	antifouling_product	string	Brand name and/ product of antifoluling paint or coating applied 	PropSpeed	\N	optional
+212	attachment	antifouling_product	string	Brand name and/ product of antifouling paint or coating applied 	PropSpeed	\N	optional
 213	attachment	antiseptic_product	string	Brand name and/ product of antiseptic or sterilizing agent used during the attachment	Iodine, Cicatrin	\N	optional
-214	attachment	float_additional	string	Specify any additional floation used	\N	Float might be added to archival tags for external use.	optional
+214	attachment	float_additional	string	Specify any additional flotation used	\N	Float might be added to archival tags for external use.	optional
 215	attachment	release_forced	string	If a mechanical release is engaged at depth (too avoid crushing the tag), specify the mechanism and depth at which the release is engaged.	Wildlife Computers RD1800	\N	optional
 300	deployment	geospatial_lat_start	string	Latitude (decimal degree) of release/ deployment	\N	\N	required
 301	deployment	geospatial_lon_start	string	Longitude (decimal degree) of release/ deployment	\N	\N	required
@@ -966,7 +966,7 @@ COPY metadata_types (attribute_id, category, attribute_name, type, description, 
 304	deployment	location_capture	string	Name or standard identifer of location	\N	\N	recommended
 305	deployment	method_capture	string	Type of gear used to catch the animal	Longline, purse seine, troll, trawl, rod and reel, handline, set net, trap, gillnet, harpoon, hoop net, anesthesia, tangle net, dip net, vertical line entanglement (commercial fisheries, aquaculture, mooring), dredge, pound net/weir (for turtles)	\N	recommended
 306	deployment	baitlure_capture	string	Bait, chum, lure or decoy used	sardine	Use brand name and/ product when possible.	optional
-307	deployment	cruise_capture	string	Name or standard identifer of cruise	\N	\N	optional
+307	deployment	cruise_capture	string	Name or standard identifier of cruise	\N	\N	optional
 308	deployment	depth_m_capture	string	Depth (meters) at which the animal was caught	\N	Can use estimated depth from hook number on longline	optional
 309	deployment	flag_capture	string	The vesselÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢s country of registration	\N	\N	optional
 310	deployment	hook_capture	string	Type of hook used	18/0 circle	Use brand name and/ product when possible.	optional
@@ -976,9 +976,9 @@ COPY metadata_types (attribute_id, category, attribute_name, type, description, 
 314	deployment	school_capture	string	Type of school in which the animal was caught	Free school, log, anchored FAD, drifting FAD	Include FAD number if possible.	optional
 315	deployment	seastate_capture	string	World Meteorological Organization sea state code (0-9)	\N	Similar to Douglas Sea Scale 	optional
 316	deployment	set_float_capture	string	If caught on longline, include set number and float number	\N	It''s very unlikely to tag turtle, bird/ mammal off longline.	optional
-317	deployment	station_capture	string	Name or standard identifer of station	\N	\N	optional
-318	deployment	temp_degC_capture	string	Air or sea surface temperature (Celcius) when the animal was caught	\N	\N	optional
-319	deployment	vessel_capture	string	Name or standard identifer of vessel	\N	\N	optional
+317	deployment	station_capture	string	Name or standard identifier of station	\N	\N	optional
+318	deployment	temp_degC_capture	string	Air or sea surface temperature (Celsius) when the animal was caught	\N	\N	optional
+319	deployment	vessel_capture	string	Name or standard identifier of vessel	\N	\N	optional
 320	deployment	wind_knots_capture	string	Wind speed (knots) when the animal was caught	\N	\N	optional
 400	animal	condition_capture	string	Description of condition/ injury. Or specify scoring system and a score.	good	Can be generic: good, bad, gut hooked, eye hooked, bleeding. Scoring system fof fish/ shark:  reflex action mortality predictor (RAMP), Kerstetter''s lab ACES.  Measurement: Bioelectrical Impedance Analysis (BIA) gives phase angle and composition index. Fat: Distell Fatmeter	required
 401	animal	length_capture	string	Length of the animal	300	\N	required
@@ -986,7 +986,7 @@ COPY metadata_types (attribute_id, category, attribute_name, type, description, 
 403	animal	length_type_capture	string	Type of length measurement	 Curved fork length, Straight fork length, total length.  for turtle the standard measurements are Curved Carapace Length (CCL), Straight Carapace Length (SCL), Curved Carapace Width (CCW) and Straight Carapace Width (SCW), and researchers occasionally measure girth as well. 	May need to compile a list of types and abbreviations	required
 404	animal	length_unit_capture	string	Unit of length measurement	centimeter	May need to compile a list of types and abbreviations	required
 405	animal	platform	string	Common name(s) or FAO code for species name	\N	Refer to www.itis.gov or FAO species list	required
-406	animal	taxonomic_serial_number	string	Taxononomic Serial Number (TSN) from Integrated Taxonomic Information System	\N	https://www.itis.gov	required
+406	animal	taxonomic_serial_number	string	Taxonomic Serial Number (TSN) from Integrated Taxonomic Information System	\N	https://www.itis.gov	required
 500	animal	condition_recapture	string	Description of condition/ injury. Or specify scoring system and a score.	\N	Can be generic: good, bad, gut hooked, eye hooked, bleeding. Scoring system fof fish/ shark:  reflex action mortality predictor (RAMP), Kerstetter''s lab ACES.  Measurement: Bioelectrical Impedance Analysis (BIA) gives phase angle and composition index. Fat: Distell Fatmeter	recommended
 501	animal	fate_recapture	string	Fate of the animal upon recapture	harvested, released, tag and release, missing, unknown; observed/ photo ID	\N	recommended
 502	animal	length_method_recapture	string	Method used to obtain the measurement	measured Caliper, measured tape, estimated, calculated	Calculated means it's calculated from length-weight relationships or other conversions	recommended
@@ -1024,11 +1024,11 @@ COPY metadata_types (attribute_id, category, attribute_name, type, description, 
 604	end_of_mission	geospatial_lon_end	string	End longitude	\N	\N	required
 605	end_of_mission	locationclass_end	string	Argos location class for popup location or satellite transmission	\N	\N	recommended
 606	end_of_mission	datetime_death	string	If mortality occurs before end datetime, specify date time (yyyy-mm-dd hh:mm:ss)	2017-07-11T18:24:23+00:00	http://en.wikipedia.org/wiki/ISO_8601	optional
-700	recovery	location_recapture	string	Name or standard identifer of location	\N	\N	recommended
+700	recovery	location_recapture	string	Name or standard identifier of location	\N	\N	recommended
 701	recovery	method_recapture	string	Type of gear used to catch the animal	Longline, purse seine, troll, trawl, rod and reel, handline, set net, trap, gillnet, harpoon, hoop net, anesthesia, tangle net, dip net, vertical line entanglement (commercial fisheries, aquaculture, mooring), dredge, pound net/weir (for turtles)	\N	recommended
 702	recovery	person_recapture	string	Person responsible for the recapture	\N	Name of angler, observer, scientist, fisher, beach comber etc.	recommended
 703	recovery	baitlure_recapture	string	Bait, chum, lure or decoy used	\N	Use brand name and/ product when possible	optional
-704	recovery	cruise_recapture	string	Name or standard identifer of cruise	\N	\N	optional
+704	recovery	cruise_recapture	string	Name or standard identifier of cruise	\N	\N	optional
 705	recovery	depth_m_recapture	string	Depth (meters) at which the animal was caught	\N	Can use estimated depth from hook number on longline	optional
 706	recovery	flag_capture	string	The vesselÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢s country of registration	\N	\N	optional
 707	recovery	hook_recapture	string	Type of hook used	\N	Use brand name and/ product when possible.	optional
@@ -1037,12 +1037,12 @@ COPY metadata_types (attribute_id, category, attribute_name, type, description, 
 710	recovery	school_recapture	string	Type of school in which the animal was caught	Free school, log, anchored FAD, drifting FAD	Include FAD number if possible	optional
 711	recovery	seastate_recapture	string	World Meteorological Organization sea state code (0-9)	\N	Similar to Douglas Sea Scale 	optional
 712	recovery	set_float_recapture	string	If caught on longline, include set number and float number	\N	\N	optional
-713	recovery	station_recapture	string	Name or standard identifer of station	\N	\N	optional
-714	recovery	temp_degC_recapture	string	Air or sea surface temperature (Celcius) when the animal was caught	\N	\N	optional
-715	recovery	vessel_recapture	string	Name or standard identifer of vessel	\N	\N	optional
+713	recovery	station_recapture	string	Name or standard identifier of station	\N	\N	optional
+714	recovery	temp_degC_recapture	string	Air or sea surface temperature (Celsius) when the animal was caught	\N	\N	optional
+715	recovery	vessel_recapture	string	Name or standard identifier of vessel	\N	\N	optional
 716	recovery	wind_knots_recapture	string	Wind speed (knots) when the animal was caught	\N	\N	optional
 1000	waypoints	waypoints_source	string	State the source for waypoints	Argos, GPS, acoustic detections, manufacturer, modeled	Waypoints are 'points'" along the trajectory of the tagged animal between the start and end dates."	required
-1001	waypoints	geolocation_parameters	string	List of Geocorrection Parameters and associated values implemented. Comma seperated list in format ''parameter1:value'', ''parameter2:value'',..	eg. ''diffusion_coefficien:0.3'', ''satellite_sst'': https://podaac.jpl.nasa.gov/dataset/NCDC-L4LRblend-GLOB-AVHRR_OI'', ...	Assuming only 1 set of waypoints per tag data file.	recommended
+1001	waypoints	geolocation_parameters	string	List of Geocorrection Parameters and associated values implemented. Comma separated list in format ''parameter1:value'', ''parameter2:value'',..	eg. ''diffusion_coefficien:0.3'', ''satellite_sst'': https://podaac.jpl.nasa.gov/dataset/NCDC-L4LRblend-GLOB-AVHRR_OI'', ...	Assuming only 1 set of waypoints per tag data file.	recommended
 1002	waypoints	interpolation_method	string	None if no interpolation. Otherwise, specify method/ software used.	None, crawl, BÃƒÆ’Ã‚Â©zier curves, Hermite splines and cubic splines	\N	recommended
 1003	waypoints	interpolation_time	string	Specify the time interval for interpolation	0, 1 hour, gap filling	Use 0 for no interpolation or gap filling for data points without any coordinates.	recommended
 1004	waypoints	waypoints_method	string	If 'waypoints_source'" = '"modeled'"	 specify the method used to estimate the positions. Include citation/ reference/ url if available"	kftrack, ukfsst, trackit, tripEstimation, SSM, GPE3, Track & Loc, GeoLight, BASTrack, IKNOS	recommended
