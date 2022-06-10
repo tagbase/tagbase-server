@@ -17,7 +17,7 @@ class TestTagController(BaseTestCase):
             "Accept": "application/json",
         }
         response = self.client.open(
-            "/v0.5.0/tags/{tag_id}".format(tag_id=3), method="GET", headers=headers
+            "/v0.6.0/tags/{tag_id}".format(tag_id=3), method="GET", headers=headers
         )
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
@@ -29,7 +29,7 @@ class TestTagController(BaseTestCase):
         headers = {
             "Accept": "application/json",
         }
-        response = self.client.open("/v0.5.0/tags", method="GET", headers=headers)
+        response = self.client.open("/v0.6.0/tags", method="GET", headers=headers)
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
 
