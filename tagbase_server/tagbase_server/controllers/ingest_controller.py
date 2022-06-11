@@ -166,7 +166,7 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
                                     variable_id,
                                     tokens[2],
                                     submission_id,
-                                    str(submission_id)
+                                    str(submission_id),
                                 ]
                             )
 
@@ -190,13 +190,14 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
                     "variable_id",
                     "variable_value",
                     "submission_id",
-                    "tag_id"
+                    "tag_id",
                 ],
             )
             e_time = time()
             elapsed = timedelta(seconds=(e_time - s_time))
             logger.info(
-                "Built Pandas DF from %s records. Time elapsed: %s" % (str(len(proc_obs)), str(elapsed))
+                "Built Pandas DF from %s records. Time elapsed: %s"
+                % (str(len(proc_obs)), str(elapsed))
             )
             logger.debug("DF Info: %s" % df.info)
             logger.debug("DF Memory Usage: %s" % df.memory_usage(True))
@@ -209,14 +210,13 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
             e_time = time()
             elapsed = timedelta(seconds=(e_time - s_time))
             logger.info(
-                "Copied Pandas DF to StringIO memory buffer. Time elapsed: %s" % str(elapsed)
+                "Copied Pandas DF to StringIO memory buffer. Time elapsed: %s"
+                % str(elapsed)
             )
 
             # copy buffer to db
             s_time = time()
-            logger.info(
-                "Initiating memory buffer copy to 'proc_observations'..."
-            )
+            logger.info("Initiating memory buffer copy to 'proc_observations'...")
             try:
                 cur.copy_from(buffer, "proc_observations", sep=",")
             except (Exception, psycopg2.DatabaseError) as error:
@@ -229,7 +229,7 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
             logger.info(
                 "Successful copy of %s observations into 'proc_observations'."
                 " Elapsed time: %s. Average writes p/s: %s"
-                % (str(len_obs), str(elapsed), math.ceil(len_obs/elapsed.seconds))
+                % (str(len_obs), str(elapsed), math.ceil(len_obs / elapsed.seconds))
             )
 
     conn.commit()
