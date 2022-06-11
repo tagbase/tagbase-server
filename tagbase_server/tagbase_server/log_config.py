@@ -15,9 +15,9 @@ def create_logger():
 
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
-    s_handler = logging.StreamHandler()
-    s_handler.setFormatter(formatter)
-    logger.addHandler(s_handler)
+    # s_handler = logging.StreamHandler()
+    # s_handler.setFormatter(formatter)
+    # logger.addHandler(s_handler)
 
     rf_handler = RotatingFileHandler(
         f"./logs/{LOGGER_NAME}.log", mode="a", maxBytes=100000, backupCount=10

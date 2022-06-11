@@ -1,3 +1,4 @@
+import math
 import os
 import re
 import tempfile
@@ -142,7 +143,7 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
                                         (variable_name, tokens[4].strip()),
                                     )
                                     logger.info(
-                                        "Successfully staged INSERT into tagbase.proc_observations"
+                                        "Successfully staged INSERT into 'observation_types'"
                                     )
                                     cur.execute(
                                         "SELECT currval('observation_types_variable_id_seq')"
@@ -165,8 +166,7 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
                                     variable_id,
                                     tokens[2],
                                     submission_id,
-                                    str(submission_id),
-                                    "FALSE",
+                                    str(submission_id)
                                 ]
                             )
 
@@ -181,25 +181,42 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
                 )
             logger.debug("metadata: %s" % metadata)
 
+            # build pandas df
             s_time = time()
             df = pd.DataFrame.from_records(
-                proc_obs[:-1],
+                proc_obs,
                 columns=[
                     "date_time",
                     "variable_id",
                     "variable_value",
                     "submission_id",
-                    "tag_id",
-                    "final_value",
+                    "tag_id"
                 ],
-                # index=False,
+            )
+            e_time = time()
+            elapsed = timedelta(seconds=(e_time - s_time))
+            logger.info(
+                "Built Pandas DF from %s records. Time elapsed: %s" % (str(len(proc_obs)), str(elapsed))
             )
             logger.debug("DF Info: %s" % df.info)
             logger.debug("DF Memory Usage: %s" % df.memory_usage(True))
-            # save dataframe to an in memory buffer
+
+            # save dataframe to StringIO memory buffer
+            s_time = time()
             buffer = StringIO()
             df.to_csv(buffer, header=False, index=False)
             buffer.seek(0)
+            e_time = time()
+            elapsed = timedelta(seconds=(e_time - s_time))
+            logger.info(
+                "Copied Pandas DF to StringIO memory buffer. Time elapsed: %s" % str(elapsed)
+            )
+
+            # copy buffer to db
+            s_time = time()
+            logger.info(
+                "Initiating memory buffer copy to 'proc_observations'..."
+            )
             try:
                 cur.copy_from(buffer, "proc_observations", sep=",")
             except (Exception, psycopg2.DatabaseError) as error:
@@ -207,42 +224,12 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
                 conn.rollback()
                 return 1
             e_time = time()
+            len_obs = len(proc_obs)
+            elapsed = timedelta(seconds=(e_time - s_time))
             logger.info(
                 "Successful copy of %s observations into 'proc_observations'."
-                " Executing 'data_migration' trigger. Elapsed time: %s"
-                % (str(len(proc_obs[:-1])), str(timedelta(seconds=(e_time - s_time))))
-            )
-
-            # For the final value sensor reading we enter a 'final_value' of
-            # TRUE to invoke the trigger function for migration.
-            s_time = time()
-            final_observation = proc_obs[-1]
-            date_time = final_observation[0]
-            variable_id = final_observation[1]
-            variable_value = final_observation[2]
-            submission_id = final_observation[3]
-            tag_id = final_observation[4]
-
-            mog = cur.mogrify(
-                "(%s, %s, %s, %s, %s, %s)",
-                (
-                    date_time,
-                    variable_id,
-                    str(variable_value),
-                    submission_id,
-                    str(tag_id),
-                    "TRUE",
-                ),
-            )
-            cur.execute(
-                "INSERT INTO proc_observations ("
-                "date_time, variable_id, variable_value, submission_id, tag_id, final_value) VALUES "
-                + mog.decode("utf-8")
-            )
-            e_time = time()
-            logger.info(
-                "Successful data migration. Elapsed time: %s"
-                % str(timedelta(seconds=(e_time - s_time)))
+                " Elapsed time: %s. Average writes p/s: %s"
+                % (str(len_obs), str(elapsed), math.ceil(len_obs/elapsed.seconds))
             )
 
     conn.commit()
