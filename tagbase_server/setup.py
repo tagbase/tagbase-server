@@ -15,6 +15,7 @@ VERSION = "v0.6.0"
 
 REQUIRES = [
     "connexion[swagger-ui]==2.13.1",
+    "pandas>=1.4.2",
     "psycopg2-binary==2.9.3",
     "python_dateutil>=2.6.0",
     "pytz>=2021.3",
