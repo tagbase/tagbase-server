@@ -152,8 +152,8 @@ components:
       name: notes
       required: false
       schema:
-        maxLength: 100
-        minLength: 10
+        maxLength: 10000
+        minLength: 1
         pattern: ^(?!\s*$).+
         type: string
       style: form
@@ -177,7 +177,7 @@ components:
       name: version
       required: false
       schema:
-        maxLength: 100
+        maxLength: 10
         minLength: 1
         pattern: ^(?!\s*$).+
         type: string

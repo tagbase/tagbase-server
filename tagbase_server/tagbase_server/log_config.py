@@ -20,7 +20,7 @@ def create_logger():
     # logger.addHandler(s_handler)
 
     rf_handler = RotatingFileHandler(
-        f"./logs/{LOGGER_NAME}.log", mode="a", maxBytes=100000, backupCount=10
+        f"./logs/{LOGGER_NAME}_log.txt", mode="a", maxBytes=100000, backupCount=10
     )
     rf_handler.setFormatter(formatter)
     logger.addHandler(rf_handler)

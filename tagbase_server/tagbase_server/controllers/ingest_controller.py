@@ -16,7 +16,7 @@ from tagbase_server.models.ingest200 import Ingest200  # noqa: E501
 from tzlocal import get_localzone
 
 
-def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
+async def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
     """Get network accessible file and execute ingestion
 
     Get network accessible file and execute ingestion # noqa: E501
@@ -136,12 +136,20 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
                                 if row:
                                     variable_id = row[0]
                                 else:
-                                    # Log error if variable_name doesn't already exist in observation_types
-                                    cur.execute(
-                                        "INSERT INTO observation_types(variable_name, variable_units) VALUES (%s, %s) "
-                                        "ON CONFLICT (variable_name) DO NOTHING",
-                                        (variable_name, tokens[4].strip()),
-                                    )
+                                    try:
+                                        cur.execute(
+                                            "INSERT INTO observation_types("
+                                            "variable_name, variable_units) VALUES (%s, %s) "
+                                            "ON CONFLICT (variable_name) DO NOTHING",
+                                            (variable_name, tokens[4].strip()),
+                                        )
+                                    except (Exception, psycopg2.DatabaseError) as error:
+                                        logger.error(
+                                            "'variable_id' '%s' already exists in 'observation_types'."
+                                            % variable_name
+                                        )
+                                        conn.rollback()
+                                        return 1
                                     logger.info(
                                         "Successfully staged INSERT into 'observation_types'"
                                     )
@@ -252,7 +260,7 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
     )
 
 
-def ingest_post(notes=None, type=None, version=None, etuff_body=None):  # noqa: E501
+async def ingest_post(notes=None, type=None, version=None, etuff_body=None):  # noqa: E501
     """Post a local file and perform a ingest operation
 
     Post a local file and perform a ingest operation # noqa: E501
