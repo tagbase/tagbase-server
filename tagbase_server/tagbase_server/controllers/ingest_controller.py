@@ -16,7 +16,7 @@ from tagbase_server.models.ingest200 import Ingest200  # noqa: E501
 from tzlocal import get_localzone
 
 
-async def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
+def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
     """Get network accessible file and execute ingestion
 
     Get network accessible file and execute ingestion # noqa: E501
@@ -260,7 +260,7 @@ async def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
     )
 
 
-async def ingest_post(notes=None, type=None, version=None, etuff_body=None):  # noqa: E501
+def ingest_post(notes=None, type=None, version=None, etuff_body=None):  # noqa: E501
     """Post a local file and perform a ingest operation
 
     Post a local file and perform a ingest operation # noqa: E501

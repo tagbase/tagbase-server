@@ -4,7 +4,7 @@ import multiprocessing
 
 accesslog = "./logs/gunicorn_access_log.txt"
 bind = "0.0.0.0:5433"
-#capture_output = True
+# capture_output = True
 errorlog = "./logs/gunicorn_error_log.txt"
 loglevel = "info"
 threads = multiprocessing.cpu_count() * 2 + 1
