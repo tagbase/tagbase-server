@@ -45,8 +45,11 @@ class TestTagController(BaseTestCase):
             ("version", "2"),
         ]
         response = self.client.open(
-            "/v0.6.0/tags/{tag_id}/subs/{sub_id}".format(tag_id=3, sub_id=6), method="PUT", headers=headers,
-            query_string=query_string)
+            "/v0.6.0/tags/{tag_id}/subs/{sub_id}".format(tag_id=3, sub_id=6),
+            method="PUT",
+            headers=headers,
+            query_string=query_string,
+        )
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
 
