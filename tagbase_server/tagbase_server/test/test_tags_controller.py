@@ -32,6 +32,23 @@ class TestTagController(BaseTestCase):
         response = self.client.open("/v0.6.0/tags", method="GET", headers=headers)
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
+    def test_put_tags(self):
+        """Test case for list_tags
+
+        Update a tag
+        """
+        headers = {
+            "Accept": "application/json",
+        }
+        query_string = [
+            ("notes", "This is a test update for tag 3 submission 6"),
+            ("version", "2"),
+        ]
+        response = self.client.open(
+            "/v0.6.0/tags/{tag_id}/subs/{sub_id}".format(tag_id=3, sub_id=6), method="PUT", headers=headers,
+            query_string=query_string)
+        self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()
