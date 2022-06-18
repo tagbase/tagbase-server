@@ -20,7 +20,7 @@ servers:
 tags:
 - description: Ingestion operations.
   name: ingest
-- description: Operations for querying tags.
+- description: Tag Operations.
   name: tags
 paths:
   /ingest:
@@ -49,8 +49,8 @@ paths:
         name: notes
         required: false
         schema:
-          maxLength: 100
-          minLength: 10
+          maxLength: 10000
+          minLength: 1
           pattern: ^(?!\s*$).+
           type: string
         style: form
@@ -73,7 +73,7 @@ paths:
         required: false
         schema:
           default: "1"
-          maxLength: 100
+          maxLength: 10
           minLength: 1
           pattern: ^(?!\s*$).+
           type: string
@@ -108,8 +108,8 @@ paths:
         name: notes
         required: false
         schema:
-          maxLength: 100
-          minLength: 10
+          maxLength: 10000
+          minLength: 1
           pattern: ^(?!\s*$).+
           type: string
         style: form
@@ -132,7 +132,7 @@ paths:
         required: false
         schema:
           default: "1"
-          maxLength: 100
+          maxLength: 10
           minLength: 1
           pattern: ^(?!\s*$).+
           type: string
@@ -190,8 +190,8 @@ paths:
       description: Get information about an individual tag
       operationId: get_tag
       parameters:
-      - description: submission id for an existing tag
-        explode: false
+      - description: Existing tag id
+        explode: true
         in: path
         name: tag_id
         required: true
@@ -215,6 +215,70 @@ paths:
       tags:
       - tags
       x-openapi-router-controller: tagbase_server.controllers.tags_controller
+  /tags/{tag_id}/subs/{sub_id}:
+    put:
+      description: Update a tag submission
+      operationId: put_tag
+      parameters:
+      - description: "Free-form text field where details of submitted eTUFF file for\
+          \ ingest can be provided e.g. submitter name, etuff data contents (tag metadata\
+          \ and measurements + primary position data, or just  secondary solutionpositional\
+          \ meta/data)"
+        explode: true
+        in: query
+        name: notes
+        required: false
+        schema:
+          maxLength: 10000
+          minLength: 1
+          pattern: ^(?!\s*$).+
+          type: string
+        style: form
+      - description: Existing tag id
+        explode: true
+        in: path
+        name: tag_id
+        required: true
+        schema:
+          type: number
+        style: simple
+      - description: Existing submission id for an existing tag
+        explode: true
+        in: path
+        name: sub_id
+        required: true
+        schema:
+          type: number
+        style: simple
+      - description: Version identifier for the eTUFF tag data file ingested.
+        explode: true
+        in: query
+        name: version
+        required: false
+        schema:
+          default: "1"
+          maxLength: 10
+          minLength: 1
+          pattern: ^(?!\s*$).+
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagPut200'
+          description: A success message confirming ingestion.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response500'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Update the 'version' and/or 'notes' associated with a tag submission
+      tags:
+      - tags
+      x-openapi-router-controller: tagbase_server.controllers.tags_controller
 components:
   parameters:
     notes:
@@ -227,11 +291,29 @@ components:
       name: notes
       required: false
       schema:
-        maxLength: 100
-        minLength: 10
+        maxLength: 10000
+        minLength: 1
         pattern: ^(?!\s*$).+
         type: string
       style: form
+    subId:
+      description: Existing submission id for an existing tag
+      explode: true
+      in: path
+      name: sub_id
+      required: true
+      schema:
+        type: number
+      style: simple
+    tagId:
+      description: Existing tag id
+      explode: true
+      in: path
+      name: tag_id
+      required: true
+      schema:
+        type: number
+      style: simple
     type:
       description: "Type of file to be ingested, defaults to 'etuff'"
       explode: true
@@ -253,7 +335,7 @@ components:
       required: false
       schema:
         default: "1"
-        maxLength: 100
+        maxLength: 10
         minLength: 1
         pattern: ^(?!\s*$).+
         type: string
@@ -332,6 +414,22 @@ components:
             $ref: '#/components/schemas/Tag200_tag_inner'
           type: array
       title: Tag200
+      type: object
+    TagPut200:
+      description: HTTP 200 success response
+      example:
+        code: "200"
+        message: Tag '1' submission '5' successfully updated.
+      properties:
+        code:
+          description: HTTP status code
+          example: "200"
+          type: string
+        message:
+          description: A string detailing specifics of an HTTP operation
+          example: Tag '1' submission '5' successfully updated.
+          type: string
+      title: TagPut200
       type: object
     Tags200:
       description: Response detailing all unique tags available in TagbaseDB

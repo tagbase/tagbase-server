@@ -5,6 +5,7 @@ tox.ini
 git_push.sh
 test-requirements.txt
 setup.py
+pyproject.toml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
