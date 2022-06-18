@@ -18,6 +18,7 @@ REQUIRES = [
     "flask[async]==2.1.2",
     "gunicorn==20.1.0",
     "pandas>=1.4.2",
+    "parmap>=1.5.3",
     "patool>=1.12",
     "psycopg2-binary==2.9.3",
     "python_dateutil>=2.6.0",
