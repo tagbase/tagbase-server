@@ -1,8 +1,10 @@
+import logging
 import os
 import psycopg2
 
-from tagbase_server.__main__ import logger
 from tagbase_server.models.response500 import Response500  # noqa: E501
+
+logger = logging.getLogger(__name__)
 
 
 def connect():

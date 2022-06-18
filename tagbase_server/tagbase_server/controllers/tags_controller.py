@@ -1,4 +1,4 @@
-from tagbase_server.db_utils import connect
+from tagbase_server.utils.db_utils import connect
 
 from tagbase_server.models.tag200 import Tag200  # noqa: E501
 from tagbase_server.models.tag_put200 import TagPut200  # noqa: E501

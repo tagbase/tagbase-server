@@ -1,19 +1,21 @@
+import gzip
+import logging
 import math
-import os
-import re
+import shutil
 import tempfile
-from datetime import datetime as dt, timedelta
+from datetime import datetime as dt
 from io import StringIO
-from time import time
-from urllib.request import urlopen
+import time
 
 import pandas as pd
-import pytz
 import psycopg2.extras
-from tagbase_server.__main__ import logger
-from tagbase_server.db_utils import connect
+import pytz
 from tagbase_server.models.ingest200 import Ingest200  # noqa: E501
+from tagbase_server.utils.db_utils import connect
+from tagbase_server.utils.io_utils import process_get_input_data
 from tzlocal import get_localzone
+
+logger = logging.getLogger(__name__)
 
 
 def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
@@ -32,32 +34,8 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
 
     :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
     """
-    start = time()
-    variable_lookup = {}
-    # Check if file exists locally, if not download it to /tmp
-    data_file = file
-    local_data_file = data_file[
-        re.search(r"[file|ftp|http|https]://[^/]*", data_file).end() :
-    ]
-    logger.info("Locating %s" % local_data_file)
-    if os.path.isfile(local_data_file):
-        data_file = local_data_file
-    else:
-        # Download data file
-        filename = tempfile.TemporaryFile(
-            dir="/tmp/" + data_file[data_file.rindex("/") + 1 :], mode='"w+"'
-        )
-        response = urlopen(data_file)
-        chunk_size = 16 * 1024
-        with open(filename, "wb") as f:
-            while True:
-                chunk = response.read(chunk_size)
-                if not chunk:
-                    break
-                f.write(chunk)
-
-        data_file = filename
-    submission_filename = data_file[data_file.rindex("/") + 1 :]
+    start = time.perf_counter()
+    data_file, submission_filename = process_get_input_data(file)
 
     conn = connect()
     with conn:
@@ -74,7 +52,9 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
                     version,
                 ),
             )
-            logger.info("Successful INSERT into 'submission'")
+            logger.info(
+                "Successful INSERT of %s into 'submission' table.", submission_filename
+            )
             cur.execute("SELECT currval('submission_submission_id_seq')")
             submission_id = cur.fetchone()[0]
 
@@ -89,8 +69,10 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
 
             metadata = []
             proc_obs = []
+            s_time = time.perf_counter()
             with open(data_file, "rb") as data:
                 lines = [line.decode("utf-8", "ignore") for line in data.readlines()]
+                variable_lookup = {}
                 e_tag = False
                 for line in lines:
                     if line.startswith("//"):
@@ -109,16 +91,13 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
                             rows = cur.fetchall()
                             if len(rows) == 0:
                                 logger.warning(
-                                    "Unable to locate attribute_name = %s in metadata_types"
-                                    % tokens[0]
+                                    "Unable to locate attribute_name = %s in metadata_types",
+                                    tokens[0],
                                 )
-                                continue
                             else:
                                 str_submission_id = str(submission_id)
                                 str_row = str(rows[0][0])
-                                metadata.append(
-                                    (str_submission_id, str_row, tokens[1])
-                                )  # .replace('"', '')
+                                metadata.append((str_submission_id, str_row, tokens[1]))
                     else:
                         # Parse variable values
                         tokens = line.split(",")
@@ -145,8 +124,8 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
                                         )
                                     except (Exception, psycopg2.DatabaseError) as error:
                                         logger.error(
-                                            "'variable_id' '%s' already exists in 'observation_types'."
-                                            % variable_name
+                                            "'variable_id' %s already exists in 'observation_types'.",
+                                            variable_name,
                                         )
                                         conn.rollback()
                                         return 1
@@ -166,7 +145,10 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
                                     tokens[0], "%Y-%m-%d %H:%M:%S"
                                 ).astimezone(pytz.utc)
                             else:
-                                # row begins with an empty datetime string, ignore
+                                logger.warning(
+                                    "Row contains empty datetime skipping line: %s",
+                                    line,
+                                )
                                 continue
                             proc_obs.append(
                                 [
@@ -177,6 +159,14 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
                                     str(submission_id),
                                 ]
                             )
+            len_proc_obs = len(proc_obs)
+            e_time = time.perf_counter()
+            sub_elapsed = round(e_time - s_time, 2)
+            logger.info(
+                "Built raw 'proc_observations' data structure from %s observations in: %s second(s)",
+                len_proc_obs,
+                sub_elapsed,
+            )
 
             for x in metadata:
                 a = x[0]
@@ -187,10 +177,10 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
                     "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES "
                     + mog.decode("utf-8")
                 )
-            logger.debug("metadata: %s" % metadata)
+            logger.debug("metadata: %s", line)
 
             # build pandas df
-            s_time = time()
+            s_time = time.perf_counter()
             df = pd.DataFrame.from_records(
                 proc_obs,
                 columns=[
@@ -201,43 +191,45 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
                     "tag_id",
                 ],
             )
-            e_time = time()
-            elapsed = timedelta(seconds=(e_time - s_time))
+            e_time = time.perf_counter()
+            sub_elapsed = round(e_time - s_time, 2)
             logger.info(
-                "Built Pandas DF from %s records. Time elapsed: %s"
-                % (str(len(proc_obs)), str(elapsed))
+                "Built Pandas DF from %s records. Time elapsed: %s second(s)",
+                len_proc_obs,
+                sub_elapsed,
             )
-            logger.debug("DF Info: %s" % df.info)
-            logger.debug("DF Memory Usage: %s" % df.memory_usage(True))
+            logger.debug("DF Info: %s", df.info)
+            logger.debug("DF Memory Usage: %s", df.memory_usage(True))
 
             # save dataframe to StringIO memory buffer
-            s_time = time()
+            s_time = time.perf_counter()
             buffer = StringIO()
             df.to_csv(buffer, header=False, index=False)
             buffer.seek(0)
-            e_time = time()
-            elapsed = timedelta(seconds=(e_time - s_time))
+            e_time = time.perf_counter()
+            sub_elapsed = round(e_time - s_time, 2)
             logger.info(
-                "Copied Pandas DF to StringIO memory buffer. Time elapsed: %s"
-                % str(elapsed)
+                "Copied Pandas DF to StringIO memory buffer. Time elapsed: %s second(s)",
+                sub_elapsed,
             )
 
             # copy buffer to db
-            s_time = time()
+            s_time = time.perf_counter()
             logger.info("Initiating memory buffer copy to 'proc_observations'...")
             try:
                 cur.copy_from(buffer, "proc_observations", sep=",")
             except (Exception, psycopg2.DatabaseError) as error:
-                logger.error("Error: %s" % error)
+                logger.error("Error: %s", error)
                 conn.rollback()
                 return 1
-            e_time = time()
-            len_obs = len(proc_obs)
-            elapsed = timedelta(seconds=(e_time - s_time))
+            e_time = time.perf_counter()
+            sub_elapsed = round(e_time - s_time, 2)
             logger.info(
-                "Successful copy of %s observations into 'proc_observations'."
-                " Elapsed time: %s. Average writes p/s: %s"
-                % (str(len_obs), str(elapsed), math.ceil(len_obs / elapsed.seconds))
+                "Successful copy of %s observations into 'proc_observations'. "
+                "Elapsed time: %s second(s). Average writes p/s: %s",
+                len_proc_obs,
+                sub_elapsed,
+                math.ceil(len_proc_obs / sub_elapsed),
             )
 
     conn.commit()
@@ -245,15 +237,17 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
     cur.close()
     conn.close()
 
-    end = time()
+    finish = time.perf_counter()
+    elapsed = round(finish - start, 2)
     logger.info(
-        "Data file %s successfully ingested into Tagbase DB. Total time: %s"
-        % (submission_filename, str(timedelta(seconds=(end - start))))
+        "Data file %s successfully ingested into Tagbase DB. Total time: %s second(s)",
+        submission_filename,
+        elapsed,
     )
     return Ingest200.from_dict(
         {
             "code": "200",
-            "elapsed": str(timedelta(seconds=(end - start))),
+            "elapsed": elapsed,
             "message": "Data file %s successfully ingested into Tagbase DB."
             % submission_filename,
         }

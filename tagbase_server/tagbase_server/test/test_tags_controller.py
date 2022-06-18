@@ -11,7 +11,7 @@ class TestTagController(BaseTestCase):
     def test_get_tag(self):
         """Test case for get_tag
 
-        Get information about an individual tag
+        Get information about an individual tag. We expect HTTP 500.
         """
         headers = {
             "Accept": "application/json",
@@ -24,7 +24,7 @@ class TestTagController(BaseTestCase):
     def test_list_tags(self):
         """Test case for list_tags
 
-        Get information about all tags
+        Get information about all tags. We expect HTTP 500.
         """
         headers = {
             "Accept": "application/json",
@@ -32,10 +32,10 @@ class TestTagController(BaseTestCase):
         response = self.client.open("/v0.6.0/tags", method="GET", headers=headers)
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
-    def test_put_tags(self):
-        """Test case for list_tags
+    def test_put_tag(self):
+        """Test case for put_tag
 
-        Update a tag
+        Update a tag submission. We expect HTTP 500.
         """
         headers = {
             "Accept": "application/json",
