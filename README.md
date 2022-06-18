@@ -45,18 +45,13 @@ $ cd tagbase-server
 
 ### Deployment
 
-**N.B.** Due to the size of the input datasets we ingest into tagbase-server, it is essential that the container running the service has sufficient available memory (4GB should do the trick).
+**N.B.** Due to the size of the input datasets we ingest into tagbase-server, it is essential that the container running the service has sufficient available memory. **We advise 8GiB**.
 
-See this for Mac:
+[See this for Mac](https://docs.docker.com/docker-for-mac/#memory):
 
-https://docs.docker.com/docker-for-mac/#memory
+***MEMORY By default, Docker for Mac is set to use 2 GB runtime memory, allocated from the total available memory on your Mac. You can increase the RAM on the app to get faster performance by setting this number higher...***
 
-
-***MEMORY By default, Docker for Mac is set to use 2 GB runtime memory, allocated from the total available memory on your Mac. You can increase the RAM on the app to get faster performance by setting this number higher (for example to 3) or lower (to 1) if you want Docker for Mac to use less memory.***
-
-For Windows:
-
-https://docs.docker.com/docker-for-windows/#advanced
+[For Windows](https://docs.docker.com/docker-for-windows/#advanced):
 
 ***Memory - Change the amount of memory the Docker for Windows Linux VM uses***
 

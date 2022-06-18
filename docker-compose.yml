@@ -4,7 +4,8 @@ services:
     build:
       context: ./services/pgadmin4
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
@@ -21,6 +22,12 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     expose:
       - ${POSTGRES_PORT}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d tagbase -h postgres -U tagbase"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     ports:
       - ${POSTGRES_PORT}:${POSTGRES_PORT}
     restart: unless-stopped
@@ -30,14 +37,14 @@ services:
     build:
       context: ./tagbase_server
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_PORT=${POSTGRES_PORT}
     links:
       - postgres
-    mem_limit: 4000m
     ports:
       - "5433:5433"
     restart: unless-stopped

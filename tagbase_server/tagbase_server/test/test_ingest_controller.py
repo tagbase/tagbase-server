@@ -8,7 +8,7 @@ from tagbase_server.test import BaseTestCase
 class TestIngestController(BaseTestCase):
     """IngestController integration tests"""
 
-    def test_ingest_etuff_get_500(self):
+    def test_ingest_etuff_get(self):
         """Test case for ingest_etuff_get with absent PostgreSQL connection credentials.
         We expect HTTP 500.
 
