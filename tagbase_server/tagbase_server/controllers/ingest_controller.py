@@ -36,15 +36,22 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
         etuff_files.append(data_file)
     logger.info("etuff ingestion queue: %s", etuff_files)
     # if synchronous ingestion is desired then use parmap.map
-    result = parmap.map_async(process_etuff_file,
-                              etuff_files, notes=notes, version=version, pm_parallel=True, pm_processes=cpu_count())
+    result = parmap.map_async(
+        process_etuff_file,
+        etuff_files,
+        notes=notes,
+        version=version,
+        pm_parallel=True,
+        pm_processes=cpu_count(),
+    )
     finish = time.perf_counter()
     elapsed = round(finish - start, 2)
     return Ingest200.from_dict(
         {
             "code": "200",
             "elapsed": elapsed,
-            "message": "Asynchronously ingesting %s file(s) into Tagbase DB." % len(etuff_files),
+            "message": "Asynchronously ingesting %s file(s) into Tagbase DB."
+            % len(etuff_files),
         }
     )
 

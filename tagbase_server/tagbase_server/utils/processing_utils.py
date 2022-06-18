@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def process_etuff_file(file, notes=None, version=1):
     start = time.perf_counter()
-    submission_filename = file[file.rindex("/") + 1:]
+    submission_filename = file[file.rindex("/") + 1 :]
     logger.info(
         "Processing etuff file: %s",
         submission_filename,
@@ -47,9 +47,7 @@ def process_etuff_file(file, notes=None, version=1):
             proc_obs = []
             s_time = time.perf_counter()
             with open(file, "rb") as data:
-                lines = [
-                    line.decode("utf-8", "ignore") for line in data.readlines()
-                ]
+                lines = [line.decode("utf-8", "ignore") for line in data.readlines()]
                 variable_lookup = {}
                 e_tag = False
                 for line in lines:
@@ -75,9 +73,7 @@ def process_etuff_file(file, notes=None, version=1):
                             else:
                                 str_submission_id = str(submission_id)
                                 str_row = str(rows[0][0])
-                                metadata.append(
-                                    (str_submission_id, str_row, tokens[1])
-                                )
+                                metadata.append((str_submission_id, str_row, tokens[1]))
                     else:
                         # Parse variable values
                         tokens = line.split(",")
@@ -103,8 +99,8 @@ def process_etuff_file(file, notes=None, version=1):
                                             (variable_name, tokens[4].strip()),
                                         )
                                     except (
-                                            Exception,
-                                            psycopg2.DatabaseError,
+                                        Exception,
+                                        psycopg2.DatabaseError,
                                     ) as error:
                                         logger.error(
                                             "'variable_id' %s already exists in 'observation_types'.",
