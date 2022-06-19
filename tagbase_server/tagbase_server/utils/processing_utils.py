@@ -14,6 +14,24 @@ from tagbase_server.utils.db_utils import connect
 logger = logging.getLogger(__name__)
 
 
+def process_global_attributes(line, cur, submission_id, metadata):
+    tokens = line.strip()[1:].split(" = ")
+    cur.execute(
+        "SELECT attribute_id FROM metadata_types WHERE attribute_name = %s",
+        (tokens[0],),
+    )
+    rows = cur.fetchall()
+    if len(rows) == 0:
+        logger.warning(
+            "Unable to locate attribute_name = %s in metadata_types",
+            tokens[0],
+        )
+    else:
+        str_submission_id = str(submission_id)
+        str_row = str(rows[0][0])
+        metadata.append((str_submission_id, str_row, tokens[1]))
+
+
 def process_etuff_file(file, notes=None, version=1):
     start = time.perf_counter()
     submission_filename = file[file.rindex("/") + 1 :]
@@ -49,33 +67,13 @@ def process_etuff_file(file, notes=None, version=1):
             with open(file, "rb") as data:
                 lines = [line.decode("utf-8", "ignore") for line in data.readlines()]
                 variable_lookup = {}
-                e_tag = False
                 for line in lines:
                     if line.startswith("//"):
-                        if "e_tag" in line:
-                            e_tag = True
-                        else:
-                            e_tag = False
+                        continue
                     elif line.strip().startswith(":"):
-                        if e_tag:
-                            # Parse global attributes
-                            tokens = line.strip()[1:].split(" = ")
-                            cur.execute(
-                                "SELECT attribute_id FROM metadata_types WHERE attribute_name = %s",
-                                (tokens[0],),
-                            )
-                            rows = cur.fetchall()
-                            if len(rows) == 0:
-                                logger.warning(
-                                    "Unable to locate attribute_name = %s in metadata_types",
-                                    tokens[0],
-                                )
-                            else:
-                                str_submission_id = str(submission_id)
-                                str_row = str(rows[0][0])
-                                metadata.append((str_submission_id, str_row, tokens[1]))
+                        process_global_attributes(line, cur, submission_id, metadata)
                     else:
-                        # Parse variable values
+                        # Parse proc_observations
                         tokens = line.split(",")
                         tokens = [token.replace('"', "") for token in tokens]
                         if tokens:
@@ -156,7 +154,7 @@ def process_etuff_file(file, notes=None, version=1):
                     "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES "
                     + mog.decode("utf-8")
                 )
-            logger.debug("metadata: %s", line)
+            logger.debug("metadata: %s", metadata)
 
             # build pandas df
             s_time = time.perf_counter()
@@ -204,11 +202,11 @@ def process_etuff_file(file, notes=None, version=1):
             e_time = time.perf_counter()
             sub_elapsed = round(e_time - s_time, 2)
             logger.info(
-                "Successful copy of %s observations into 'proc_observations'. "
-                "Elapsed time: %s second(s). Average writes p/s: %s",
+                "Successful copy of %s observations into 'proc_observations' and execution of "
+                "'data_migration' TRIGGER. Elapsed time: %s second(s).",  # Average writes p/s: %s",
                 len_proc_obs,
                 sub_elapsed,
-                math.ceil(len_proc_obs / sub_elapsed),
+                # math.ceil(len_proc_obs / sub_elapsed),
             )
 
     conn.commit()
