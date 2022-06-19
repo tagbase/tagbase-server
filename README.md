@@ -76,7 +76,7 @@ You will see the services graciously shutdown.
 
 **N.B.** The URI's below may alternate between ***localhost*** and ***0.0.0.0*** depending on whether your workstation is Windows (localhost) or Linux/Mac (0.0.0.0)
 
-Navigate to [http://localhost:5433/v0.6.0/ui/](http://0.0.0.0:5433/v0.6.0/ui/)
+Navigate to [http://localhost:5433/v0.7.0/ui/](http://0.0.0.0:5433/v0.7.0/ui/)
 to see the tagbase-server UI running.
 **It will really help for you to read the API documentation provided in the Web Application.**
 Using the `/ingest/etuff` API, you can execute the following commands to initiate a primitive test
@@ -85,13 +85,13 @@ ingestion of some sample eTUFF-sailfish-117259.txt data present on the server.
 using curl...
 
 ```bash
-curl -X GET --header 'Accept: application/json' 'http://0.0.0.0:5433/v0.6.0/ingest?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt&type=etuff'
+curl -X GET --header 'Accept: application/json' 'http://0.0.0.0:5433/v0.7.0/ingest?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt&type=etuff'
 ```
 
 ...or using a Request URL
 
 ```bash
-http://0.0.0.0:5433/v0.6.0/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt&type=etuff
+http://0.0.0.0:5433/v0.7.0/ingest/etuff?granule_id=1234&file=file%3A%2F%2F%2Fusr%2Fsrc%2Fapp%2Fdata%2FeTUFF-sailfish-117259.txt&type=etuff
 ```
 
 **N.B.** The REST server is capable of ingesting data over `file`, `ftp`, `http` and `https` protocols.
