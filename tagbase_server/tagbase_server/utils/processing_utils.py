@@ -90,6 +90,7 @@ def process_etuff_file(file, notes=None, version=1):
                                     variable_id = row[0]
                                 else:
                                     try:
+                                        logger.info(variable_name, tokens.strip())
                                         cur.execute(
                                             "INSERT INTO observation_types("
                                             "variable_name, variable_units) VALUES (%s, %s) "
@@ -101,16 +102,15 @@ def process_etuff_file(file, notes=None, version=1):
                                         psycopg2.DatabaseError,
                                     ) as error:
                                         logger.error(
-                                            "'variable_id' %s already exists in 'observation_types'.",
+                                            "variable_id '%s' already exists in 'observation_types'. tokens:"
+                                            " '%s. \nerror: " % s,
                                             variable_name,
+                                            tokens,
+                                            error,
                                         )
                                         conn.rollback()
-                                        return 1
-                                    logger.info(
-                                        "Successfully staged INSERT into 'observation_types'"
-                                    )
                                     cur.execute(
-                                        "SELECT currval('observation_types_variable_id_seq')"
+                                        "SELECT nextval('observation_types_variable_id_seq')"
                                     )
                                     variable_id = cur.fetchone()[0]
                                 variable_lookup[variable_name] = variable_id
@@ -140,7 +140,7 @@ def process_etuff_file(file, notes=None, version=1):
             e_time = time.perf_counter()
             sub_elapsed = round(e_time - s_time, 2)
             logger.info(
-                "Built raw 'proc_observations' data structure from %s observations in: %s second(s)",
+                "Built raw  'proc_observations' data structure from %s observations in: %s second(s)",
                 len_proc_obs,
                 sub_elapsed,
             )
@@ -202,8 +202,9 @@ def process_etuff_file(file, notes=None, version=1):
             e_time = time.perf_counter()
             sub_elapsed = round(e_time - s_time, 2)
             logger.info(
-                "Successful copy of %s observations into 'proc_observations' and execution of "
+                "Successful copy of %s observations from %s into 'proc_observations' and execution of "
                 "'data_migration' TRIGGER. Elapsed time: %s second(s).",  # Average writes p/s: %s",
+                file,
                 len_proc_obs,
                 sub_elapsed,
                 # math.ceil(len_proc_obs / sub_elapsed),
