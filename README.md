@@ -16,7 +16,7 @@
 
 ## Overview
 
-[tagbase-server](https://github.com/tagbase/tagbase-server) is a data management web service for working with eTUFF [1](https://doi.org/10.6084/m9.figshare.10032848.v4) [2](https://doi.org/10.6084/m9.figshare.10159820.v1.0.0)) and [nc-eTAG](https://github.com/oceandatainterop/nc-eTAG/) files.
+[tagbase-server](https://github.com/tagbase/tagbase-server) is a data management web service for working with eTUFF [1](https://doi.org/10.6084/m9.figshare.10032848.v4) [2](https://doi.org/10.6084/m9.figshare.10159820.v1)) and [nc-eTAG](https://github.com/oceandatainterop/nc-eTAG/) files.
 
 tagbase-server facilitates ingestion operations via REST courtesy of the [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html).
 
