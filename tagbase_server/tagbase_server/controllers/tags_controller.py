@@ -100,7 +100,5 @@ def put_tag(tag_id, sub_id, notes=None, solution_id=None):  # noqa: E501
                     "UPDATE metadata_position SET solution_id = %s WHERE tag_id = %s AND submission_id = %s",
                     (solution_id, tag_id, sub_id),
                 )
-            message = (
-                f"Tag: '{int(tag_id)}' submission id: '{int(sub_id)}' successfully updated."
-            )
+            message = f"Tag: '{int(tag_id)}' submission id: '{int(sub_id)}' successfully updated."
             return TagPut200.from_dict({"code": "200", "message": message})
