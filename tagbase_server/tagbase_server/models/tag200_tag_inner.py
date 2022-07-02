@@ -20,9 +20,9 @@ class Tag200TagInner(Model):
         date_time=None,
         filename=None,
         notes=None,
+        solution_id=None,
         submission_id=None,
         tag_id=None,
-        version=None,
     ):  # noqa: E501
         """Tag200TagInner - a model defined in OpenAPI
 
@@ -32,37 +32,37 @@ class Tag200TagInner(Model):
         :type filename: str
         :param notes: The notes of this Tag200TagInner.  # noqa: E501
         :type notes: str
+        :param solution_id: The solution_id of this Tag200TagInner.  # noqa: E501
+        :type solution_id: int
         :param submission_id: The submission_id of this Tag200TagInner.  # noqa: E501
         :type submission_id: int
         :param tag_id: The tag_id of this Tag200TagInner.  # noqa: E501
         :type tag_id: int
-        :param version: The version of this Tag200TagInner.  # noqa: E501
-        :type version: str
         """
         self.openapi_types = {
             "date_time": str,
             "filename": str,
             "notes": str,
+            "solution_id": int,
             "submission_id": int,
             "tag_id": int,
-            "version": str,
         }
 
         self.attribute_map = {
             "date_time": "date_time",
             "filename": "filename",
             "notes": "notes",
+            "solution_id": "solution_id",
             "submission_id": "submission_id",
             "tag_id": "tag_id",
-            "version": "version",
         }
 
         self._date_time = date_time
         self._filename = filename
         self._notes = notes
+        self._solution_id = solution_id
         self._submission_id = submission_id
         self._tag_id = tag_id
-        self._version = version
 
     @classmethod
     def from_dict(cls, dikt) -> "Tag200TagInner":
@@ -145,6 +145,29 @@ class Tag200TagInner(Model):
         self._notes = notes
 
     @property
+    def solution_id(self):
+        """Gets the solution_id of this Tag200TagInner.
+
+        Unique numeric identifier for a given tag geolocation dataset solution. solution_id=1 is assigned to the primary or approved solution. Incremented solution_id's are assigned to other positional dataset solutions for a given tag_id and submission_id  # noqa: E501
+
+        :return: The solution_id of this Tag200TagInner.
+        :rtype: int
+        """
+        return self._solution_id
+
+    @solution_id.setter
+    def solution_id(self, solution_id):
+        """Sets the solution_id of this Tag200TagInner.
+
+        Unique numeric identifier for a given tag geolocation dataset solution. solution_id=1 is assigned to the primary or approved solution. Incremented solution_id's are assigned to other positional dataset solutions for a given tag_id and submission_id  # noqa: E501
+
+        :param solution_id: The solution_id of this Tag200TagInner.
+        :type solution_id: int
+        """
+
+        self._solution_id = solution_id
+
+    @property
     def submission_id(self):
         """Gets the submission_id of this Tag200TagInner.
 
@@ -189,26 +212,3 @@ class Tag200TagInner(Model):
         """
 
         self._tag_id = tag_id
-
-    @property
-    def version(self):
-        """Gets the version of this Tag200TagInner.
-
-        Version identifier for the eTUFF tag data file ingested  # noqa: E501
-
-        :return: The version of this Tag200TagInner.
-        :rtype: str
-        """
-        return self._version
-
-    @version.setter
-    def version(self, version):
-        """Sets the version of this Tag200TagInner.
-
-        Version identifier for the eTUFF tag data file ingested  # noqa: E501
-
-        :param version: The version of this Tag200TagInner.
-        :type version: str
-        """
-
-        self._version = version

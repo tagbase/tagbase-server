@@ -182,7 +182,7 @@ CREATE TABLE data_position (
     submission_id bigint NOT NULL,
     tag_id bigint NOT NULL,
     argos_location_class character varying(1),
-    solution_id integer NOT NULL DEFAULT '1'
+    solution_id integer NOT NULL DEFAULT 1
 );
 
 
@@ -456,7 +456,7 @@ CREATE TABLE metadata_position (
     attribute_id bigint NOT NULL,
     attribute_value text NOT NULL,
     tag_id bigint NOT NULL,
-    solution_id integer NOT NULL
+    solution_id integer NOT NULL DEFAULT 1
 );
 
 
@@ -752,7 +752,7 @@ CREATE TABLE submission (
     tag_id bigint NOT NULL,
     date_time timestamp(6) with time zone DEFAULT now() NOT NULL,
     filename character varying(255) NOT NULL,
-    version character varying(50) DEFAULT '1',
+    solution_id integer NOT NULL DEFAULT 1,
     notes text
 );
 
@@ -795,10 +795,10 @@ COMMENT ON COLUMN submission.filename IS 'Full name and extension of the ingeste
 
 
 --
--- Name: COLUMN submission.version; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN submission.solution_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN submission.version IS 'Version identifier for the eTUFF tag data file ingested';
+COMMENT ON COLUMN submission.solution_id IS 'Unique numeric identifier for a given tag geolocation dataset solution. solution_id=1 is assigned to the primary or approved solution. Incremented solution_id''s assigned to other positional dataset solutions for a given tag_id and submission_id';
 
 
 --
@@ -806,6 +806,23 @@ COMMENT ON COLUMN submission.version IS 'Version identifier for the eTUFF tag da
 --
 
 COMMENT ON COLUMN submission.notes IS 'Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just  secondary solutionpositional meta/data)';
+
+
+--
+-- Name: submission_solution_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE submission_solution_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE submission_solution_id_seq OWNER TO postgres;
+
+ALTER SEQUENCE submission_solution_id_seq OWNED BY submission.solution_id;
 
 
 --
@@ -842,6 +859,8 @@ CREATE SEQUENCE submission_tag_id_seq
 
 
 ALTER TABLE submission_tag_id_seq OWNER TO postgres;
+
+ALTER SEQUENCE submission_tag_id_seq OWNED BY submission.tag_id;
 
 --
 -- Name: observation_types variable_id; Type: DEFAULT; Schema: public; Owner: postgres

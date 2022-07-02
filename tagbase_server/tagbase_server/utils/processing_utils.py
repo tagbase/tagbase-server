@@ -32,7 +32,7 @@ def process_global_attributes(line, cur, submission_id, metadata):
         metadata.append((str_submission_id, str_row, tokens[1]))
 
 
-def process_etuff_file(file, notes=None, version=1):
+def process_etuff_file(file, solution_id, notes=None):
     start = time.perf_counter()
     submission_filename = file[file.rindex("/") + 1 :]
     logger.info(
@@ -43,15 +43,17 @@ def process_etuff_file(file, notes=None, version=1):
     with conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO submission (tag_id, filename, date_time, notes, version) "
+                "INSERT INTO submission (tag_id, filename, date_time, notes, solution_id) "
                 "VALUES ((SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) "
-                "FROM submission WHERE filename = %s), %s, %s, %s, %s)",
+                "FROM submission WHERE filename = %s), %s, %s, %s, "
+                "(SELECT COALESCE(MAX(solution_id), NEXTVAL('submission_solution_id_seq')) "
+                "FROM submission WHERE filename = %s))",
                 (
                     submission_filename,
                     submission_filename,
                     dt.now(tz=pytz.utc).astimezone(get_localzone()),
                     notes,
-                    version,
+                    solution_id,
                 ),
             )
             logger.info(
