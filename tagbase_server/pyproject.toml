@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "connexion[swagger-ui]==2.13.1",
+    "connexion[swagger-ui]==2.14.0",
     "flask[async]==2.1.2",
     "gunicorn==20.1.0",
     "pandas>=1.4.2",
