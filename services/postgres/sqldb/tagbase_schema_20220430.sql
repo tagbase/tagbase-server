@@ -182,7 +182,7 @@ CREATE TABLE data_position (
     submission_id bigint NOT NULL,
     tag_id bigint NOT NULL,
     argos_location_class character varying(1),
-    solution_id integer NOT NULL DEFAULT '1'
+    solution_id integer NOT NULL DEFAULT 1
 );
 
 
@@ -456,7 +456,7 @@ CREATE TABLE metadata_position (
     attribute_id bigint NOT NULL,
     attribute_value text NOT NULL,
     tag_id bigint NOT NULL,
-    solution_id integer NOT NULL
+    solution_id integer NOT NULL DEFAULT 1
 );
 
 
@@ -752,7 +752,7 @@ CREATE TABLE submission (
     tag_id bigint NOT NULL,
     date_time timestamp(6) with time zone DEFAULT now() NOT NULL,
     filename character varying(255) NOT NULL,
-    version character varying(50) DEFAULT '1',
+    solution_id integer NOT NULL DEFAULT 1,
     notes text
 );
 
@@ -795,10 +795,10 @@ COMMENT ON COLUMN submission.filename IS 'Full name and extension of the ingeste
 
 
 --
--- Name: COLUMN submission.version; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN submission.solution_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN submission.version IS 'Version identifier for the eTUFF tag data file ingested';
+COMMENT ON COLUMN submission.solution_id IS 'Unique numeric identifier for a given tag geolocation dataset solution. solution_id=1 is assigned to the primary or approved solution. Incremented solution_id''s assigned to other positional dataset solutions for a given tag_id and submission_id';
 
 
 --
@@ -842,6 +842,8 @@ CREATE SEQUENCE submission_tag_id_seq
 
 
 ALTER TABLE submission_tag_id_seq OWNER TO postgres;
+
+ALTER SEQUENCE submission_tag_id_seq OWNED BY submission.tag_id;
 
 --
 -- Name: observation_types variable_id; Type: DEFAULT; Schema: public; Owner: postgres
@@ -1287,7 +1289,7 @@ COPY proc_observations (date_time, variable_id, variable_value, submission_id, t
 -- Data for Name: submission; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY submission (submission_id, tag_id, date_time, filename, version, notes) FROM stdin;
+COPY submission (submission_id, tag_id, date_time, filename, solution_id, notes) FROM stdin;
 \.
 
 
@@ -1823,5 +1825,5 @@ ALTER TABLE ONLY proc_observations
      RETURN NULL;
    END;
  $BODY$ LANGUAGE plpgsql;
- CREATE TRIGGER data_migration AFTER INSERT ON proc_observations FOR EACH STATEMENT
+ CREATE TRIGGER data_migration AFTER INSERT OR UPDATE ON proc_observations FOR EACH STATEMENT
    EXECUTE PROCEDURE execute_data_migration();

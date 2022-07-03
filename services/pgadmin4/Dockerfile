@@ -1,3 +1,3 @@
-FROM dpage/pgadmin4:6.10
+FROM dpage/pgadmin4:6.11
 
 EXPOSE 5434
