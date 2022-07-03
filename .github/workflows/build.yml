@@ -26,7 +26,7 @@ jobs:
             lint-openapi --ruleset openapi.yaml
             exit $?
   sonarcloud:
-    name: SonarCloud Analysis
+    name: Tox Testing, Coverage and SonarCloud Analysis
     runs-on: ubuntu-latest
     strategy:
       matrix:
