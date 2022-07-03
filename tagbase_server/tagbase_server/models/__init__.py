@@ -10,3 +10,4 @@ from tagbase_server.models.tag200 import Tag200
 from tagbase_server.models.tag200_tag_inner import Tag200TagInner
 from tagbase_server.models.tag_put200 import TagPut200
 from tagbase_server.models.tags200 import Tags200
+from tagbase_server.models.tags200_tags_inner import Tags200TagsInner

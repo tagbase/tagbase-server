@@ -19,6 +19,7 @@ class Tag200TagInner(Model):
         self,
         date_time=None,
         filename=None,
+        metadata=None,
         notes=None,
         solution_id=None,
         submission_id=None,
@@ -30,6 +31,8 @@ class Tag200TagInner(Model):
         :type date_time: str
         :param filename: The filename of this Tag200TagInner.  # noqa: E501
         :type filename: str
+        :param metadata: The metadata of this Tag200TagInner.  # noqa: E501
+        :type metadata: Dict[str, str]
         :param notes: The notes of this Tag200TagInner.  # noqa: E501
         :type notes: str
         :param solution_id: The solution_id of this Tag200TagInner.  # noqa: E501
@@ -42,6 +45,7 @@ class Tag200TagInner(Model):
         self.openapi_types = {
             "date_time": str,
             "filename": str,
+            "metadata": Dict[str, str],
             "notes": str,
             "solution_id": int,
             "submission_id": int,
@@ -51,6 +55,7 @@ class Tag200TagInner(Model):
         self.attribute_map = {
             "date_time": "date_time",
             "filename": "filename",
+            "metadata": "metadata",
             "notes": "notes",
             "solution_id": "solution_id",
             "submission_id": "submission_id",
@@ -59,6 +64,7 @@ class Tag200TagInner(Model):
 
         self._date_time = date_time
         self._filename = filename
+        self._metadata = metadata
         self._notes = notes
         self._solution_id = solution_id
         self._submission_id = submission_id
@@ -120,6 +126,29 @@ class Tag200TagInner(Model):
         """
 
         self._filename = filename
+
+    @property
+    def metadata(self):
+        """Gets the metadata of this Tag200TagInner.
+
+        Contains the ingested tag metadata consistent with the eTUFF specification  # noqa: E501
+
+        :return: The metadata of this Tag200TagInner.
+        :rtype: Dict[str, str]
+        """
+        return self._metadata
+
+    @metadata.setter
+    def metadata(self, metadata):
+        """Sets the metadata of this Tag200TagInner.
+
+        Contains the ingested tag metadata consistent with the eTUFF specification  # noqa: E501
+
+        :param metadata: The metadata of this Tag200TagInner.
+        :type metadata: Dict[str, str]
+        """
+
+        self._metadata = metadata
 
     @property
     def notes(self):
