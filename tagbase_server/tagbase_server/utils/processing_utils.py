@@ -30,13 +30,13 @@ def process_global_attributes(
     rows = cur.fetchall()
     if len(rows) == 0:
         msg = (
-            f"@channel :warning: **{submission_filename}** _line:{line_counter}_ - "
-            f"Unable to locate attribute_name {tokens[0]} in 'metadata_types' table."
+            f"*{submission_filename}* _line:{line_counter}_ - "
+            f"Unable to locate attribute_name *{tokens[0]}* in _metadata_types_ table."
         )
 
         logger.warning(msg)
         try:
-            client.chat_postMessage(channel=slack_channel, text=msg)
+            client.chat_postMessage(channel=slack_channel, text="<!channel> :warning: " + msg)
         except SlackApiError as e:
             logger.error(e)
     else:
@@ -53,6 +53,7 @@ def process_etuff_file(file, solution_id, notes=None):
         submission_filename,
     )
     conn = connect()
+    conn.autocommit = True
     with conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -71,6 +72,7 @@ def process_etuff_file(file, solution_id, notes=None):
                 "Successful INSERT of '%s' into 'submission' table.",
                 submission_filename,
             )
+
             cur.execute("SELECT currval('submission_submission_id_seq')")
             submission_id = cur.fetchone()[0]
 
@@ -144,14 +146,15 @@ def process_etuff_file(file, solution_id, notes=None):
                                     tokens[0], "%Y-%m-%d %H:%M:%S"
                                 ).astimezone(pytz.utc)
                             else:
+                                stripped_line = line.strip('\n')
                                 msg = (
-                                    f"@channel :warning: **{submission_filename}** _line:{line_counter}_ - "
-                                    f"No datetime... skipping line: {line}"
+                                    f"*{submission_filename}* _line:{line_counter}_ - "
+                                    f"No datetime... skipping line: {stripped_line}"
                                 )
                                 logger.warning(msg)
                                 try:
                                     client.chat_postMessage(
-                                        channel=slack_channel, text=msg
+                                        channel=slack_channel, text="<!channel> :warning: " + msg
                                     )
                                 except SlackApiError as e:
                                     logger.error(e)
@@ -238,7 +241,7 @@ def process_etuff_file(file, solution_id, notes=None):
                 sub_elapsed,
             )
 
-    conn.commit()
+    # conn.commit()
 
     cur.close()
     conn.close()
