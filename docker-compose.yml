@@ -50,3 +50,5 @@ services:
     ports:
       - "5433:5433"
     restart: unless-stopped
+    volumes:
+      - ./logs:/usr/src/app/logs
