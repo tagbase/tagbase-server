@@ -1,4 +1,3 @@
-.dockerignore
 .gitignore
 .travis.yml
 README.md

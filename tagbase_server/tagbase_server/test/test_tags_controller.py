@@ -41,8 +41,8 @@ class TestTagController(BaseTestCase):
             "Accept": "application/json",
         }
         query_string = [
-            ("notes", "This is a test update for tag 3 submission 6"),
-            ("version", "2"),
+            ("notes", "This is a test update for tag: 3 submission: 6 solution_id: 2"),
+            ("solution_id", 2),
         ]
         response = self.client.open(
             "/v0.7.0/tags/{tag_id}/subs/{sub_id}".format(tag_id=3, sub_id=6),

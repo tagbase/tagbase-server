@@ -32,7 +32,7 @@ def process_global_attributes(line, cur, submission_id, metadata):
         metadata.append((str_submission_id, str_row, tokens[1]))
 
 
-def process_etuff_file(file, notes=None, version=1):
+def process_etuff_file(file, solution_id, notes=None):
     start = time.perf_counter()
     submission_filename = file[file.rindex("/") + 1 :]
     logger.info(
@@ -43,7 +43,7 @@ def process_etuff_file(file, notes=None, version=1):
     with conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO submission (tag_id, filename, date_time, notes, version) "
+                "INSERT INTO submission (tag_id, filename, date_time, notes, solution_id) "
                 "VALUES ((SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) "
                 "FROM submission WHERE filename = %s), %s, %s, %s, %s)",
                 (
@@ -51,11 +51,11 @@ def process_etuff_file(file, notes=None, version=1):
                     submission_filename,
                     dt.now(tz=pytz.utc).astimezone(get_localzone()),
                     notes,
-                    version,
+                    solution_id,
                 ),
             )
             logger.info(
-                "Successful INSERT of %s into 'submission' table.",
+                "Successful INSERT of '%s' into 'submission' table.",
                 submission_filename,
             )
             cur.execute("SELECT currval('submission_submission_id_seq')")
@@ -192,7 +192,9 @@ def process_etuff_file(file, notes=None, version=1):
 
             # copy buffer to db
             s_time = time.perf_counter()
-            logger.info("Initiating memory buffer copy to 'proc_observations'...")
+            logger.info(
+                "Copying memory buffer to 'proc_observations' and executing 'data_migration' TRIGGER."
+            )
             try:
                 cur.copy_from(buffer, "proc_observations", sep=",")
             except (Exception, psycopg2.DatabaseError) as error:
@@ -202,12 +204,9 @@ def process_etuff_file(file, notes=None, version=1):
             e_time = time.perf_counter()
             sub_elapsed = round(e_time - s_time, 2)
             logger.info(
-                "Successful copy of %s observations from %s into 'proc_observations' and execution of "
-                "'data_migration' TRIGGER. Elapsed time: %s second(s).",  # Average writes p/s: %s",
-                file,
+                "Successful migration of %s 'proc_observations'. Elapsed time: %s second(s).",
                 len_proc_obs,
                 sub_elapsed,
-                # math.ceil(len_proc_obs / sub_elapsed),
             )
 
     conn.commit()
