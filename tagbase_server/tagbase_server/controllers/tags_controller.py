@@ -34,7 +34,7 @@ def get_tag(tag_id):  # noqa: E501
                 )
                 meta_dict = {}
                 for md_row in cur.fetchall():
-                    meta_dict[md_row[0]] = md_row[1].strip('\"')
+                    meta_dict[md_row[0]] = md_row[1].strip('"')
                 tags.append(
                     {
                         "submission_id": row[0],
