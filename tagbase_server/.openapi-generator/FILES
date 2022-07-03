@@ -16,6 +16,7 @@ tagbase_server/models/tag200.py
 tagbase_server/models/tag200_tag_inner.py
 tagbase_server/models/tag_put200.py
 tagbase_server/models/tags200.py
+tagbase_server/models/tags200_tags_inner.py
 tagbase_server/openapi/openapi.yaml
 tagbase_server/test/__init__.py
 tagbase_server/typing_utils.py

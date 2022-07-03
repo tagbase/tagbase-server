@@ -6,7 +6,10 @@ from datetime import date, datetime  # noqa: F401
 from typing import List, Dict  # noqa: F401
 
 from tagbase_server.models.base_model_ import Model
+from tagbase_server.models.tags200_tags_inner import Tags200TagsInner
 from tagbase_server import util
+
+from tagbase_server.models.tags200_tags_inner import Tags200TagsInner  # noqa: E501
 
 
 class Tags200(Model):
@@ -15,20 +18,20 @@ class Tags200(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, count=None, tag_ids=None):  # noqa: E501
+    def __init__(self, count=None, tags=None):  # noqa: E501
         """Tags200 - a model defined in OpenAPI
 
         :param count: The count of this Tags200.  # noqa: E501
         :type count: int
-        :param tag_ids: The tag_ids of this Tags200.  # noqa: E501
-        :type tag_ids: List[Dict[str, int]]
+        :param tags: The tags of this Tags200.  # noqa: E501
+        :type tags: List[Tags200TagsInner]
         """
-        self.openapi_types = {"count": int, "tag_ids": List[Dict[str, int]]}
+        self.openapi_types = {"count": int, "tags": List[Tags200TagsInner]}
 
-        self.attribute_map = {"count": "count", "tag_ids": "tag_ids"}
+        self.attribute_map = {"count": "count", "tags": "tags"}
 
         self._count = count
-        self._tag_ids = tag_ids
+        self._tags = tags
 
     @classmethod
     def from_dict(cls, dikt) -> "Tags200":
@@ -65,24 +68,24 @@ class Tags200(Model):
         self._count = count
 
     @property
-    def tag_ids(self):
-        """Gets the tag_ids of this Tags200.
+    def tags(self):
+        """Gets the tags of this Tags200.
 
-        List of unique numeric Tag IDs  # noqa: E501
+        List of unique numeric Tag IDs and associated filename  # noqa: E501
 
-        :return: The tag_ids of this Tags200.
-        :rtype: List[Dict[str, int]]
+        :return: The tags of this Tags200.
+        :rtype: List[Tags200TagsInner]
         """
-        return self._tag_ids
+        return self._tags
 
-    @tag_ids.setter
-    def tag_ids(self, tag_ids):
-        """Sets the tag_ids of this Tags200.
+    @tags.setter
+    def tags(self, tags):
+        """Sets the tags of this Tags200.
 
-        List of unique numeric Tag IDs  # noqa: E501
+        List of unique numeric Tag IDs and associated filename  # noqa: E501
 
-        :param tag_ids: The tag_ids of this Tags200.
-        :type tag_ids: List[Dict[str, int]]
+        :param tags: The tags of this Tags200.
+        :type tags: List[Tags200TagsInner]
         """
 
-        self._tag_ids = tag_ids
+        self._tags = tags

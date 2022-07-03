@@ -16,7 +16,7 @@ info:
   version: v0.7.0
 servers:
 - description: Local development tagbase-server
-  url: https://0.0.0.0:5433/v0.7.0
+  url: http://0.0.0.0:5433/v0.7.0
 tags:
 - description: Ingestion operations.
   name: ingest
@@ -341,6 +341,11 @@ components:
         type: string
       style: form
   schemas:
+    filename:
+      description: Full name and extension of the ingested eTUFF tag data file
+      example: eTUFF-sailfish-117259_2.txt
+      title: filename
+      type: string
     Ingest200:
       description: HTTP 200 success response
       example:
@@ -396,12 +401,24 @@ components:
         tag:
         - date_time: 2022-04-01T04:58:21.319061+00:00
           filename: eTUFF-sailfish-117259_2.txt
+          metadata:
+            person_owner: John Do
+            owner_contect: john@do.net
+            manufacturer: telemetry inc.
+            model: new_gen
+            attachment_method: anchor
           notes: Ingested by admin on 2022-06-01 for Sailfish tagging campaign.
           submission_id: 5
           tag_id: 3
           solution_id: 1
         - date_time: 2022-04-01T05:39:46.896088+00:00
           filename: eTUFF-sailfish-117259_2.txt
+          metadata:
+            person_owner: Jane Do
+            owner_contect: jane@do.net
+            manufacturer: telemetry inc.
+            model: newer_gen
+            attachment_method: anchor
           notes: Ingested by admin on 2022-06-01 for solution_id 1 of the Sailfish
             tagging campaign.
           submission_id: 6
@@ -432,28 +449,23 @@ components:
       title: TagPut200
       type: object
     Tags200:
-      description: Response detailing all unique tags available in TagbaseDB
+      description: Response detailing all available unique tags and associated filename
       example:
         count: 2
-        tag_ids:
-        - 1
-        - 3
+        tags:
+        - tag_id: 1
+          filename: eTUFF-sailfish-117259_2.txt
+        - tag_id: 2
+          filename: eTUFF-sailfish-117259.txt
       properties:
         count:
           description: Total count of unique tags
           example: 2
           type: integer
-        tag_ids:
-          description: List of unique numeric Tag IDs
+        tags:
+          description: List of unique numeric Tag IDs and associated filename
           items:
-            additionalProperties:
-              type: integer
-            description: Unique numeric Tag ID associated with the ingested tag eTUFF
-              data file
-            example:
-            - 1
-            - 3
-            type: object
+            $ref: '#/components/schemas/Tags200_tags_inner'
           type: array
       title: Tags200
       type: object
@@ -469,6 +481,19 @@ components:
           example: eTUFF-sailfish-117259_2.txt
           title: filename
           type: string
+        metadata:
+          additionalProperties:
+            type: string
+          description: Contains the ingested tag metadata consistent with the eTUFF
+            specification
+          example:
+            person_owner: John Do
+            owner_contect: john@do.net
+            manufacturer: telemetry inc.
+            model: new_gen
+            attachment_method: anchor
+          title: metadata
+          type: object
         notes:
           description: "Free-form text field where details of submitted eTUFF file\
             \ for ingest can be provided e.g. submitter name, etuff data contents\
@@ -498,4 +523,22 @@ components:
           title: tag_id
           type: integer
       title: Tag200_tag_inner
+      type: object
+    Tags200_tags_inner:
+      description: Unique numeric Tag ID associated with the ingested tag eTUFF data
+        file
+      example:
+        tag_id: 1
+        filename: eTUFF-sailfish-117259_2.txt
+      properties:
+        tag_id:
+          description: Unique numeric Tag ID associated with the ingested tag data
+            file
+          example: 1
+          type: integer
+        filename:
+          description: Full name and extension of the ingested eTUFF tag data file
+          example: eTUFF-sailfish-117259.txt
+          type: string
+      title: Tags200_tags_inner
       type: object

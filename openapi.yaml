@@ -218,6 +218,11 @@ components:
         type: string
       style: form
   schemas:
+    filename:
+      description: Full name and extension of the ingested eTUFF tag data file
+      example: "eTUFF-sailfish-117259_2.txt"
+      title: filename
+      type: string
     Ingest200:
       description: HTTP 200 success response
       example:
@@ -273,12 +278,24 @@ components:
         tag:
         - date_time: '2022-04-01T04:58:21.319061+00:00'
           filename: 'eTUFF-sailfish-117259_2.txt'
+          metadata:
+            person_owner: John Do
+            owner_contect: john@do.net
+            manufacturer: telemetry inc.
+            model: new_gen
+            attachment_method: anchor
           notes: 'Ingested by admin on 2022-06-01 for Sailfish tagging campaign.'
           submission_id: 5
           tag_id: 3
           solution_id: 1
         - date_time: '2022-04-01T05:39:46.896088+00:00'
           filename: 'eTUFF-sailfish-117259_2.txt'
+          metadata:
+            person_owner: Jane Do
+            owner_contect: jane@do.net
+            manufacturer: telemetry inc.
+            model: newer_gen
+            attachment_method: anchor
           notes: 'Ingested by admin on 2022-06-01 for solution_id 1 of the Sailfish tagging campaign.'
           submission_id: 6
           tag_id: 3
@@ -296,9 +313,18 @@ components:
                 #pattern: '^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?$'
                 type: string
               filename:
-                description: Full name and extension of the ingested eTUFF tag data file
-                example: "eTUFF-sailfish-117259_2.txt"
-                type: string
+                $ref: '#/components/schemas/filename'
+              metadata:
+                description: Contains the ingested tag metadata consistent with the eTUFF specification
+                example:
+                  person_owner: John Do
+                  owner_contect: john@do.net
+                  manufacturer: telemetry inc.
+                  model: new_gen
+                  attachment_method: anchor
+                type: object
+                additionalProperties:
+                  type: string
               notes:
                 description: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solutionpositional meta/data)
                 example: "Ingested by admin on XXXX-XX-XX to back-process campaign XYZ."
@@ -335,26 +361,36 @@ components:
       title: TagPut200
       type: object
     Tags200:
-      description: Response detailing all unique tags available in TagbaseDB
+      description: Response detailing all available unique tags and associated filename
       example:
         count: 2
-        tag_ids:
-        - 1
-        - 3
+        tags:
+        - tag_id: 1
+          filename: eTUFF-sailfish-117259_2.txt
+        - tag_id: 2
+          filename: eTUFF-sailfish-117259.txt
       properties:
         count:
           description: Total count of unique tags
           example: 2
           type: integer
-        tag_ids:
-          description: List of unique numeric Tag IDs
+        tags:
+          description: List of unique numeric Tag IDs and associated filename
           type: array
           items:
             description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
             example:
-            - 1
-            - 3
-            additionalProperties:
-              type: integer
+              tag_id: 1
+              filename: eTUFF-sailfish-117259_2.txt
+            properties:
+              tag_id:
+                description: Unique numeric Tag ID associated with the ingested tag data file
+                example: 1
+                type: integer
+              filename:
+                description: Full name and extension of the ingested eTUFF tag data file
+                example: eTUFF-sailfish-117259.txt
+                type: string
+            type: object
       title: Tags200
       type: object
