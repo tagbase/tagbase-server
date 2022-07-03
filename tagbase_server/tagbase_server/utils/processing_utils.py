@@ -36,7 +36,9 @@ def process_global_attributes(
 
         logger.warning(msg)
         try:
-            client.chat_postMessage(channel=slack_channel, text="<!channel> :warning: " + msg)
+            client.chat_postMessage(
+                channel=slack_channel, text="<!channel> :warning: " + msg
+            )
         except SlackApiError as e:
             logger.error(e)
     else:
@@ -146,7 +148,7 @@ def process_etuff_file(file, solution_id, notes=None):
                                     tokens[0], "%Y-%m-%d %H:%M:%S"
                                 ).astimezone(pytz.utc)
                             else:
-                                stripped_line = line.strip('\n')
+                                stripped_line = line.strip("\n")
                                 msg = (
                                     f"*{submission_filename}* _line:{line_counter}_ - "
                                     f"No datetime... skipping line: {stripped_line}"
@@ -154,7 +156,8 @@ def process_etuff_file(file, solution_id, notes=None):
                                 logger.warning(msg)
                                 try:
                                     client.chat_postMessage(
-                                        channel=slack_channel, text="<!channel> :warning: " + msg
+                                        channel=slack_channel,
+                                        text="<!channel> :warning: " + msg,
                                     )
                                 except SlackApiError as e:
                                     logger.error(e)
