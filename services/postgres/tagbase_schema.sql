@@ -182,7 +182,8 @@ CREATE TABLE data_position (
     submission_id bigint NOT NULL,
     tag_id bigint NOT NULL,
     argos_location_class character varying(1),
-    solution_id integer NOT NULL DEFAULT 1
+    solution_id integer NOT NULL DEFAULT 1,
+    flag_as_reference boolean NOT NULL
 );
 
 
@@ -259,6 +260,12 @@ https://www.argos-system.org/wp-content/uploads/2016/08/r363_9_argos_users_manua
 
 COMMENT ON COLUMN data_position.solution_id IS 'Unique numeric identifier for a given tag geolocation dataset solution. solution_id=1 is assigned to the primary or approved solution. Incremented solution_id''s assigned to other positional dataset solutions for a given tag_id and submission_id';
 
+
+--
+-- Name: COLUMN data_position.flag_as_reference; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN data_position.flag_as_reference IS 'Boolean flag field which identifies whether positional data associated with a given Tag and Track solution are considered to be coordinates of the "Reference" track (ie. best solution currently). Coordinate record takes True if it is part of the Reference track or False if it is not.';
 
 --
 -- Name: data_profile; Type: TABLE; Schema: public; Owner: postgres
@@ -751,7 +758,7 @@ CREATE TABLE submission (
     submission_id bigint NOT NULL,
     tag_id bigint NOT NULL,
     date_time timestamp(6) with time zone DEFAULT now() NOT NULL,
-    filename character varying(255) NOT NULL,
+    filename text NOT NULL,
     solution_id integer NOT NULL DEFAULT 1,
     notes text
 );
@@ -791,7 +798,7 @@ COMMENT ON COLUMN submission.date_time IS 'Local datetime stamp at the time of e
 -- Name: COLUMN submission.filename; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN submission.filename IS 'Full name and extension of the ingested eTUFF tag data file';
+COMMENT ON COLUMN submission.filename IS 'Full path, name and extension of the ingested eTUFF tag data file';
 
 
 --
