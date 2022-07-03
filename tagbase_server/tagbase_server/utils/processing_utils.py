@@ -14,8 +14,8 @@ from tzlocal import get_localzone
 from tagbase_server.utils.db_utils import connect
 
 logger = logging.getLogger(__name__)
-slack_token = os.environ["SLACK_BOT_TOKEN"]
-slack_channel = os.environ["SLACK_BOT_CHANNEL"]
+slack_token = os.environ.get["SLACK_BOT_TOKEN", ""]
+slack_channel = os.environ.get["SLACK_BOT_CHANNEL", "tagbase-server"]
 client = WebClient(token=slack_token)
 
 
