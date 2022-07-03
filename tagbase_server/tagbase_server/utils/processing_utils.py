@@ -1,5 +1,5 @@
+import os
 import logging
-import math
 from datetime import datetime as dt
 from io import StringIO
 import time
@@ -7,14 +7,21 @@ import time
 import pandas as pd
 import psycopg2.extras
 import pytz
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 from tzlocal import get_localzone
 
 from tagbase_server.utils.db_utils import connect
 
 logger = logging.getLogger(__name__)
+slack_token = os.environ["SLACK_BOT_TOKEN"]
+slack_channel = os.environ["SLACK_BOT_CHANNEL"]
+client = WebClient(token=slack_token)
 
 
-def process_global_attributes(line, cur, submission_id, metadata):
+def process_global_attributes(
+    line, cur, submission_id, metadata, submission_filename, line_counter
+):
     tokens = line.strip()[1:].split(" = ")
     cur.execute(
         "SELECT attribute_id FROM metadata_types WHERE attribute_name = %s",
@@ -22,10 +29,16 @@ def process_global_attributes(line, cur, submission_id, metadata):
     )
     rows = cur.fetchall()
     if len(rows) == 0:
-        logger.warning(
-            "Unable to locate attribute_name = %s in metadata_types",
-            tokens[0],
+        msg = (
+            f"@channel :warning: **{submission_filename}** _line:{line_counter}_ - "
+            f"Unable to locate attribute_name {tokens[0]} in 'metadata_types' table."
         )
+
+        logger.warning(msg)
+        try:
+            client.chat_postMessage(channel=slack_channel, text=msg)
+        except SlackApiError as e:
+            logger.error(e)
     else:
         str_submission_id = str(submission_id)
         str_row = str(rows[0][0])
@@ -67,11 +80,20 @@ def process_etuff_file(file, solution_id, notes=None):
             with open(file, "rb") as data:
                 lines = [line.decode("utf-8", "ignore") for line in data.readlines()]
                 variable_lookup = {}
+                line_counter = 0
                 for line in lines:
+                    line_counter += 1
                     if line.startswith("//"):
                         continue
                     elif line.strip().startswith(":"):
-                        process_global_attributes(line, cur, submission_id, metadata)
+                        process_global_attributes(
+                            line,
+                            cur,
+                            submission_id,
+                            metadata,
+                            submission_filename,
+                            line_counter,
+                        )
                     else:
                         # Parse proc_observations
                         tokens = line.split(",")
@@ -122,10 +144,17 @@ def process_etuff_file(file, solution_id, notes=None):
                                     tokens[0], "%Y-%m-%d %H:%M:%S"
                                 ).astimezone(pytz.utc)
                             else:
-                                logger.warning(
-                                    "Row contains empty datetime skipping line: %s",
-                                    line,
+                                msg = (
+                                    f"@channel :warning: **{submission_filename}** _line:{line_counter}_ - "
+                                    f"No datetime... skipping line: {line}"
                                 )
+                                logger.warning(msg)
+                                try:
+                                    client.chat_postMessage(
+                                        channel=slack_channel, text=msg
+                                    )
+                                except SlackApiError as e:
+                                    logger.error(e)
                                 continue
                             proc_obs.append(
                                 [
@@ -140,7 +169,7 @@ def process_etuff_file(file, solution_id, notes=None):
             e_time = time.perf_counter()
             sub_elapsed = round(e_time - s_time, 2)
             logger.info(
-                "Built raw  'proc_observations' data structure from %s observations in: %s second(s)",
+                "Built raw 'proc_observations' data structure from %s observations in: %s second(s)",
                 len_proc_obs,
                 sub_elapsed,
             )
