@@ -3,6 +3,10 @@ from tagbase_server.utils.db_utils import connect
 from tagbase_server.models.tag200 import Tag200  # noqa: E501
 from tagbase_server.models.tag_put200 import TagPut200  # noqa: E501
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def get_tag(tag_id):  # noqa: E501
     """Get information about an individual tag
@@ -24,6 +28,13 @@ def get_tag(tag_id):  # noqa: E501
             results = cur.fetchall()
             tags = []
             for row in results:
+                cur.execute(
+                    "SELECT mt.attribute_name, md.attribute_value FROM metadata_types mt, metadata md "
+                    "WHERE md.attribute_id = mt.attribute_id;"
+                )
+                meta_dict = {}
+                for md_row in cur.fetchall():
+                    meta_dict[md_row[0]] = md_row[1].strip('"')
                 tags.append(
                     {
                         "submission_id": row[0],
@@ -32,6 +43,7 @@ def get_tag(tag_id):  # noqa: E501
                         "filename": row[3],
                         "solution_id": row[4],
                         "notes": row[5],
+                        "metadata": meta_dict,
                     }
                 )
             return Tag200.from_dict({"tag": tags})
@@ -49,16 +61,16 @@ def list_tags():  # noqa: E501
     with conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT DISTINCT tag_id FROM submission ORDER BY tag_id",
+                "SELECT DISTINCT tag_id, filename FROM submission ORDER BY tag_id",
             )
             tags = []
             for tag in cur.fetchall():
-                tags.append(tag[0])
+                tags.append({"tag_id": tag[0], "filename": tag[1]})
             cur.execute(
                 "SELECT COUNT(DISTINCT tag_id) FROM submission",
             )
             count = cur.fetchone()[0]
-            return {"count": count, "tag_ids": tags}
+            return {"count": count, "tags": tags}
 
 
 def put_tag(tag_id, sub_id, notes=None, solution_id=None):  # noqa: E501
