@@ -11,7 +11,7 @@ from tagbase_server.utils.processing_utils import process_etuff_file
 logger = logging.getLogger(__name__)
 
 
-def ingest_get(file, notes=None, solution_id=None, type=None):  # noqa: E501
+async def ingest_get(file, notes=None, solution_id=None, type=None):  # noqa: E501
     """Get network accessible file and execute ingestion
 
     Get network accessible file and execute ingestion # noqa: E501
