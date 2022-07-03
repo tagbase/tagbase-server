@@ -33,7 +33,7 @@ app.app.json_encoder = encoder.JSONEncoder
 app.add_api(
     "openapi.yaml",
     arguments={"title": "tagbase-server API"},
-    #base_path='api',
+    # base_path='api',
     pythonic_params=True,
     strict_validation=True,
 )

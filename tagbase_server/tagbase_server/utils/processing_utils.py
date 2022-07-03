@@ -192,7 +192,9 @@ def process_etuff_file(file, solution_id, notes=None):
 
             # copy buffer to db
             s_time = time.perf_counter()
-            logger.info("Copying memory buffer to 'proc_observations' and executing 'data_migration' TRIGGER.")
+            logger.info(
+                "Copying memory buffer to 'proc_observations' and executing 'data_migration' TRIGGER."
+            )
             try:
                 cur.copy_from(buffer, "proc_observations", sep=",")
             except (Exception, psycopg2.DatabaseError) as error:
