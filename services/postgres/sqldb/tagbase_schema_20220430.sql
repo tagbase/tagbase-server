@@ -809,23 +809,6 @@ COMMENT ON COLUMN submission.notes IS 'Free-form text field where details of sub
 
 
 --
--- Name: submission_solution_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE submission_solution_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE submission_solution_id_seq OWNER TO postgres;
-
-ALTER SEQUENCE submission_solution_id_seq OWNED BY submission.solution_id;
-
-
---
 -- Name: submission_submission_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1306,7 +1289,7 @@ COPY proc_observations (date_time, variable_id, variable_value, submission_id, t
 -- Data for Name: submission; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY submission (submission_id, tag_id, date_time, filename, version, notes) FROM stdin;
+COPY submission (submission_id, tag_id, date_time, filename, solution_id, notes) FROM stdin;
 \.
 
 
@@ -1842,5 +1825,5 @@ ALTER TABLE ONLY proc_observations
      RETURN NULL;
    END;
  $BODY$ LANGUAGE plpgsql;
- CREATE TRIGGER data_migration AFTER INSERT ON proc_observations FOR EACH STATEMENT
+ CREATE TRIGGER data_migration AFTER INSERT OR UPDATE ON proc_observations FOR EACH STATEMENT
    EXECUTE PROCEDURE execute_data_migration();

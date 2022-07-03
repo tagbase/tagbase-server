@@ -28,11 +28,12 @@ rf_handler = RotatingFileHandler(
 rf_handler.setFormatter(formatter)
 logger.addHandler(rf_handler)
 
-app = connexion.App(__name__, specification_dir="openapi/")
+app = connexion.App(__name__, specification_dir="./openapi/")
 app.app.json_encoder = encoder.JSONEncoder
 app.add_api(
     "openapi.yaml",
     arguments={"title": "tagbase-server API"},
+    #base_path='api',
     pythonic_params=True,
     strict_validation=True,
 )

@@ -45,9 +45,7 @@ def process_etuff_file(file, solution_id, notes=None):
             cur.execute(
                 "INSERT INTO submission (tag_id, filename, date_time, notes, solution_id) "
                 "VALUES ((SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) "
-                "FROM submission WHERE filename = %s), %s, %s, %s, "
-                "(SELECT COALESCE(MAX(solution_id), NEXTVAL('submission_solution_id_seq')) "
-                "FROM submission WHERE filename = %s))",
+                "FROM submission WHERE filename = %s), %s, %s, %s, %s)",
                 (
                     submission_filename,
                     submission_filename,
@@ -57,7 +55,7 @@ def process_etuff_file(file, solution_id, notes=None):
                 ),
             )
             logger.info(
-                "Successful INSERT of %s into 'submission' table.",
+                "Successful INSERT of '%s' into 'submission' table.",
                 submission_filename,
             )
             cur.execute("SELECT currval('submission_submission_id_seq')")
@@ -194,7 +192,7 @@ def process_etuff_file(file, solution_id, notes=None):
 
             # copy buffer to db
             s_time = time.perf_counter()
-            logger.info("Initiating memory buffer copy to 'proc_observations'...")
+            logger.info("Copying memory buffer to 'proc_observations' and executing 'data_migration' TRIGGER.")
             try:
                 cur.copy_from(buffer, "proc_observations", sep=",")
             except (Exception, psycopg2.DatabaseError) as error:
@@ -204,12 +202,9 @@ def process_etuff_file(file, solution_id, notes=None):
             e_time = time.perf_counter()
             sub_elapsed = round(e_time - s_time, 2)
             logger.info(
-                "Successful copy of %s observations from %s into 'proc_observations' and execution of "
-                "'data_migration' TRIGGER. Elapsed time: %s second(s).",  # Average writes p/s: %s",
-                file,
+                "Successful migration of %s 'proc_observations'. Elapsed time: %s second(s).",
                 len_proc_obs,
                 sub_elapsed,
-                # math.ceil(len_proc_obs / sub_elapsed),
             )
 
     conn.commit()
