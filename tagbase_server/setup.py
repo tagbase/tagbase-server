@@ -25,6 +25,7 @@ REQUIRES = [
     "pytz>=2021.3",
     "pyunpack>=0.3",
     "setuptools>=21.0.0",
+    "slack-sdk>=3.17.2",
     "tzlocal>=4.1",
     "werkzeug==2.1.2",
 ]
