@@ -16,18 +16,14 @@ def connect():
     logger.debug("Attempting connection to TagbaseDB...")
     try:
         conn = psycopg2.connect(
-            "dbname='%s' user='%s' host='%s' port=%d password='%s'"
-            % (
-                "tagbase",
-                "tagbase",
-                "postgres",
-                5432,
-                "tagbase",
-            )  # os.getenv("POSTGRES_PORT"), os.getenv("POSTGRES_PASSWORD"))
+            dbname="tagbase",
+            user="tagbase",
+            host="postgres",
+            port=os.getenv("POSTGRES_PORT"),
+            password=os.getenv("POSTGRES_PASSWORD"),
         )
     except psycopg2.OperationalError as poe:
         logger.error("Unable to connect to the database")
-        logger.info(os.getenv("PGADMIN_DEFAULT_EMAIL"))
         return Response500.from_dict(
             {
                 "code": "500",
