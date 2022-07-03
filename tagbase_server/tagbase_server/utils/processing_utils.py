@@ -244,7 +244,7 @@ def process_etuff_file(file, solution_id, notes=None):
                 sub_elapsed,
             )
 
-    # conn.commit()
+    conn.commit()
 
     cur.close()
     conn.close()
