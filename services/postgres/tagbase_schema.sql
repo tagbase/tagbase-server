@@ -183,7 +183,7 @@ CREATE TABLE data_position (
     tag_id bigint NOT NULL,
     argos_location_class character varying(1),
     solution_id integer NOT NULL DEFAULT 1,
-    flag_as_reference boolean NOT NULL
+    flag_as_reference integer NOT NULL DEFAULT 0
 );
 
 
@@ -265,7 +265,7 @@ COMMENT ON COLUMN data_position.solution_id IS 'Unique numeric identifier for a 
 -- Name: COLUMN data_position.flag_as_reference; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_position.flag_as_reference IS 'Boolean flag field which identifies whether positional data associated with a given Tag and Track solution are considered to be coordinates of the "Reference" track (ie. best solution currently). Coordinate record takes True if it is part of the Reference track or False if it is not.';
+COMMENT ON COLUMN data_position.flag_as_reference IS 'Integer (representing psudo boolean value) flag field which identifies whether positional data associated with a given Tag and Track solution are considered to be coordinates of the "Reference" track (ie. best solution currently). Coordinate record takes 1 if it is part of the Reference track or 0 if it is not.';
 
 --
 -- Name: data_profile; Type: TABLE; Schema: public; Owner: postgres
