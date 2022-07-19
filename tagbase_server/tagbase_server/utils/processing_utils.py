@@ -49,7 +49,7 @@ def process_global_attributes(
 
 def process_etuff_file(file, solution_id, notes=None):
     start = time.perf_counter()
-    submission_filename = file[file.rindex("/") + 1 :]
+    submission_filename = file  # full path name is now preferred rather than - file[file.rindex("/") + 1 :]
     logger.info(
         "Processing etuff file: %s",
         submission_filename,
