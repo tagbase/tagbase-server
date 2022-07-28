@@ -27,7 +27,7 @@ REQUIRES = [
     "setuptools>=21.0.0",
     "slack-sdk>=3.17.2",
     "tzlocal>=4.1",
-    "werkzeug==2.1.2",
+    "werkzeug==2.2.1",
 ]
 
 setup(
