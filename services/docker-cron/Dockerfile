@@ -11,19 +11,17 @@ RUN apt-get install python3-pip
 
 RUN python -m pip install pip --upgrade
 
-COPY requirements.txt /requirements.txt
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app
+COPY config.ini /usr/src/app/
+COPY entrypoint.sh /usr/src/app/
+COPY poll_metadata_and_obs_types.py /usr/src/app/
+COPY requirements.txt /usr/src/app/
+RUN pip3 install -r requirements.txt
 
-RUN chmod 744 /requirements.txt
-
-RUN pip3 install -r /requirements.txt
-
-COPY entrypoint.sh /entrypoint.sh
-
-RUN chmod 744 /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
 
 # https://manpages.ubuntu.com/manpages/kinetic/man8/cron.8.html
-# -f | Stay in foreground mode, don't daemonize.
+# -f | Stay in foreground mode, don./ec't daemonize.
 # -L loglevel | Tell  cron  what to log about jobs (errors are logged regardless of this value) as the sum of the following values:
 CMD ["cron","-f", "-L", "2"]

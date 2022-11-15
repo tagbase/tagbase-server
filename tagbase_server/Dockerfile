@@ -1,4 +1,4 @@
-FROM python:slim-buster
+FROM python:slim-bullseye
 
 RUN mkdir -p /usr/src/app
 RUN mkdir -p /usr/src/app/logs
