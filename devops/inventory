@@ -1,0 +1,14 @@
+[dev_server]
+tagbase_server_devserver docker_service_name=tagbase_server_devserver
+
+#[prod_server]
+#one.example.com
+#
+[dev_servers]
+3.21.76.207
+#one.example.com
+
+[dev_servers:vars]
+ansible_user=ubuntu
+ansible_ssh_private_key_file=/Users/renatomarroquin/Documents/workspace/tagbase/devserver-keypair.pem
+
