@@ -9,6 +9,7 @@ COPY requirements.txt /usr/src/app/
 RUN apt update && \
  apt -y upgrade && \
  apt -y install bash gcc musl-dev tzdata && \
+ apt -y install libpq-dev python3-dev && \
  python3 -m pip install -r requirements.txt --no-cache-dir
 
 RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
