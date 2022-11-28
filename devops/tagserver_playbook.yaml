@@ -52,14 +52,18 @@
       command: sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
     - name: Setting permissions right for docker-compose
       command: sudo chmod +x /usr/local/bin/docker-compose
-    - name: Cloning tagbase-server project
-      git:
-        repo: https://github.com/tagbase/tagbase-server.git
-        dest: /root/tagbase-server
-        clone: yes
-        update: yes
-    - name: Checkout specific tagserver branch
-      command: chdir=/root/tagbase-server git checkout -b 149_configuration_tool origin/149_configuration_tool
+    - name: Create dir for project
+      command: mkdir -p /home/ubuntu/tagbase-server/
+    - name: Change ownership
+      command: chown ubuntu:ubuntu -R /home/ubuntu/tagbase-server/
+        #- name: Cloning tagbase-server project
+        #  git:
+        #    repo: https://github.com/tagbase/tagbase-server.git
+        #    dest: /root/tagbase-server
+        #    clone: yes
+        #    update: yes
+        #- name: Checkout specific tagserver branch
+        #  command: chdir=/root/tagbase-server git checkout -b 149_configuration_tool origin/149_configuration_tool
     - name: Setting up tagbase-server env file
       copy:
         content: |
@@ -69,8 +73,8 @@
                  POSTGRES_PORT=5432
                  SLACK_BOT_CHANNEL=tagbase-server
                  SLACK_BOT_TOKEN=XYZXYZ
-        dest: /root/tagbase-server/.env
-    - name: Build Tagbase services
-      command: chdir=/root/tagbase-server docker-compose build
-    - name: Deploy Tagbase services
-      command: chdir=/root/tagbase-server docker-compose up -d
+        dest: /home/ubuntu/.env
+          #- name: Build Tagbase services
+          #  command: chdir=/root/tagbase-server docker-compose build
+          #- name: Deploy Tagbase services
+          #  command: chdir=/root/tagbase-server docker-compose up -d
