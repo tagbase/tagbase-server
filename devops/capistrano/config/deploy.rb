@@ -28,6 +28,7 @@ set :pty, true
 
 # Default value for default_env is {}
 # set :default_env, { path: "/opt/ruby/bin:$PATH" }
+set :default_env, { 'COMPOSE_PROJECT_NAME': "tagbase" }
 
 # Default value for local_user is ENV['USER']
 # set :local_user, -> { `git config user.name`.chomp }
@@ -62,9 +63,8 @@ namespace :deploy do
   task :restart_app do
     on roles(:app) do
       # Your restart mechanism here, for example:
-      execute '(cd /home/ubuntu/tagbase-server/current; sudo docker-compose down)'
-      execute '(cd /home/ubuntu/tagbase-server/current; sudo docker-compose up -d)'
-      #execute (cd /home/ubuntu/tagbase-server; docker-compose down; docker-compose up -d)
+      execute "(cd /home/ubuntu/tagbase-server/current; sudo docker-compose -p'tagbase' down)"
+      execute "(cd /home/ubuntu/tagbase-server/current; sudo docker-compose -p'tagbase' up -d)"
     end
   end
   after :deploy, 'deploy:copy_env_app'
