@@ -6,7 +6,9 @@ import requests
 
 
 config = configparser.ConfigParser()
-config.read("config.ini")
+workdir = os.path.dirname(os.path.abspath(__file__))
+configfile = os.path.join(workdir, "config.ini")
+config.read(configfile)
 
 
 def pull_resource(connection=None, key=None, param=None):
