@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import configparser
 import os
 import psycopg2
@@ -5,7 +6,7 @@ import requests
 
 
 config = configparser.ConfigParser()
-config.read('config.ini')
+config.read("config.ini")
 
 
 def pull_resource(connection=None, key=None, param=None):
@@ -16,23 +17,45 @@ def pull_resource(connection=None, key=None, param=None):
     :param param: The value to lookup in config.ini
     """
     r = requests.get(config.get(key, param))
-    file_name = param + '.csv'
-    with open(file_name, 'w') as f:
+    file_name = param + ".csv"
+    with open(file_name, "w") as f:
         f.write(r.text)
     f.close()
     with connection:
         with connection.cursor() as cur:
-            #cur.execute(f"TRUNCATE {param};")
+            # cur.execute(f"TRUNCATE {param};")
             f = open(file_name, "r", encoding="utf-8")
             if param == "metadata_types":
-                cur.copy_from(f, param, sep=",",
-                              columns=("attribute_id", "category", "attribute_name",
-                                       "description", "example", "comments", "necessity"))
+                cur.copy_from(
+                    f,
+                    param,
+                    sep=",",
+                    columns=(
+                        "attribute_id",
+                        "category",
+                        "attribute_name",
+                        "description",
+                        "example",
+                        "comments",
+                        "necessity",
+                    ),
+                )
             else:
                 # must be observation_types
-                cur.copy_from(f, param, sep=",",
-                              columns=("variable_id", "variable_name", "standard_name",
-                                       "variable_source", "variable_units", "notes", "standard_units"))
+                cur.copy_from(
+                    f,
+                    param,
+                    sep=",",
+                    columns=(
+                        "variable_id",
+                        "variable_name",
+                        "standard_name",
+                        "variable_source",
+                        "variable_units",
+                        "notes",
+                        "standard_units",
+                    ),
+                )
             f.close()
             print("Successfully updated '%s' table.", param)
 
@@ -43,7 +66,7 @@ def connect():
     :rtype: connection
     """
     try:
-        tbc_connect = psycopg2.connect(
+        conn = psycopg2.connect(
             dbname="tagbase",
             user="tagbase",
             host="postgres",
@@ -51,16 +74,16 @@ def connect():
             password=os.getenv("POSTGRES_PASSWORD"),
         )
     except psycopg2.OperationalError as poe:
-        print("Error connecting to DB: {}.", poe)
-    return tbc_connect
+        print("Error connecting to DB: ", poe)
+    return conn
 
 
 def get_metadata(connection):
-    return pull_resource(connection, 'DATA', 'metadata_types')
+    return pull_resource(connection, "DATA", "metadata_types")
 
 
 def get_obs(connection=None):
-    return pull_resource(connection, 'DATA', 'observation_types')
+    return pull_resource(connection, "DATA", "observation_types")
 
 
 if __name__ == "__main__":

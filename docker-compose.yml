@@ -12,8 +12,6 @@ services:
     links:
       - postgres
     restart: unless-stopped
-    volumes:
-      - ./services/docker-cron/crontab:/etc/crontab
   pgadmin4:
     build:
       context: ./services/pgadmin4

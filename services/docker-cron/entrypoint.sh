@@ -1,7 +1,8 @@
 #!/bin/sh
 
-env >> /etc/environment
+echo "Starting cron..."
+cron
+echo "Cron started"
 
-# execute CMD
-echo "$@"
-exec "$@"
+# Run forever
+tail -f /dev/null

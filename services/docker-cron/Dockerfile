@@ -1,27 +1,38 @@
 FROM python:bullseye
 
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ARG POSTGRES_PASSWORD
+ARG POSTGRES_PORT
+
+WORKDIR /usr/src/app
+
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install -y cron \
     # Remove package lists for smaller image sizes
-    && rm -rf /var/lib/apt/lists/* \
-    && which cron \
-    && rm -rf /etc/cron.*/* \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get install python3-pip
+COPY crontab /etc/cron.d/docker-cron
 
-RUN python -m pip install pip --upgrade
+RUN chmod 0644 /etc/cron.d/docker-cron
 
-RUN mkdir -p /usr/src/app
-WORKDIR /usr/src/app
-COPY config.ini /usr/src/app/
-COPY entrypoint.sh /usr/src/app/
-COPY poll_metadata_and_obs_types.py /usr/src/app/
-COPY requirements.txt /usr/src/app/
-RUN pip3 install -r requirements.txt
+RUN useradd -ms /bin/bash tagbase
 
-ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
+RUN crontab -u tagbase /etc/cron.d/docker-cron \
+     && chmod u+s /usr/sbin/cron
 
-# https://manpages.ubuntu.com/manpages/kinetic/man8/cron.8.html
-# -f | Stay in foreground mode, don./ec't daemonize.
-# -L loglevel | Tell  cron  what to log about jobs (errors are logged regardless of this value) as the sum of the following values:
-CMD ["cron","-f", "-L", "2"]
+COPY --chown=tagbase:tagbase . .
+
+RUN python3 -m pip install pip --upgrade pip
+
+RUN python3 -m pip install -r requirements.txt --no-cache-dir
+
+RUN touch .env \
+    && echo "export POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> /usr/src/app/.env \
+    && echo "export POSTGRES_PORT=${POSTGRES_PORT}" >> /usr/src/app/.env
+
+RUN chmod 777 -R /usr/src/app
+
+USER tagbase
+
+ENTRYPOINT ["./entrypoint.sh"]
