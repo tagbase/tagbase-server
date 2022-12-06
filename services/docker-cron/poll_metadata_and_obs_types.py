@@ -58,7 +58,7 @@ def pull_resource(connection=None, key=None, param=None):
             df.to_csv(buffer, columns=col_names, header=False, index=False)
             buffer.seek(0)
             try:
-                tmp = 'tmp_' + param
+                tmp = "tmp_" + param
                 cur.execute(
                     f"CREATE TEMP TABLE {tmp} (LIKE {param} INCLUDING DEFAULTS) ON COMMIT DROP;"
                 )
