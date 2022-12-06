@@ -22,46 +22,50 @@ def pull_resource(connection=None, key=None, param=None):
     """
     col_names = []
     if param == "metadata_types":
-        col_names=[
+        col_names = [
             "attribute_id",
             "category",
             "attribute_name",
             "description",
             "example",
             "comments",
-            "necessity"]
+            "necessity",
+        ]
     else:
         # must be observation_types
-        col_names=[
+        col_names = [
             "variable_id",
             "variable_name",
             "standard_name",
             "variable_source",
             "variable_units",
             "notes",
-            "standard_unit"]
-    df = pd.read_csv(config.get(key, param), names=col_names, 
-        encoding="utf-8", 
-        on_bad_lines="error", 
-        quotechar='"', 
-        header=0, 
-        index_col=False)
+            "standard_unit",
+        ]
+    df = pd.read_csv(
+        config.get(key, param),
+        names=col_names,
+        encoding="utf-8",
+        on_bad_lines="error",
+        quotechar='"',
+        header=0,
+        index_col=False,
+    )
 
     with connection:
         with connection.cursor() as cur:
-            try:
-                cur.execute(f"TRUNCATE TABLE {param} CASCADE;")
-                connection.commit()
-                print("Successfully truncated table:", param)
-            except (Exception, psycopg2.DatabaseError) as error:
-                print("Error truncating table:", param)
-                conn.rollback()
-                return 1
             buffer = StringIO()
             df.to_csv(buffer, columns=col_names, header=False, index=False)
             buffer.seek(0)
             try:
-                cur.copy_from(buffer, param, sep=",", null="NaN")
+                tmp = 'tmp_' + param
+                cur.execute(
+                    f"CREATE TEMP TABLE {tmp} (LIKE {param} INCLUDING DEFAULTS) ON COMMIT DROP;"
+                )
+                cur.copy_from(buffer, tmp, sep=",", null="NaN")
+                cur.execute(
+                    f"INSERT INTO {param} SELECT * FROM {tmp} ON CONFLICT DO NOTHING;"
+                )
                 connection.commit()
             except (Exception, psycopg2.DatabaseError) as error:
                 print("Error writing data to table:", param, error)
