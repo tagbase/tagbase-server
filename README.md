@@ -34,4 +34,4 @@ See the [project wiki](https://github.com/tagbase/tagbase-server/wiki) for guida
 Please create a [issue](https://github.com/tagbase/tagbase-server/issues).
 
 ## License
-Licensed permissively under the Apache License v2.0, which ships with this software.
+Licensed permissively under the Apache License v2.0, a copy of which ships with this software.
