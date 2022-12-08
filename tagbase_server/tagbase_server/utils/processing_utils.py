@@ -22,7 +22,9 @@ client = WebClient(token=slack_token)
 def process_global_attributes(
     line, cur, submission_id, metadata, submission_filename, line_counter
 ):
+    logger.debug("Processing global attribute: %s", line)
     tokens = line.strip()[1:].split(" = ")
+    logger.debug("Processing token: %s", tokens)
     cur.execute(
         "SELECT attribute_id FROM metadata_types WHERE attribute_name = %s",
         (tokens[0],),
@@ -47,7 +49,7 @@ def process_global_attributes(
         metadata.append((str_submission_id, str_row, tokens[1]))
 
 
-def process_etuff_file(file, solution_id, notes=None):
+def process_etuff_file(file, version=None, notes=None):
     start = time.perf_counter()
     submission_filename = file  # full path name is now preferred rather than - file[file.rindex("/") + 1 :]
     logger.info(
@@ -59,7 +61,7 @@ def process_etuff_file(file, solution_id, notes=None):
     with conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO submission (tag_id, filename, date_time, notes, solution_id) "
+                "INSERT INTO submission (tag_id, filename, date_time, notes, version) "
                 "VALUES ((SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) "
                 "FROM submission WHERE filename = %s), %s, %s, %s, %s)",
                 (
@@ -67,7 +69,7 @@ def process_etuff_file(file, solution_id, notes=None):
                     submission_filename,
                     dt.now(tz=pytz.utc).astimezone(get_localzone()),
                     notes,
-                    solution_id,
+                    version,
                 ),
             )
             logger.info(

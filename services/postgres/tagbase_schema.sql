@@ -751,7 +751,7 @@ CREATE TABLE submission (
     tag_id bigint NOT NULL,
     date_time timestamp(6) with time zone DEFAULT now() NOT NULL,
     filename text NOT NULL,
-    solution_id integer NOT NULL DEFAULT 1,
+    version character varying(50),
     notes text
 );
 
@@ -794,10 +794,10 @@ COMMENT ON COLUMN submission.filename IS 'Full path, name and extension of the i
 
 
 --
--- Name: COLUMN submission.solution_id; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN submission.version; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN submission.solution_id IS 'Unique numeric identifier for a given tag geolocation dataset solution. solution_id=1 is assigned to the primary or approved solution. Incremented solution_id''s assigned to other positional dataset solutions for a given tag_id and submission_id';
+COMMENT ON COLUMN submission.version IS 'Version identifier for the eTUFF tag data file ingested';
 
 
 --
@@ -926,7 +926,7 @@ COPY proc_observations (date_time, variable_id, variable_value, submission_id, t
 -- Data for Name: submission; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY submission (submission_id, tag_id, date_time, filename, solution_id, notes) FROM stdin;
+COPY submission (submission_id, tag_id, date_time, filename, version, notes) FROM stdin;
 \.
 
 
