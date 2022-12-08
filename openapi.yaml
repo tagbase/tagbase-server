@@ -41,8 +41,8 @@ paths:
           type: string
         style: form
       - $ref: '#/components/parameters/notes'
-      - $ref: '#/components/parameters/solutionId'
       - $ref: '#/components/parameters/type'
+      - $ref: '#/components/parameters/version'
       responses:
         "200":
           content:
@@ -65,8 +65,8 @@ paths:
       operationId: ingest_post
       parameters:
       - $ref: '#/components/parameters/notes'
-      - $ref: '#/components/parameters/solutionId'
       - $ref: '#/components/parameters/type'
+      - $ref: '#/components/parameters/version'
       requestBody:
         content:
           text/plain:
@@ -145,8 +145,8 @@ paths:
       parameters:
       - $ref: '#/components/parameters/notes'
       - $ref: '#/components/parameters/tagId'
-      - $ref: '#/components/parameters/solutionId'
       - $ref: '#/components/parameters/subId'
+      - $ref: '#/components/parameters/version'
       responses:
         "200":
           content:
@@ -160,7 +160,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Response500'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
-      summary: Update the 'solution id' and/or 'notes' associated with a tag submission
+      summary: Update the 'notes' and/or 'version' associated with a tag submission
       tags:
       - tags
       x-openapi-router-controller: tagbase_server.controllers.tags_controller
@@ -177,16 +177,6 @@ components:
         minLength: 1
         pattern: ^(?!\s*$).+
         type: string
-      style: form
-    solutionId:
-      description: Unique numeric identifier for a given tag geolocation dataset solution. solution_id=1 is assigned to the primary or approved solution. Incremented solution_id's are assigned to other positional dataset solutions for a given tag_id and submission_id
-      explode: true
-      in: query
-      name: solution_id
-      required: false
-      schema:
-        type: number
-        default: 1
       style: form
     subId:
       description: Existing submission id for an existing tag
@@ -215,6 +205,18 @@ components:
         enum:
           - etuff
           - netcdf
+        type: string
+      style: form
+    version:
+      description: Version identifier for the eTUFF tag data file ingested
+      explode: true
+      in: query
+      name: version
+      required: false
+      schema:
+        maxLength: 10
+        minLength: 1
+        pattern: ^(?!\s*$).+
         type: string
       style: form
   schemas:
@@ -287,8 +289,8 @@ components:
           notes: 'Ingested by admin on 2022-06-01 for Sailfish tagging campaign.'
           submission_id: 5
           tag_id: 3
-          solution_id: 1
-        - date_time: '2022-04-01T05:39:46.896088+00:00'
+          version: '1'
+        - date_time: '2022-06-01T05:39:46.896088+00:00'
           filename: 'eTUFF-sailfish-117259_2.txt'
           metadata:
             person_owner: Jane Do
@@ -296,10 +298,10 @@ components:
             manufacturer: telemetry inc.
             model: newer_gen
             attachment_method: anchor
-          notes: 'Ingested by admin on 2022-06-01 for solution_id 1 of the Sailfish tagging campaign.'
+          notes: 'Ingested by admin on 2022-06-01 for version 2 of the Sailfish tagging campaign.'
           submission_id: 6
           tag_id: 3
-          solution_id: 1
+          version: '2'
       properties:
         tag:
           description: List containing one or more submissions for a given tag
@@ -329,10 +331,6 @@ components:
                 description: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solutionpositional meta/data)
                 example: "Ingested by admin on XXXX-XX-XX to back-process campaign XYZ."
                 type: string
-              solution_id:
-                description: Unique numeric identifier for a given tag geolocation dataset solution. solution_id=1 is assigned to the primary or approved solution. Incremented solution_id's are assigned to other positional dataset solutions for a given tag_id and submission_id
-                example: 1
-                type: integer
               submission_id:
                 description: Unique numeric ID assigned upon submission of a tag eTUFF data file for ingest/importation into Tagbase
                 example: 5
@@ -341,6 +339,10 @@ components:
                 description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
                 example: 3
                 type: integer
+              version:
+                description: Version identifier for the eTUFF tag data file ingested
+                example: "1"
+                type: string
           type: array
       title: Tag200
       type: object
