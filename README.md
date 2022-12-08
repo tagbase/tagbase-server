@@ -32,3 +32,6 @@ See the [project wiki](https://github.com/tagbase/tagbase-server/wiki) for guida
 
 ## Development, Support and Community
 Please create a [issue](https://github.com/tagbase/tagbase-server/issues).
+
+## License
+Licensed permissively under the Apache License v2.0, which ships with this software.
