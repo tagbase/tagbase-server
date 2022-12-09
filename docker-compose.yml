@@ -11,7 +11,22 @@ services:
       - POSTGRES_PORT=${POSTGRES_PORT}
     links:
       - postgres
+    networks:
+      - internal-network
     restart: unless-stopped
+  nginx:
+    image: nginx:1-alpine
+    links:
+     - pgadmin4
+     # - tagbase_server
+    networks:
+      - internal-network
+    ports:
+      - "80:80"
+      #- 443:443
+    volumes:
+      - ./services/nginx/config/:/etc/nginx/conf.d/:ro
+      - ./services/nginx/proxy/:/usr/share/nginx/html/:ro
   pgadmin4:
     build:
       context: ./services/pgadmin4
@@ -21,10 +36,14 @@ services:
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+      - PGADMIN_LISTEN_PORT=5434
+    expose:
+      - "5434"
+    hostname: pgadmin4
     links:
       - postgres
-    ports:
-      - "5434:80"
+    networks:
+      - internal-network
     restart: unless-stopped
   postgres:
     build:
@@ -40,6 +59,9 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+    hostname: postgres
+    networks:
+      - internal-network
     ports:
       - ${POSTGRES_PORT}:${POSTGRES_PORT}
     restart: unless-stopped
@@ -59,8 +81,12 @@ services:
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
     links:
       - postgres
+    networks:
+      - internal-network
     ports:
       - "5433:5433"
     restart: unless-stopped
     volumes:
       - ./logs:/usr/src/app/logs
+networks:
+  internal-network:
