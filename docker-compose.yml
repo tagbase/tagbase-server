@@ -23,11 +23,13 @@ services:
     networks:
       - internal-network
     ports:
-      - "80:80"
-      #- 443:443
+      - 81:81
+      - 443:443
     volumes:
       - ./services/nginx/config/:/etc/nginx/conf.d/:ro
       - ./services/nginx/proxy/:/usr/share/nginx/html/:ro
+      - ./services/nginx/ssl/cert.pem:/etc/nginx/certs/cert.pem
+      - ./services/nginx/ssl/key.pem:/etc/nginx/certs/key.pem
   pgadmin4:
     build:
       context: ./services/pgadmin4
@@ -39,7 +41,7 @@ services:
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
       - PGADMIN_LISTEN_PORT=5434
     expose:
-      - "5434"
+      - 5434
     hostname: pgadmin4
     links:
       - postgres
@@ -85,7 +87,7 @@ services:
     networks:
       - internal-network
     ports:
-      - "5433:5433"
+      - 5433:5433
     restart: unless-stopped
     volumes:
       - ./logs:/usr/src/app/logs
