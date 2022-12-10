@@ -15,7 +15,8 @@ services:
       - internal-network
     restart: unless-stopped
   nginx:
-    image: nginx:1-alpine
+    build:
+      context: ./services/nginx
     links:
      - pgadmin4
      # - tagbase_server
