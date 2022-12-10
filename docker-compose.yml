@@ -1,5 +1,12 @@
 version: '3.9'
 services:
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes: 
+      - ./services/certbot/conf:/etc/letsencrypt
+      - ./services/certbot/www:/var/www/certbot
+    command: certonly --webroot -w /var/www/certbot --force-renewal --email ${PGADMIN_DEFAULT_EMAIL} -d ${DOMAIN_FOR_CERT} --agree-tos
   docker-cron:
     build:
       context: ./services/docker-cron
@@ -28,8 +35,10 @@ services:
     volumes:
       - ./services/nginx/config/nginx.conf:/etc/nginx/nginx.conf
       - ./services/nginx/proxy/:/usr/share/nginx/html/:ro
-      - ./services/nginx/ssl/cert.pem:/etc/nginx/certs/cert.pem
-      - ./services/nginx/ssl/key.pem:/etc/nginx/certs/key.pem
+      # - ./services/nginx/ssl/cert.pem:/etc/nginx/certs/cert.pem
+      # - ./services/nginx/ssl/key.pem:/etc/nginx/certs/key.pem
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
   pgadmin4:
     build:
       context: ./services/pgadmin4
