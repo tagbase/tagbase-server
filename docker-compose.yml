@@ -1,12 +1,5 @@
 version: '3.9'
 services:
-  certbot:
-    image: certbot/certbot
-    container_name: certbot
-    volumes: 
-      - ./services/certbot/conf:/etc/letsencrypt
-      - ./services/certbot/www:/var/www/certbot
-    command: certonly --webroot -w /var/www/certbot --force-renewal --email ${PGADMIN_DEFAULT_EMAIL} -d ${DOMAIN_FOR_CERT} --agree-tos
   docker-cron:
     build:
       context: ./services/docker-cron
@@ -26,7 +19,7 @@ services:
       context: ./services/nginx
     links:
      - pgadmin4
-     # - tagbase_server
+     - tagbase_server
     networks:
       - internal-network
     ports:
@@ -35,13 +28,9 @@ services:
     volumes:
       - ./services/nginx/config/nginx.conf:/etc/nginx/nginx.conf
       - ./services/nginx/proxy/:/usr/share/nginx/html/:ro
-      # - ./services/nginx/ssl/cert.pem:/etc/nginx/certs/cert.pem
-      # - ./services/nginx/ssl/key.pem:/etc/nginx/certs/key.pem
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
+      - ./services/nginx/ssl/cert.pem:/etc/nginx/certs/cert.pem
+      - ./services/nginx/ssl/key.pem:/etc/nginx/certs/key.pem
   pgadmin4:
-    build:
-      context: ./services/pgadmin4
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,6 +41,7 @@ services:
     expose:
       - 5434
     hostname: pgadmin4
+    image: dpage/pgadmin4:6.17
     links:
       - postgres
     networks:
@@ -91,12 +81,13 @@ services:
       - POSTGRES_PORT=${POSTGRES_PORT}
       - SLACK_BOT_CHANNEL=${SLACK_BOT_CHANNEL}
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+    expose:
+      - 5433
+    hostname: tagbase_server
     links:
       - postgres
     networks:
       - internal-network
-    ports:
-      - 5433:5433
     restart: unless-stopped
     volumes:
       - ./logs:/usr/src/app/logs
