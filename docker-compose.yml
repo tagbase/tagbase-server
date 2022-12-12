@@ -9,6 +9,10 @@ services:
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_PORT=${POSTGRES_PORT}
+    labels:
+      "docker_compose_diagram.cluster": "Internal Network"
+      "docker_compose_diagram.description": "'metadata_types' and\n'observation_types' synchronization"
+      "docker_compose_diagram.icon": "python"
     links:
       - postgres
     networks:
@@ -17,6 +21,10 @@ services:
   nginx:
     build:
       context: ./services/nginx
+    labels:
+      #"docker_compose_diagram.cluster": "Internal Network"
+      "docker_compose_diagram.description": "Reverse proxy \n and authentication."
+      "docker_compose_diagram.icon": "nginx"
     links:
      - pgadmin4
      - tagbase_server
@@ -42,6 +50,10 @@ services:
       - 5434
     hostname: pgadmin4
     image: dpage/pgadmin4:6.17
+    labels:
+      "docker_compose_diagram.cluster": "Internal Network"
+      "docker_compose_diagram.description": "PostgreSQL administration"
+      "docker_compose_diagram.icon": "docker"
     links:
       - postgres
     networks:
@@ -62,6 +74,9 @@ services:
       retries: 5
       start_period: 15s
     hostname: postgres
+    labels:
+      "docker_compose_diagram.cluster": "Internal Network"
+      "docker_compose_diagram.description": "Tagbase PostgreSQL server"
     networks:
       - internal-network
     ports:
@@ -84,6 +99,10 @@ services:
     expose:
       - 5433
     hostname: tagbase_server
+    labels:
+      "docker_compose_diagram.cluster": "Internal Network"
+      "docker_compose_diagram.description": "tagbase-server tag \ningestion and administration"
+      "docker_compose_diagram.icon": "flask"
     links:
       - postgres
     networks:

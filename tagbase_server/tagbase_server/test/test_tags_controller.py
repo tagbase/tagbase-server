@@ -17,7 +17,7 @@ class TestTagController(BaseTestCase):
             "Accept": "application/json",
         }
         response = self.client.open(
-            "/v0.7.0/tags/{tag_id}".format(tag_id=3), method="GET", headers=headers
+            "/api/v0.7.0/tags/{tag_id}".format(tag_id=3), method="GET", headers=headers
         )
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
@@ -29,7 +29,7 @@ class TestTagController(BaseTestCase):
         headers = {
             "Accept": "application/json",
         }
-        response = self.client.open("/v0.7.0/tags", method="GET", headers=headers)
+        response = self.client.open("/api/v0.7.0/tags", method="GET", headers=headers)
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
     def test_put_tag(self):
@@ -45,7 +45,7 @@ class TestTagController(BaseTestCase):
             ("solution_id", 2),
         ]
         response = self.client.open(
-            "/v0.7.0/tags/{tag_id}/subs/{sub_id}".format(tag_id=3, sub_id=6),
+            "/api/v0.7.0/tags/{tag_id}/subs/{sub_id}".format(tag_id=3, sub_id=6),
             method="PUT",
             headers=headers,
             query_string=query_string,
