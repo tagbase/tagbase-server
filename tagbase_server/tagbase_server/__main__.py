@@ -29,7 +29,11 @@ rf_handler = RotatingFileHandler(
 rf_handler.setFormatter(formatter)
 logger.addHandler(rf_handler)
 
-options = {"swagger_ui_config": {"url": "https://raw.githubusercontent.com/lewismc/tagbase-server/ISSUE-56/openapi.yaml"}}
+options = {
+    "swagger_ui_config": {
+        "url": "https://raw.githubusercontent.com/lewismc/tagbase-server/ISSUE-56/openapi.yaml"
+    }
+}
 app = connexion.App(__name__, specification_dir="./openapi/", options=options)
 app.app.json_encoder = encoder.JSONEncoder
 app.add_api(
