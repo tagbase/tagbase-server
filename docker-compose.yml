@@ -9,22 +9,55 @@ services:
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_PORT=${POSTGRES_PORT}
+    labels:
+      "docker_compose_diagram.cluster": "Internal Network"
+      "docker_compose_diagram.description": "'metadata_types' and\n'observation_types' synchronization"
+      "docker_compose_diagram.icon": "python"
     links:
       - postgres
+    networks:
+      - internal-network
     restart: unless-stopped
-  pgadmin4:
+  nginx:
     build:
-      context: ./services/pgadmin4
+      context: ./services/nginx
+    labels:
+      #"docker_compose_diagram.cluster": "Internal Network"
+      "docker_compose_diagram.description": "Reverse proxy \n and authentication."
+      "docker_compose_diagram.icon": "nginx"
+    links:
+     - pgadmin4
+     - tagbase_server
+    networks:
+      - internal-network
+    ports:
+      - 81:81
+      - 443:443
+    volumes:
+      - ./services/nginx/config/nginx.conf:/etc/nginx/nginx.conf
+      - ./services/nginx/proxy/:/usr/share/nginx/html/:ro
+      - ./services/nginx/ssl/cert.pem:/etc/nginx/certs/cert.pem
+      - ./services/nginx/ssl/key.pem:/etc/nginx/certs/key.pem
+  pgadmin4:
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+      - PGADMIN_LISTEN_PORT=5434
+    expose:
+      - 5434
+    hostname: pgadmin4
+    image: dpage/pgadmin4:6.17
+    labels:
+      "docker_compose_diagram.cluster": "Internal Network"
+      "docker_compose_diagram.description": "PostgreSQL administration"
+      "docker_compose_diagram.icon": "docker"
     links:
       - postgres
-    ports:
-      - "5434:80"
+    networks:
+      - internal-network
     restart: unless-stopped
   postgres:
     build:
@@ -40,6 +73,12 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+    hostname: postgres
+    labels:
+      "docker_compose_diagram.cluster": "Internal Network"
+      "docker_compose_diagram.description": "Tagbase PostgreSQL server"
+    networks:
+      - internal-network
     ports:
       - ${POSTGRES_PORT}:${POSTGRES_PORT}
     restart: unless-stopped
@@ -57,10 +96,19 @@ services:
       - POSTGRES_PORT=${POSTGRES_PORT}
       - SLACK_BOT_CHANNEL=${SLACK_BOT_CHANNEL}
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+    expose:
+      - 5433
+    hostname: tagbase_server
+    labels:
+      "docker_compose_diagram.cluster": "Internal Network"
+      "docker_compose_diagram.description": "tagbase-server tag \ningestion and administration"
+      "docker_compose_diagram.icon": "flask"
     links:
       - postgres
-    ports:
-      - "5433:5433"
+    networks:
+      - internal-network
     restart: unless-stopped
     volumes:
       - ./logs:/usr/src/app/logs
+networks:
+  internal-network:

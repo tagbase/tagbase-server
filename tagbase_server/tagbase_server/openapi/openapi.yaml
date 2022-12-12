@@ -16,7 +16,7 @@ info:
   version: v0.7.0
 servers:
 - description: Local development tagbase-server
-  url: http://0.0.0.0:5433/v0.7.0
+  url: https://localhost/tagbase/api/v0.7.0
 tags:
 - description: Ingestion operations.
   name: ingest

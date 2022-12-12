@@ -736,13 +736,6 @@ COMMENT ON COLUMN proc_observations.tag_id IS 'Unique numeric Tag ID associated 
 
 
 --
--- Name: COLUMN proc_observations.final_value; Type: COMMENT; Schema: public; Owner: postgres
---
-
--- COMMENT ON COLUMN proc_observations.final_value IS 'Boolean flag used to trigger data migration after a ingest. Whenever a TRUE value is encountered, the data_migration TRIGGER is executed meaning that the data migration task is initiated';
-
-
---
 -- Name: submission; Type: TABLE; Schema: public; Owner: postgres
 --
 
