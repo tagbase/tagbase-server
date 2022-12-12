@@ -31,7 +31,7 @@ logger.addHandler(rf_handler)
 
 options = {
     "swagger_ui_config": {
-        "url": "https://raw.githubusercontent.com/lewismc/tagbase-server/ISSUE-56/openapi.yaml"
+        "url": "https://raw.githubusercontent.com/tagbase/tagbase-server/main/openapi.yaml"
     }
 }
 app = connexion.App(__name__, specification_dir="./openapi/", options=options)
