@@ -62,7 +62,7 @@ def process_post_input_data(file):
     """
     data_file = file
     filename = tempfile.TemporaryFile(
-        dir="/tmp/" + data_file[data_file.rindex("/") + 1 :],
+        dir="/tmp/",
         mode='"w+"',
         encoding="utf-8",
     )

@@ -4,7 +4,7 @@ import time
 import parmap
 
 from tagbase_server.models.ingest200 import Ingest200  # noqa: E501
-from tagbase_server.utils.io_utils import process_input_data
+from tagbase_server.utils.io_utils import process_get_input_data, process_post_input_data
 from tagbase_server.utils.io_utils import unpack_compressed_binary
 from tagbase_server.utils.processing_utils import process_etuff_file
 
