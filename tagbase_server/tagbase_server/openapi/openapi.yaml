@@ -137,12 +137,19 @@ paths:
         style: form
       requestBody:
         content:
+          application/octet-stream:
+            schema:
+              description: compressed binary file containing one or more eTUFF files
+              format: binary
+              #maxLength: 1000000000
+              #minLength: 1
+              type: string
           text/plain:
             schema:
               description: text file containing eTUFF data
               format: binary
-              maxLength: 1000000000
-              minLength: 1
+              #maxLength: 1000000000
+              #minLength: 1
               type: string
       responses:
         "200":

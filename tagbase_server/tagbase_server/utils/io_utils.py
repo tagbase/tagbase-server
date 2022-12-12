@@ -10,9 +10,11 @@ from urllib.request import urlopen
 logger = logging.getLogger(__name__)
 
 
-def process_get_input_data(file):
+def process_input_data(file):
     """
-    Capable of acquiring data over HTTP, HTTPS, FTP and FILE protocols.
+    In the case of a GET request, this function is capable of acquiring data 
+    over HTTP, HTTPS, FTP and FILE protocols. In the case of a POST request,
+    this function processes the input data.
     Data not already on the filesystem is saved to /tmp.
     No explicit cleanup is performed per-se however details of the implementation
     can be found in https://docs.python.org/3/library/tempfile.html#tempfile.TemporaryFile
@@ -22,6 +24,7 @@ def process_get_input_data(file):
     :type file: str
 
     """
+    print(file)
     data_file = file
     local_data_file = data_file[
         re.search(r"[file|ftp|http|https]://[^/]*", data_file).end() :
