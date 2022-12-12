@@ -83,6 +83,7 @@ paths:
               #maxLength: 1000000000
               #minLength: 1
               type: string
+        required: true
       responses:
         "200":
           content:
@@ -99,7 +100,7 @@ paths:
       summary: Post a local file and perform a ingest operation
       tags:
       - ingest
-      x-codegen-request-body-name: etuff_body
+      x-codegen-request-body-name: body
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
   /tags:
     get:

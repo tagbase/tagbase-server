@@ -56,7 +56,7 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
     )
 
 
-def ingest_post(notes=None, type=None, version=None, etuff_body=None):  # noqa: E501
+def ingest_post(notes=None, type=None, version=None, body=None):  # noqa: E501
     """Post a local file and perform a ingest operation
 
     Post a local file and perform a ingest operation # noqa: E501
@@ -73,7 +73,7 @@ def ingest_post(notes=None, type=None, version=None, etuff_body=None):  # noqa: 
     :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
     """
     start = time.perf_counter()
-    data_file = process_input_data(etuff_body)
+    data_file = process_input_data(body)
     etuff_files = []
     if not data_file.endswith(".txt"):
         etuff_files = unpack_compressed_binary(data_file)

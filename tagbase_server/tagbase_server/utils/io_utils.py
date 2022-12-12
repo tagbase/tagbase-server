@@ -24,7 +24,7 @@ def process_input_data(file):
     :type file: str
 
     """
-    print(file)
+    logger.info(file)
     data_file = file
     local_data_file = data_file[
         re.search(r"[file|ftp|http|https]://[^/]*", data_file).end() :
