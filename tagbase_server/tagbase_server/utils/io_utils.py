@@ -10,11 +10,9 @@ from urllib.request import urlopen
 logger = logging.getLogger(__name__)
 
 
-def process_input_data(file):
+def process_get_input_data(file):
     """
-    In the case of a GET request, this function is capable of acquiring data 
-    over HTTP, HTTPS, FTP and FILE protocols. In the case of a POST request,
-    this function processes the input data.
+    Capable of acquiring data over HTTP, HTTPS, FTP and FILE protocols.
     Data not already on the filesystem is saved to /tmp.
     No explicit cleanup is performed per-se however details of the implementation
     can be found in https://docs.python.org/3/library/tempfile.html#tempfile.TemporaryFile
@@ -24,7 +22,6 @@ def process_input_data(file):
     :type file: str
 
     """
-    logger.info(file)
     data_file = file
     local_data_file = data_file[
         re.search(r"[file|ftp|http|https]://[^/]*", data_file).end() :
@@ -49,6 +46,35 @@ def process_input_data(file):
                 f.write(chunk)
 
         data_file = filename
+    return data_file
+
+
+def process_post_input_data(file):
+    """
+    Writes application/octet-stream data from a POST request to /tmp
+    No explicit /tmp cleanup is performed per-se however details of the implementation
+    can be found in https://docs.python.org/3/library/tempfile.html#tempfile.TemporaryFile
+    All input is expected to have utf-8 encoding.
+
+    :param file: The data file requested through the GET operation.
+    :type file: str
+
+    """
+    data_file = file
+    filename = tempfile.TemporaryFile(
+        dir="/tmp/" + data_file[data_file.rindex("/") + 1 :],
+        mode='"w+"',
+        encoding="utf-8",
+    )
+    chunk_size = 16 * 1024
+    with open(filename, "wb") as f:
+        while True:
+            chunk = data_file.read(chunk_size)
+            if not chunk:
+                break
+            f.write(chunk)
+    data_file = filename
+    logger.info("Succesfully wrote %s to tagbase-server.")
     return data_file
 
 

@@ -28,7 +28,7 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
     :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
     """
     start = time.perf_counter()
-    data_file = process_input_data(file)
+    data_file = process_get_input_data(file)
     etuff_files = []
     if not data_file.endswith(".txt"):
         etuff_files = unpack_compressed_binary(data_file)
@@ -67,13 +67,13 @@ def ingest_post(notes=None, type=None, version=None, body=None):  # noqa: E501
     :type type: str
     :param version: Version identifier for the eTUFF tag data file ingested
     :type version: str
-    :param etuff_body:
-    :type etuff_body: str
+    :param body:
+    :type body: str
 
     :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
     """
     start = time.perf_counter()
-    data_file = process_input_data(body)
+    data_file = process_post_input_data(body)
     etuff_files = []
     if not data_file.endswith(".txt"):
         etuff_files = unpack_compressed_binary(data_file)
