@@ -1,4 +1,3 @@
-import connexion
 import glob
 import logging
 import os
@@ -34,8 +33,8 @@ def process_get_input_data(file):
         logger.info("Acquiring '%s' from remote source.", data_file)
         filename = tempfile.TemporaryFile(
             dir="/tmp/" + data_file[data_file.rindex("/") + 1 :],
-            mode='"w+"',
             encoding="utf-8",
+            mode='"w"',
         )
         response = urlopen(data_file)
         chunk_size = 16 * 1024
@@ -47,37 +46,30 @@ def process_get_input_data(file):
                 f.write(chunk)
 
         data_file = filename
+    logger.info(data_file)
     return data_file
 
 
-def process_post_input_data(file):
+def process_post_input_data(filename, body):
     """
-    Writes POST data (application/octet-stream or text/plain) from a POST request to /tmp
+    Writes POST data (application/octet-stream or text/plain) to /tmp
     No explicit /tmp cleanup is performed per-se however details of the implementation
     can be found in https://docs.python.org/3/library/tempfile.html#tempfile.TemporaryFile
     All input is expected to have utf-8 encoding.
 
-    :param file: The data file requested through the GET operation.
-    :type file: str
+    :param filename: Explicit name of the file to be written to disk.
+    :type filename: str
+    :param body: The data submitted via the POST operation.
+    :type body: str
 
     """
-    cd_header = connexion.request.headers.get("Content-Disposition")
-    logger.info(cd_header)
-    data = file
-    filename = tempfile.TemporaryFile(
-        dir="/tmp/" + cd_header,
-        mode='"w+"',
-        encoding="utf-8",
-    )
-    chunk_size = 16 * 1024
-    with open(filename, "wb") as f:
-        while True:
-            chunk = data.read(chunk_size)
-            if not chunk:
-                break
-            f.write(chunk)
-    data = filename
-    return data_file
+    data = body
+    filepath = "/tmp/" + filename
+    with open(filepath, mode="wb") as f:
+        f.write(data)
+    f.close()
+    logger.info(filepath)
+    return filepath
 
 
 def unpack_compressed_binary(file):
@@ -93,7 +85,6 @@ def unpack_compressed_binary(file):
     :type file: str
     """
     etuff_files = []
-    # temp_dir = tempfile.TemporaryDirectory(dir="/tmp/")
     temp_dir = "/tmp/" + str(time())
     if not os.path.exists(temp_dir):
         os.mkdir(temp_dir)

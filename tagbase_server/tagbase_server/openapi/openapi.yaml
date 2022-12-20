@@ -100,6 +100,17 @@ paths:
       description: Post a local file and perform a ingest operation
       operationId: ingest_post
       parameters:
+      - description: "Free-form text field to explicitly define the name of the file to be persisted"
+        explode: true
+        in: query
+        name: filename
+        required: true
+        schema:
+          maxLength: 100
+          minLength: 1
+          pattern: ^(?!\s*$).+
+          type: string
+        style: form
       - description: "Free-form text field where details of submitted eTUFF file for\
           \ ingest can be provided e.g. submitter name, etuff data contents (tag metadata\
           \ and measurements + primary position data, or just secondary solution-positional\
@@ -143,6 +154,13 @@ paths:
             schema:
               description: compressed binary file containing one or more eTUFF files
               format: binary
+              maxLength: 1000000000
+              minLength: 1
+              type: string
+          text/plain:
+            schema:
+              description: Plain text eTUFF file
+              format: text
               maxLength: 1000000000
               minLength: 1
               type: string
@@ -282,6 +300,18 @@ paths:
       x-openapi-router-controller: tagbase_server.controllers.tags_controller
 components:
   parameters:
+    filename:
+      description: Free-form text field to explicitly define the name of the file to be persisted
+      explode: true
+      in: query
+      name: filename
+      required: true
+      schema:
+        maxLength: 100
+        minLength: 1
+        pattern: ^(?!\s*$).+
+        type: string
+      style: form
     notes:
       description: "Free-form text field where details of submitted eTUFF file for\
         \ ingest can be provided e.g. submitter name, etuff data contents (tag metadata\

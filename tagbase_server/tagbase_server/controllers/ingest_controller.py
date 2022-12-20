@@ -56,11 +56,13 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
     )
 
 
-def ingest_post(notes=None, type=None, version=None, body=None):  # noqa: E501
+def ingest_post(filename=None, notes=None, type=None, version=None, body=None):  # noqa: E501
     """Post a local file and perform a ingest operation
 
     Post a local file and perform a ingest operation # noqa: E501
 
+    :param notes: Free-form text field to explicitly define the name of the file to be persisted
+    :type notes: str
     :param notes: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solution-positional meta/data)
     :type notes: str
     :param type: Type of file to be ingested, defaults to &#39;etuff&#39;
@@ -73,7 +75,7 @@ def ingest_post(notes=None, type=None, version=None, body=None):  # noqa: E501
     :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
     """
     start = time.perf_counter()
-    data_file = process_post_input_data(body)
+    data_file = process_post_input_data(filename, body)
     etuff_files = []
     if not data_file.endswith(".txt"):
         etuff_files = unpack_compressed_binary(data_file)
