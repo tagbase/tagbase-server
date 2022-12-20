@@ -67,7 +67,7 @@ def ingest_post(notes=None, type=None, version=None, body=None):  # noqa: E501
     :type type: str
     :param version: Version identifier for the eTUFF tag data file ingested
     :type version: str
-    :param body:
+    :param body: Payload body
     :type body: str
 
     :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]

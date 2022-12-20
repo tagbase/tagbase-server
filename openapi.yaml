@@ -71,7 +71,14 @@ paths:
         content:
           application/octet-stream:
             schema:
-              description: compressed binary file containing one or more eTUFF files
+              description: Compressed binary file containing one or more eTUFF files
+              format: binary
+              maxLength: 1000000000
+              minLength: 1
+              type: string
+          text/plain:
+            schema:
+              description: Compressed binary file containing one or more eTUFF files
               format: binary
               maxLength: 1000000000
               minLength: 1

@@ -1,3 +1,4 @@
+import connexion
 import glob
 import logging
 import os
@@ -51,7 +52,7 @@ def process_get_input_data(file):
 
 def process_post_input_data(file):
     """
-    Writes application/octet-stream data from a POST request to /tmp
+    Writes POST data (application/octet-stream or text/plain) from a POST request to /tmp
     No explicit /tmp cleanup is performed per-se however details of the implementation
     can be found in https://docs.python.org/3/library/tempfile.html#tempfile.TemporaryFile
     All input is expected to have utf-8 encoding.
@@ -60,21 +61,22 @@ def process_post_input_data(file):
     :type file: str
 
     """
-    data_file = file
+    cd_header = connexion.request.headers.get("Content-Disposition")
+    logger.info(cd_header)
+    data = file
     filename = tempfile.TemporaryFile(
-        dir="/tmp/",
+        dir="/tmp/" + cd_header,
         mode='"w+"',
         encoding="utf-8",
     )
     chunk_size = 16 * 1024
     with open(filename, "wb") as f:
         while True:
-            chunk = data_file.read(chunk_size)
+            chunk = data.read(chunk_size)
             if not chunk:
                 break
             f.write(chunk)
-    data_file = filename
-    logger.info("Succesfully wrote %s to tagbase-server.")
+    data = filename
     return data_file
 
 
