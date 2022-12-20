@@ -4,7 +4,10 @@ import time
 import parmap
 
 from tagbase_server.models.ingest200 import Ingest200  # noqa: E501
-from tagbase_server.utils.io_utils import process_get_input_data, process_post_input_data
+from tagbase_server.utils.io_utils import (
+    process_get_input_data,
+    process_post_input_data,
+)
 from tagbase_server.utils.io_utils import unpack_compressed_binary
 from tagbase_server.utils.processing_utils import process_etuff_file
 
@@ -56,7 +59,9 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
     )
 
 
-def ingest_post(filename=None, notes=None, type=None, version=None, body=None):  # noqa: E501
+def ingest_post(
+    filename=None, notes=None, type=None, version=None, body=None
+):  # noqa: E501
     """Post a local file and perform a ingest operation
 
     Post a local file and perform a ingest operation # noqa: E501
