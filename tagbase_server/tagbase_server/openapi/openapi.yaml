@@ -17,6 +17,8 @@ info:
 servers:
 - description: Local development tagbase-server
   url: https://localhost/tagbase/api/v0.7.0
+- description: ICCAT Test tagbase-server
+  url: https://162.13.162.49/tagbase/api/v0.7.0
 tags:
 - description: Ingestion operations.
   name: ingest
