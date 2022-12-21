@@ -14,7 +14,7 @@ VERSION = "v0.7.0"
 # http://pypi.python.org/pypi/setuptools
 
 REQUIRES = [
-    "connexion[swagger-ui]==2.14.0",
+    "connexion[swagger-ui]==2.14.1",
     "flask[async]==2.1.3",
     "gunicorn==20.1.0",
     "pandas>=1.4.2",
