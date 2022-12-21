@@ -84,6 +84,12 @@ services:
     restart: unless-stopped
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
+  slack_docker:
+    image: ghcr.io/int128/slack-docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - webhook=${webhook}
   tagbase_server:
     build:
       context: ./tagbase_server
