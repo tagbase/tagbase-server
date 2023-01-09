@@ -81,7 +81,7 @@ COMMENT ON COLUMN data_histogram_bin_data.bin_id IS 'Unique bin ID for the summa
 -- Name: COLUMN data_histogram_bin_data.bin_class; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_histogram_bin_data.bin_class IS 'Sequential numeric bin class identifier';
+COMMENT ON COLUMN data_histogram_bin_data.bin_class IS 'Sequential numeric bin class identifier related to either Depth or Temperature. Usually there are 12 (1-12) bin ranges (Min and Max Depth or Temperature respectively), however there are times the bin ranges will not be 12, but instead 14 or 16. The larger the number, the more recent the tag models are from tag manufacturers, as they make more bytes available for storage.';
 
 
 --
@@ -109,7 +109,7 @@ COMMENT ON COLUMN data_histogram_bin_data.position_date_time IS 'Date/time stamp
 -- Name: COLUMN data_histogram_bin_data.variable_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_histogram_bin_data.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested.  The variable_id is based on observation or measurement variables listed in the observation_types table.  Note that records in this table are NOT expected to be equivalent to those in the variable_id column of the data_histogram_bin_info table';
+COMMENT ON COLUMN data_histogram_bin_data.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested. The variable_id is based on observation or measurement variables listed in the observation_types table.  Note that records in this table are NOT expected to be equivalent to those in the variable_id column of the data_histogram_bin_info table';
 
 
 --
@@ -145,7 +145,7 @@ COMMENT ON COLUMN data_histogram_bin_info.bin_id IS 'Unique bin ID for the summa
 -- Name: COLUMN data_histogram_bin_info.bin_class; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_histogram_bin_info.bin_class IS 'Sequential numeric bin class identifier';
+COMMENT ON COLUMN data_histogram_bin_info.bin_class IS 'Sequential numeric bin class identifier related to either Depth or Temperature. Usually there are 12 (1-12) bin ranges (Min and Max Depth or Temperature respectively), however there are times the bin ranges will not be 12, but instead 14 or 16. The larger the number, the more recent the tag models are from tag manufacturers, as they make more bytes available for storage.';
 
 
 --
@@ -166,7 +166,7 @@ COMMENT ON COLUMN data_histogram_bin_info.max_value IS 'Value of maximum/upper b
 -- Name: COLUMN data_histogram_bin_info.variable_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_histogram_bin_info.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested.  The variable_id is based on observation or measurement variables listed in the observation_types table.  Note that records in this table are NOT expected to be equivalent to those in the variable_id column of the data_histogram_bin_data table';
+COMMENT ON COLUMN data_histogram_bin_info.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested. The variable_id is based on observation or measurement variables listed in the observation_types table. Note that records in this table are NOT expected to be equivalent to those in the variable_id column of the data_histogram_bin_data table';
 
 
 --
@@ -1332,7 +1332,9 @@ ALTER TABLE ONLY proc_observations
           AND b.variable_name LIKE 'Hist%'
           AND a.submission_id = c.submission_id RETURNING a.submission_id AS bin_id,
                                                    cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
-                                                   variable_value)
+                                                   a.variable_value AS min_value,
+                                                   a.variable_value AS max_value,
+                                                   a.variable_id AS variable_value)
      INSERT INTO data_histogram_bin_info
      SELECT *
      FROM moved_rows ON CONFLICT DO NOTHING;
@@ -1344,7 +1346,9 @@ ALTER TABLE ONLY proc_observations
           AND b.variable_name LIKE 'Hist%'
           AND a.submission_id = c.submission_id RETURNING a.submission_id AS bin_id,
                                                    cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
-                                                   variable_value)
+                                                   a.variable_value AS min_value,
+                                                   a.variable_value AS max_value,
+                                                   a.variable_id AS variable_value)
      UPDATE data_histogram_bin_info
      SET max_value = moved_rows.variable_value
      FROM moved_rows
