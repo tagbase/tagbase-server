@@ -81,7 +81,7 @@ COMMENT ON COLUMN data_histogram_bin_data.bin_id IS 'Unique bin ID for the summa
 -- Name: COLUMN data_histogram_bin_data.bin_class; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_histogram_bin_data.bin_class IS 'Sequential numeric bin class identifier';
+COMMENT ON COLUMN data_histogram_bin_data.bin_class IS 'Sequential numeric bin class identifier related to either Depth or Temperature. Usually there are 12 (1-12) bin ranges (Min and Max Depth or Temperature respectively), however there are times the bin ranges will not be 12, but instead 14 or 16. The larger the number, the more recent the tag models are from tag manufacturers, as they make more bytes available for storage.';
 
 
 --
@@ -109,7 +109,7 @@ COMMENT ON COLUMN data_histogram_bin_data.position_date_time IS 'Date/time stamp
 -- Name: COLUMN data_histogram_bin_data.variable_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_histogram_bin_data.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested.  The variable_id is based on observation or measurement variables listed in the observation_types table.  Note that records in this table are NOT expected to be equivalent to those in the variable_id column of the data_histogram_bin_info table';
+COMMENT ON COLUMN data_histogram_bin_data.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested. The variable_id is based on observation or measurement variables listed in the observation_types table.  Note that records in this table are NOT expected to be equivalent to those in the variable_id column of the data_histogram_bin_info table';
 
 
 --
@@ -145,7 +145,7 @@ COMMENT ON COLUMN data_histogram_bin_info.bin_id IS 'Unique bin ID for the summa
 -- Name: COLUMN data_histogram_bin_info.bin_class; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_histogram_bin_info.bin_class IS 'Sequential numeric bin class identifier';
+COMMENT ON COLUMN data_histogram_bin_info.bin_class IS 'Sequential numeric bin class identifier related to either Depth or Temperature. Usually there are 12 (1-12) bin ranges (Min and Max Depth or Temperature respectively), however there are times the bin ranges will not be 12, but instead 14 or 16. The larger the number, the more recent the tag models are from tag manufacturers, as they make more bytes available for storage.';
 
 
 --
@@ -166,7 +166,7 @@ COMMENT ON COLUMN data_histogram_bin_info.max_value IS 'Value of maximum/upper b
 -- Name: COLUMN data_histogram_bin_info.variable_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_histogram_bin_info.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested.  The variable_id is based on observation or measurement variables listed in the observation_types table.  Note that records in this table are NOT expected to be equivalent to those in the variable_id column of the data_histogram_bin_data table';
+COMMENT ON COLUMN data_histogram_bin_info.variable_id IS 'Unique variable identifier for the data record from the source eTUFF file ingested. The variable_id is based on observation or measurement variables listed in the observation_types table. Note that records in this table are NOT expected to be equivalent to those in the variable_id column of the data_histogram_bin_data table';
 
 
 --
@@ -277,8 +277,8 @@ CREATE TABLE data_profile (
     variable_id bigint NOT NULL,
     date_time timestamp(6) with time zone NOT NULL,
     depth character varying(30) NOT NULL,
-    variable_value character varying(30) NOT NULL,
-    position_date_time timestamp(6) with time zone NOT NULL
+    variable_value character varying(30) DEFAULT '',
+    position_date_time timestamp(6) with time zone DEFAULT '1970-01-01 00:00:00+00'
 );
 
 
@@ -1329,10 +1329,12 @@ ALTER TABLE ONLY proc_observations
         FROM proc_observations a USING observation_types b,
                                        submission c
         WHERE a.variable_id = b.variable_id
-          AND b.variable_name LIKE 'Hist%'
+          AND b.variable_name LIKE 'HistDepthBinMin%'
           AND a.submission_id = c.submission_id RETURNING a.submission_id AS bin_id,
                                                    cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
-                                                   variable_value)
+                                                   a.variable_value AS min_value,
+                                                   '',
+                                                   a.variable_id AS variable_value)
      INSERT INTO data_histogram_bin_info
      SELECT *
      FROM moved_rows ON CONFLICT DO NOTHING;
@@ -1341,12 +1343,12 @@ ALTER TABLE ONLY proc_observations
         FROM proc_observations a USING observation_types b,
                                        submission c
         WHERE a.variable_id = b.variable_id
-          AND b.variable_name LIKE 'Hist%'
+          AND b.variable_name LIKE 'HistDepthBinMax%'
           AND a.submission_id = c.submission_id RETURNING a.submission_id AS bin_id,
                                                    cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
-                                                   variable_value)
+                                                   a.variable_value AS max_value)
      UPDATE data_histogram_bin_info
-     SET max_value = moved_rows.variable_value
+     SET max_value = moved_rows.max_value
      FROM moved_rows
      WHERE data_histogram_bin_info.bin_id = moved_rows.bin_id
        AND data_histogram_bin_info.bin_class = moved_rows.bin_class;
@@ -1376,17 +1378,17 @@ ALTER TABLE ONLY proc_observations
                                        submission c
         WHERE a.variable_id = b.variable_id
           AND b.variable_name LIKE 'PdtDepth%'
-          AND a.submission_id = c.submission_id RETURNING a.date_time,
+          AND a.submission_id = c.submission_id RETURNING a.submission_id,
+                                                          c.tag_id,
                                                           a.variable_id,
-                                                          a.variable_value,
-                                                          a.submission_id,
-                                                          variable_name,
-                                                          c.tag_id)
-     INSERT INTO data_profile (date_time, depth, submission_id, tag_id)
-     SELECT date_time,
-            variable_value,
-            submission_id,
-            tag_id
+                                                          a.date_time,
+                                                          a.variable_value)
+     INSERT INTO data_profile (submission_id, tag_id, variable_id, date_time, depth)
+     SELECT submission_id,
+            tag_id,
+            variable_id,
+            date_time,
+            variable_value
      FROM moved_rows;
      WITH moved_rows AS
        ( DELETE
