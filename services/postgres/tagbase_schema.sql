@@ -278,7 +278,7 @@ CREATE TABLE data_profile (
     date_time timestamp(6) with time zone NOT NULL,
     depth character varying(30) NOT NULL,
     variable_value character varying(30) DEFAULT '',
-    position_date_time timestamp(6) with time zone DEFAULT '1970-01-01 00:00:00+00'
+    position_date_time timestamp(6) with time zone
 );
 
 
