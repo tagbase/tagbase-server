@@ -20,7 +20,7 @@ servers:
 - description: ICCAT Test tagbase-server
   url: https://162.13.162.49/tagbase/api/v0.7.0
 tags:
-- description: Events Operations
+- description: Event Operations
   name: events
 - description: Ingestion operations
   name: ingest
