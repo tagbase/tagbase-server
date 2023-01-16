@@ -20,7 +20,7 @@ servers:
 - description: ICCAT Test tagbase-server
   url: https://162.13.162.49/tagbase/api/v0.7.0
 tags:
-- description: Events Logging
+- description: Events Operations
   name: events
 - description: Ingestion operations
   name: ingest
@@ -73,12 +73,10 @@ paths:
       x-openapi-router-controller: tagbase_server.controllers.events_controller
     put:
       description: Update notes for an event
-      operationId: put_tag
+      operationId: put_event
       parameters:
+      - $ref: '#/components/parameters/eventId'
       - $ref: '#/components/parameters/notes'
-      - $ref: '#/components/parameters/tagId'
-      - $ref: '#/components/parameters/subId'
-      - $ref: '#/components/parameters/version'
       responses:
         "200":
           content:
@@ -92,7 +90,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/response500'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
-      summary: Update the 'notes' and/or 'version' associated with a tag submission
+      summary: Update the 'notes' associated with a event
       tags:
       - events
       x-openapi-router-controller: tagbase_server.controllers.events_controller

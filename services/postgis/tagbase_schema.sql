@@ -522,8 +522,8 @@ ALTER TABLE ONLY proc_observations
 ALTER TABLE ONLY proc_observations
     ADD CONSTRAINT proc_observations_variable_id_fkey FOREIGN KEY (variable_id) REFERENCES observation_types(variable_id);
 
-ALTER TABLE ONLY event_log
-    ADD CONSTRAINT event_log_submission_fkey FOREIGN KEY (submission_id, tag_id) REFERENCES submission(submission_id, tag_id);
+ALTER TABLE ONLY events_log
+    ADD CONSTRAINT events_log_submission_fkey FOREIGN KEY (submission_id, tag_id) REFERENCES submission(submission_id, tag_id);
 
 --
 -- The following TRIGGER ensures that upon ingestion of an eTUFF file into tagbase-server,
