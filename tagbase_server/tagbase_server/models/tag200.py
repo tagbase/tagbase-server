@@ -36,7 +36,7 @@ class Tag200(Model):
 
         :param dikt: A dict.
         :type: dict
-        :return: The Tag200 of this Tag200.  # noqa: E501
+        :return: The tag200 of this Tag200.  # noqa: E501
         :rtype: Tag200
         """
         return util.deserialize_model(dikt, cls)
@@ -45,7 +45,7 @@ class Tag200(Model):
     def tag(self):
         """Gets the tag of this Tag200.
 
-        List containing one or more submissions for a given tag  # noqa: E501
+        List containing submissions for a given tag  # noqa: E501
 
         :return: The tag of this Tag200.
         :rtype: List[Tag200TagInner]
@@ -56,7 +56,7 @@ class Tag200(Model):
     def tag(self, tag):
         """Sets the tag of this Tag200.
 
-        List containing one or more submissions for a given tag  # noqa: E501
+        List containing submissions for a given tag  # noqa: E501
 
         :param tag: The tag of this Tag200.
         :type tag: List[Tag200TagInner]

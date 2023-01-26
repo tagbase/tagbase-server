@@ -1,7 +1,9 @@
-from tagbase_server.utils.db_utils import connect
-
+from tagbase_server.models.response500 import Response500  # noqa: E501
 from tagbase_server.models.tag200 import Tag200  # noqa: E501
 from tagbase_server.models.tag_put200 import TagPut200  # noqa: E501
+from tagbase_server.models.tags200 import Tags200  # noqa: E501
+from tagbase_server.utils.db_utils import connect
+from tagbase_server import util
 
 import logging
 
@@ -13,7 +15,7 @@ def get_tag(tag_id):  # noqa: E501
 
     Get information about an individual tag # noqa: E501
 
-    :param tag_id: Existing tag id
+    :param tag_id: Numeric tag ID
     :type tag_id:
 
     :rtype: Union[Tag200, Tuple[Tag200, int], Tuple[Tag200, int, Dict[str, str]]
@@ -78,9 +80,9 @@ def put_tag(tag_id, sub_id, notes=None, version=None):  # noqa: E501
 
     Update a tag submission # noqa: E501
 
-    :param tag_id: Existing tag id
+    :param tag_id: Numeric tag ID
     :type tag_id:
-    :param sub_id: Existing submission id for an existing tag
+    :param sub_id: Numeric submission ID
     :type sub_id:
     :param notes: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solution-positional meta/data)
     :type notes: str

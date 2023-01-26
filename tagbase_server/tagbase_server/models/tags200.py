@@ -39,7 +39,7 @@ class Tags200(Model):
 
         :param dikt: A dict.
         :type: dict
-        :return: The Tags200 of this Tags200.  # noqa: E501
+        :return: The tags200 of this Tags200.  # noqa: E501
         :rtype: Tags200
         """
         return util.deserialize_model(dikt, cls)

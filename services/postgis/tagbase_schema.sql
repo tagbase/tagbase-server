@@ -24,17 +24,17 @@ SET default_table_access_method = heap;
 
 SET default_with_oids = false;
 
-CREATE TYPE status_enum AS ENUM ('FAILED', 'FINISHED', 'KILLED', 'MIGRATION', 'POSTMIGRATION', 'PREMIGRATION');
+CREATE TYPE status_enum AS ENUM ('failed', 'finished', 'killed', 'running');
 
 CREATE TABLE events_log (
-    submission_id integer NOT NULL,
-    tag_id integer NOT NULL,
-    event_id integer NOT NULL,
+    submission_id integer,
+    tag_id integer,
+    event_id UUID NOT NULL,
     event_category character varying(30) NOT NULL,
     event_name character varying(30) NOT NULL,
     time_start timestamp(6) with time zone NOT NULL,
-    time_end timestamp(6) with time zone NOT NULL,
-    duration TIME NOT NULL,
+    time_end timestamp(6) with time zone,
+    duration double precision,
     event_status status_enum NOT NULL,
     event_notes text
 );
@@ -523,7 +523,7 @@ ALTER TABLE ONLY proc_observations
     ADD CONSTRAINT proc_observations_variable_id_fkey FOREIGN KEY (variable_id) REFERENCES observation_types(variable_id);
 
 ALTER TABLE ONLY events_log
-    ADD CONSTRAINT events_log_submission_fkey FOREIGN KEY (submission_id, tag_id) REFERENCES submission(submission_id, tag_id);
+    ADD CONSTRAINT eventslog_submission_fkey FOREIGN KEY (submission_id) REFERENCES submission(submission_id);
 
 --
 -- The following TRIGGER ensures that upon ingestion of an eTUFF file into tagbase-server,

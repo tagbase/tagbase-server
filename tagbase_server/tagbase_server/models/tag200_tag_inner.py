@@ -76,7 +76,7 @@ class Tag200TagInner(Model):
 
         :param dikt: A dict.
         :type: dict
-        :return: The Tag200_tag_inner of this Tag200TagInner.  # noqa: E501
+        :return: The tag200_tag_inner of this Tag200TagInner.  # noqa: E501
         :rtype: Tag200TagInner
         """
         return util.deserialize_model(dikt, cls)
@@ -200,7 +200,7 @@ class Tag200TagInner(Model):
     def tag_id(self):
         """Gets the tag_id of this Tag200TagInner.
 
-        Unique numeric Tag ID associated with the ingested tag eTUFF data file  # noqa: E501
+        Unique numeric tag ID associated with the ingested tag data file  # noqa: E501
 
         :return: The tag_id of this Tag200TagInner.
         :rtype: int
@@ -211,7 +211,7 @@ class Tag200TagInner(Model):
     def tag_id(self, tag_id):
         """Sets the tag_id of this Tag200TagInner.
 
-        Unique numeric Tag ID associated with the ingested tag eTUFF data file  # noqa: E501
+        Unique numeric tag ID associated with the ingested tag data file  # noqa: E501
 
         :param tag_id: The tag_id of this Tag200TagInner.
         :type tag_id: int

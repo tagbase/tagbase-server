@@ -3,6 +3,7 @@ import logging
 from datetime import datetime as dt
 from io import StringIO
 import time
+import uuid
 
 import pandas as pd
 import psycopg2.extras
@@ -11,7 +12,7 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from tzlocal import get_localzone
 
-from tagbase_server.utils.db_utils import connect
+from tagbase_server.utils.db_utils import connect, create_event, update_event
 
 logger = logging.getLogger(__name__)
 slack_token = os.environ.get("SLACK_BOT_TOKEN", "")
@@ -22,6 +23,10 @@ client = WebClient(token=slack_token)
 def process_global_attributes(
     line, cur, submission_id, metadata, submission_filename, line_counter
 ):
+    event_id = uuid.uuid4()
+    global_start = time.perf_counter()
+    create_event(event_category="metadata", event_id=event_id, event_name="populating metadata for new tag submission",
+                 event_status="running", time_start=start)
     logger.debug("Processing global attribute: %s", line)
     tokens = line.strip()[1:].split(" = ")
     logger.debug("Processing token: %s", tokens)
@@ -47,10 +52,19 @@ def process_global_attributes(
         str_submission_id = str(submission_id)
         str_row = str(rows[0][0])
         metadata.append((str_submission_id, str_row, tokens[1]))
+        global_finish = time.perf_counter()
+        global_elapsed = round(finish - start, 2)
+        submission_id = cur.fetchone()[0]
+        update_event(duration=global_elapsed, event_id=event_id, event_status="finished", submission_id=submission_id,
+                     tag_id=submission_id, time_end=global_finish)
 
 
 def process_etuff_file(file, version=None, notes=None):
+    logger.info("Started processing: %s", file)
+    event_id = uuid.uuid4()
     start = time.perf_counter()
+    create_event(event_category="submission", event_id=event_id, event_name="new tag submission",
+                 event_status="running", time_start=start)
     submission_filename = file  # full path name is now preferred rather than - file[file.rindex("/") + 1 :]
     logger.info(
         "Processing etuff file: %s",
@@ -76,13 +90,18 @@ def process_etuff_file(file, version=None, notes=None):
                 "Successful INSERT of '%s' into 'submission' table.",
                 submission_filename,
             )
-
+            sub_finish = time.perf_counter()
+            sub_elapsed = round(finish - start, 2)
             cur.execute("SELECT currval('submission_submission_id_seq')")
             submission_id = cur.fetchone()[0]
+            update_event(duration=sub_elapsed, event_id=event_id, event_status="finished", submission_id=submission_id,
+                         tag_id=submission_id, time_end=sub_finish)
 
             metadata = []
             proc_obs = []
             s_time = time.perf_counter()
+            create_event(event_category="submission", event_id=event_id, event_name="new tag submission",
+                         event_status="running", time_start=start)
             with open(file, "rb") as data:
                 lines = [line.decode("utf-8", "ignore") for line in data.readlines()]
                 variable_lookup = {}
