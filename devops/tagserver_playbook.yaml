@@ -72,4 +72,6 @@
                  POSTGRES_PORT=5432
                  SLACK_BOT_CHANNEL=tagbase-server
                  SLACK_BOT_TOKEN=XYZXYZ
+                 NGINX_USER=nginx_user
+                 NGINX_PASS=nginx_pass
         dest: /home/ubuntu/tagbase-server/.env
