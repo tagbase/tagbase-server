@@ -2,8 +2,6 @@
 - hosts: dev_servers
   gather_facts: yes
   become: true
-    #       become_method: sudo
-#  connection: docker
 
   tasks:
     - name: Install apt-transport-https
@@ -37,7 +35,7 @@
         state: latest
         update_cache: true
 
-    - name: Install git
+    - name: Install git - curl - ssh client
       apt:
         name: "{{ item }}"
         state: installed
@@ -45,26 +43,27 @@
       with_items:
         - git
         - curl
-        #- systemctl
+        - openssh-client
+        - net-tools
+        - postgresql-client
+
     - name: Install docker-compose
       command: sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64" -o /usr/local/bin/docker-compose
+
     - name: Create symbolic link for docker-compose
       command: sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+
     - name: Setting permissions right for docker-compose
       command: sudo chmod +x /usr/local/bin/docker-compose
+
     - name: Create dir for project
       command: mkdir -p /home/ubuntu/tagbase-server/
+
     - name: Change ownership
       command: chown ubuntu:ubuntu -R /home/ubuntu/tagbase-server/
-        #- name: Cloning tagbase-server project
-        #  git:
-        #    repo: https://github.com/tagbase/tagbase-server.git
-        #    dest: /root/tagbase-server
-        #    clone: yes
-        #    update: yes
-        #- name: Checkout specific tagserver branch
-        #  command: chdir=/root/tagbase-server git checkout -b 149_configuration_tool origin/149_configuration_tool
+
     - name: Setting up tagbase-server env file
+      become: false
       copy:
         content: |
                  PGADMIN_DEFAULT_EMAIL=tagtuna@gmail.com
@@ -73,8 +72,4 @@
                  POSTGRES_PORT=5432
                  SLACK_BOT_CHANNEL=tagbase-server
                  SLACK_BOT_TOKEN=XYZXYZ
-        dest: /home/ubuntu/.env
-          #- name: Build Tagbase services
-          #  command: chdir=/root/tagbase-server docker-compose build
-          #- name: Deploy Tagbase services
-          #  command: chdir=/root/tagbase-server docker-compose up -d
+        dest: /home/ubuntu/tagbase-server/.env
