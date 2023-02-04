@@ -1,5 +1,5 @@
 set :branch, "149_configuration_tool"
-set :server_ip, "3.145.103.174"
+set :server_ip, "18.116.62.197"
 
 # server-based syntax
 # ======================
