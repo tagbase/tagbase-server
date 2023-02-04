@@ -2,7 +2,7 @@
 lock "~> 3.17.1"
 
 set :application, "tagbase-server"
-set :repo_url, "git@github.com:tagbase/tagbase-server.git"
+set :repo_url, "https://github.com/tagbase/tagbase-server.git" # git@github.com:tagbase/tagbase-server.git"
 
 # Default branch is :master
 # ask :branch, `git rev-parse --abbrev-ref HEAD`.chomp
