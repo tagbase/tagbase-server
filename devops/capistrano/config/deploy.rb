@@ -55,7 +55,8 @@ namespace :deploy do
   task :rebuild_deps do
     on roles(:app) do
       # Your restart mechanism here, for example:
-      execute '(cd /home/ubuntu/tagbase-server/current; sudo docker-compose build --build-arg POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" --build-arg POSTGRES_PORT="${POSTGRES_PORT}" --build-arg NGINX_USER="${NGINX_USER}" --build-arg NGINX_PASS="${NGINX_PASS}")'
+      execute '(cd /home/ubuntu/tagbase-server/current; sudo docker-compose build)'
+      #execute '(cd /home/ubuntu/tagbase-server/current; sudo docker-compose build --build-arg POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" --build-arg POSTGRES_PORT="${POSTGRES_PORT}" --build-arg NGINX_USER="${NGINX_USER}" --build-arg NGINX_PASS="${NGINX_PASS}")'
 
       #execute (cd /home/ubuntu/tagbase-server; docker-compose down; docker-compose up -d)
     end
