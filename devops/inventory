@@ -5,7 +5,7 @@ tagbase_server_devserver docker_service_name=tagbase_server_devserver
 #one.example.com
 
 [dev_servers]
-18.116.62.197
+3.145.36.119
 
 #one.example.com
 

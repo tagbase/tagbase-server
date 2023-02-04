@@ -1,5 +1,6 @@
-set :branch, "149_configuration_tool"
-set :server_ip, "18.116.62.197"
+set :branch, "renato2099_playground"
+set :server_ip, "3.145.36.119"#3.12.76.244"
+
 
 # server-based syntax
 # ======================
