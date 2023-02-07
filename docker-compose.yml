@@ -82,31 +82,6 @@ services:
     networks:
       - internal-network
     restart: unless-stopped
-  # postgres:
-  #   build:
-  #     context: ./services/postgres
-  #   environment:
-  #     - PGDATA=/var/lib/postgresql/data/pgdata
-  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-  #   expose:
-  #     - ${POSTGRES_PORT}
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -d tagbase -h postgres -U tagbase"]
-  #     interval: 15s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 15s
-  #   hostname: postgres
-  #   labels:
-  #     "docker_compose_diagram.cluster": "Internal Network"
-  #     "docker_compose_diagram.description": "Tagbase PostgreSQL server"
-  #   networks:
-  #     - internal-network
-  #   ports:
-  #     - ${POSTGRES_PORT}:${POSTGRES_PORT}
-  #   restart: unless-stopped
-  #   volumes:
-  #     - ./postgres-data:/var/lib/postgresql/data
   postgis:
     environment:
       - ALLOW_IP_RANGE=0.0.0.0/0
@@ -174,5 +149,30 @@ services:
     restart: unless-stopped
     volumes:
       - ./logs:/usr/src/app/logs
+  zeromq:
+    build:
+      context: ./services/zeromq
+    depends_on:
+      postgis:
+        condition: service_healthy
+      tagbase_server:
+        condition: service_healthy
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+    expose:
+      - 5555
+    hostname: zeromq
+    labels:
+      "docker_compose_diagram.cluster": "Internal Network"
+      "docker_compose_diagram.description": "zeromq messaging service"
+      "docker_compose_diagram.icon": "zeromq"
+    links:
+      - postgis
+    networks:
+      - internal-network
+    restart: unless-stopped
+    # volumes:
+    #   - ./logs:/usr/src/app/logs
 networks:
   internal-network:
