@@ -118,7 +118,7 @@ def process_etuff_file(file, version=None, notes=None):
                                     variable_id = row[0]
                                 else:
                                     try:
-                                        logger.info(variable_name, tokens.strip())
+                                        logger.debug(variable_name, tokens)
                                         cur.execute(
                                             "INSERT INTO observation_types("
                                             "variable_name, variable_units) VALUES (%s, %s) "
@@ -131,7 +131,7 @@ def process_etuff_file(file, version=None, notes=None):
                                     ) as error:
                                         logger.error(
                                             "variable_id '%s' already exists in 'observation_types'. tokens:"
-                                            " '%s. \nerror: " % s,
+                                            " '%s. \nerror: %s",
                                             variable_name,
                                             tokens,
                                             error,
