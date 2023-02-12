@@ -19,7 +19,7 @@ slack_channel = os.environ.get("SLACK_BOT_CHANNEL", "tagbase-server")
 client = WebClient(token=slack_token)
 
 
-def process_global_attributes(
+def process_line_for_global_attributes(
     line, cur, submission_id, metadata, submission_filename, line_counter
 ):
     logger.debug("Processing global attribute: %s", line)
@@ -35,18 +35,47 @@ def process_global_attributes(
             f"*{submission_filename}* _line:{line_counter}_ - "
             f"Unable to locate attribute_name *{tokens[0]}* in _metadata_types_ table."
         )
-
-        logger.warning(msg)
-        try:
-            client.chat_postMessage(
-                channel=slack_channel, text="<!channel> :warning: " + msg
-            )
-        except SlackApiError as e:
-            logger.error(e)
+        post_msg_to_slack(msg)
     else:
         str_submission_id = str(submission_id)
         str_row = str(rows[0][0])
         metadata.append((str_submission_id, str_row, tokens[1]))
+
+
+def post_msg_to_slack(msg):
+    logger.warning(msg)
+    try:
+        client.chat_postMessage(
+            channel=slack_channel, text="<!channel> :warning: " + msg
+        )
+    except SlackApiError as e:
+        logger.error(e)
+
+
+def process_global_attributes(lines, cur, submission_id, metadata, submission_filename):
+    processed_lines = 0
+    global_attributes = []
+    for line in lines:
+        processed_lines += 1
+        if line.startswith("//"):
+            continue
+        elif line.strip().startswith(":"):
+            global_attributes.append(line)
+        else:
+            break
+
+    for global_attribute in global_attributes:
+        process_line_for_global_attributes(
+            global_attribute,
+            cur,
+            submission_id,
+            metadata,
+            submission_filename,
+            processed_lines,
+        )
+
+    # returning -1 because lines is an 0-indexed array
+    return processed_lines - 1 if processed_lines > 0 else 0
 
 
 def process_etuff_file(file, version=None, notes=None):
@@ -82,97 +111,91 @@ def process_etuff_file(file, version=None, notes=None):
 
             metadata = []
             proc_obs = []
+
             s_time = time.perf_counter()
             with open(file, "rb") as data:
                 lines = [line.decode("utf-8", "ignore") for line in data.readlines()]
-                variable_lookup = {}
-                line_counter = 0
-                for line in lines:
-                    line_counter += 1
-                    if line.startswith("//"):
-                        continue
-                    elif line.strip().startswith(":"):
-                        process_global_attributes(
-                            line,
-                            cur,
-                            submission_id,
-                            metadata,
-                            submission_filename,
-                            line_counter,
-                        )
+            lines_length = len(lines)
+
+            line_counter = 0
+            variable_lookup = {}
+
+            metadata_lines = process_global_attributes(
+                lines, cur, submission_id, metadata, submission_filename
+            )
+            line_counter += metadata_lines
+
+            for counter in range(metadata_lines, lines_length):
+                line = lines[line_counter]
+                line_counter += 1
+                tokens = line.split(",")
+                tokens = [token.replace('"', "") for token in tokens]
+                if tokens:
+                    variable_name = tokens[3]
+                    if variable_name in variable_lookup:
+                        variable_id = variable_lookup[variable_name]
                     else:
-                        # Parse proc_observations
-                        tokens = line.split(",")
-                        tokens = [token.replace('"', "") for token in tokens]
-                        if tokens:
-                            variable_name = tokens[3]
-                            if variable_name in variable_lookup:
-                                variable_id = variable_lookup[variable_name]
-                            else:
+                        cur.execute(
+                            "SELECT variable_id FROM observation_types WHERE variable_name = %s",
+                            (variable_name,),
+                        )
+                        row = cur.fetchone()
+                        if row:
+                            variable_id = row[0]
+                        else:
+                            try:
+                                logger.debug(
+                                    "variable_name=%s\ttokens=%s", variable_name, tokens
+                                )
                                 cur.execute(
-                                    "SELECT variable_id FROM observation_types WHERE variable_name = %s",
-                                    (variable_name,),
+                                    "INSERT INTO observation_types("
+                                    "variable_name, variable_units) VALUES (%s, %s) "
+                                    "ON CONFLICT (variable_name) DO NOTHING",
+                                    (variable_name, tokens[4].strip()),
                                 )
-                                row = cur.fetchone()
-                                if row:
-                                    variable_id = row[0]
-                                else:
-                                    try:
-                                        logger.debug(variable_name, tokens)
-                                        cur.execute(
-                                            "INSERT INTO observation_types("
-                                            "variable_name, variable_units) VALUES (%s, %s) "
-                                            "ON CONFLICT (variable_name) DO NOTHING",
-                                            (variable_name, tokens[4].strip()),
-                                        )
-                                    except (
-                                        Exception,
-                                        psycopg2.DatabaseError,
-                                    ) as error:
-                                        logger.error(
-                                            "variable_id '%s' already exists in 'observation_types'. tokens:"
-                                            " '%s. \nerror: %s",
-                                            variable_name,
-                                            tokens,
-                                            error,
-                                        )
-                                        conn.rollback()
-                                    cur.execute(
-                                        "SELECT nextval('observation_types_variable_id_seq')"
-                                    )
-                                    variable_id = cur.fetchone()[0]
-                                variable_lookup[variable_name] = variable_id
-                            date_time = None
-                            if tokens[0] != '""' and tokens[0] != "":
-                                if tokens[0].startswith('"'):
-                                    tokens[0].replace('"', "")
-                                date_time = dt.strptime(
-                                    tokens[0], "%Y-%m-%d %H:%M:%S"
-                                ).astimezone(pytz.utc)
-                            else:
-                                stripped_line = line.strip("\n")
-                                msg = (
-                                    f"*{submission_filename}* _line:{line_counter}_ - "
-                                    f"No datetime... skipping line: {stripped_line}"
+                            except (
+                                Exception,
+                                psycopg2.DatabaseError,
+                            ) as error:
+                                logger.error(
+                                    "variable_id '%s' already exists in 'observation_types'. tokens:"
+                                    " '%s. \nerror: %s",
+                                    variable_name,
+                                    tokens,
+                                    error,
                                 )
-                                logger.warning(msg)
-                                try:
-                                    client.chat_postMessage(
-                                        channel=slack_channel,
-                                        text="<!channel> :warning: " + msg,
-                                    )
-                                except SlackApiError as e:
-                                    logger.error(e)
-                                continue
-                            proc_obs.append(
-                                [
-                                    date_time,
-                                    variable_id,
-                                    tokens[2],
-                                    submission_id,
-                                    str(submission_id),
-                                ]
+                                conn.rollback()
+                            cur.execute(
+                                "SELECT nextval('observation_types_variable_id_seq')"
                             )
+                            variable_id = cur.fetchone()[0]
+                        variable_lookup[variable_name] = variable_id
+                    date_time = None
+                    if tokens[0] != '""' and tokens[0] != "":
+                        if tokens[0].startswith('"'):
+                            tokens[0].replace('"', "")
+                        date_time = dt.strptime(
+                            tokens[0], "%Y-%m-%d %H:%M:%S"
+                        ).astimezone(pytz.utc)
+                    else:
+                        stripped_line = line.strip("\n")
+                        msg = (
+                            f"*{submission_filename}* _line:{line_counter}_ - "
+                            f"No datetime... skipping line: {stripped_line}"
+                        )
+                        post_msg_to_slack(msg)
+                        continue
+
+                    proc_obs.append(
+                        [
+                            date_time,
+                            variable_id,
+                            tokens[2],
+                            submission_id,
+                            str(submission_id),
+                        ]
+                    )
+
             len_proc_obs = len(proc_obs)
             e_time = time.perf_counter()
             sub_elapsed = round(e_time - s_time, 2)
