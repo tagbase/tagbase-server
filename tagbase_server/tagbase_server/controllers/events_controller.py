@@ -2,6 +2,7 @@ from tagbase_server.models.event200 import Event200  # noqa: E501
 from tagbase_server.models.event_put200 import EventPut200  # noqa: E501
 from tagbase_server.models.events200 import Events200  # noqa: E501
 from tagbase_server.models.response500 import Response500  # noqa: E501
+from tagbase_server.utils.db_utils import connect
 from tagbase_server import util
 
 
@@ -27,7 +28,7 @@ def get_event(event_id):  # noqa: E501
             return Event200.from_dict(
                 {
                     "event_category": result[0],
-                    "event_id": result[1],
+                    "event_id": str(result[1]),
                     "event_name": result[2],
                     "event_notes": result[3],
                     "event_status": result[4],
@@ -58,7 +59,7 @@ def list_all_events():  # noqa: E501
             for event in cur.fetchall():
                 events.append(
                     {
-                        "event_id": event[0],
+                        "event_id": str(event[0]),
                         "tag_id": event[1],
                         "submission_id": event[2],
                     }
@@ -67,7 +68,7 @@ def list_all_events():  # noqa: E501
                 "SELECT COUNT(DISTINCT event_id) FROM events_log",
             )
             count = cur.fetchone()[0]
-            return Events200.from_dict({"count": count, "events": tags})
+            return Events200.from_dict({"count": count, "events": events})
 
 
 def list_events(tag_id, sub_id):  # noqa: E501
@@ -94,7 +95,7 @@ def list_events(tag_id, sub_id):  # noqa: E501
             for event in cur.fetchall():
                 events.append(
                     {
-                        "event_id": event[0],
+                        "event_id": str(event[0]),
                         "tag_id": event[1],
                         "submission_id": event[2],
                     }
@@ -103,7 +104,7 @@ def list_events(tag_id, sub_id):  # noqa: E501
                 "SELECT COUNT(DISTINCT event_id) FROM events_log",
             )
             count = cur.fetchone()[0]
-            return Events200.from_dict({"count": count, "events": tags})
+            return Events200.from_dict({"count": count, "events": events})
 
 
 def put_event(event_id, notes=None):  # noqa: E501
@@ -126,5 +127,5 @@ def put_event(event_id, notes=None):  # noqa: E501
                     "UPDATE events_log SET notes = %s WHERE event_id = %s",
                     (notes, event_id),
                 )
-            message = f"Event: '{int(event_id)}' successfully updated."
+            message = f"Event: '{str(event_id)}' successfully updated."
             return EventPut200.from_dict({"code": "200", "message": message})

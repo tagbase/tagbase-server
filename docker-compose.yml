@@ -113,6 +113,53 @@ services:
       - ./dbbackups:/backups
       - ./postgis-data:/var/lib/postgresql
       - ./services/postgis/tagbase_schema.sql:/docker-entrypoint-initdb.d/tagbase_schema.sql
+  rabbitmq:
+    depends_on:
+      postgis:
+        condition: service_healthy
+    healthcheck:
+      test: "set -eo pipefail rabbitmqctl eval '{ true, rabbit_app_booted_and_running } = { rabbit:is_booted(node()), rabbit_app_booted_and_running }, { [], no_alarms } = { rabbit:alarms(), no_alarms }, [] /= rabbit_networking:active_listeners(), rabbitmq_node_is_healthy.' || exit 1"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    hostname: rabbitmq
+    image: rabbitmq:3-management-alpine
+    labels:
+      "docker_compose_diagram.cluster": "Internal Network"
+      "docker_compose_diagram.description": "rabbitmq messaging service"
+      "docker_compose_diagram.icon": "rabbitmq"
+    networks:
+      - internal-network
+    ports:
+      - 5672:5672
+      - 15672:15672
+    restart: unless-stopped
+    volumes:
+      - ./rabbitmq/data/:/var/lib/rabbitmq/
+      - ./logs/rabbitmq/:/var/log/rabbitmq/
+  rabbitmq_subscriber:
+    build:
+      context: ./services/subscriber
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+    hostname: rabbitmq_subscriber
+    labels:
+      "docker_compose_diagram.cluster": "Internal Network"
+      "docker_compose_diagram.description": "rabbitmq subscriber service"
+      "docker_compose_diagram.icon": "rabbitmq"
+    links:
+      - postgis
+      - rabbitmq
+    networks:
+      - internal-network
+    restart: unless-stopped
+    volumes:
+      - ./logs/rabbitmq_subscriber:/usr/src/app/logs/rabbitmq_subscriber
   slack_docker:
     environment:
       - webhook=${webhook}
@@ -144,35 +191,11 @@ services:
       "docker_compose_diagram.icon": "flask"
     links:
       - postgis
+      - rabbitmq
     networks:
       - internal-network
     restart: unless-stopped
     volumes:
-      - ./logs:/usr/src/app/logs
-  zeromq:
-    build:
-      context: ./services/zeromq
-    depends_on:
-      postgis:
-        condition: service_healthy
-      tagbase_server:
-        condition: service_healthy
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_PORT=${POSTGRES_PORT}
-    expose:
-      - 5555
-    hostname: zeromq
-    labels:
-      "docker_compose_diagram.cluster": "Internal Network"
-      "docker_compose_diagram.description": "zeromq messaging service"
-      "docker_compose_diagram.icon": "zeromq"
-    links:
-      - postgis
-    networks:
-      - internal-network
-    restart: unless-stopped
-    # volumes:
-    #   - ./logs:/usr/src/app/logs
+      - ./logs/tagbase_server:/usr/src/app/logs/tagbase_server
 networks:
   internal-network:

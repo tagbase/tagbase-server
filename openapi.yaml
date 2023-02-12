@@ -353,7 +353,7 @@ components:
     event200:
       description: Information for a given event
       example:
-        event_id: 1
+        event_id: "06335e84-2872-4914-8c5d-3ed07d2a2dj4"
         tag_id: 1
         submission_id: 1
         event_category: "submission"
@@ -426,22 +426,23 @@ components:
       title: eventPut200
       type: object
     event_id:
-      description: Unique numeric event ID associated with the ingested tag data file
-      example: 1
+      description: UUID associated with a particular event
+      example: "06335e84-2872-4914-8c5d-3ed07d2a2f16"
+      format: uuid
       title: event_id
-      type: integer
+      type: string
     events200:
       description: Response detailing all available events
       example:
         count: 3
         events:
-        - event_id: 1
+        - event_id: "06335e84-2872-4914-8c5d-3ed07d2a2f16"
           tag_id: 1
           submission_id: 1
-        - event_id: 2
+        - event_id: "06335e84-2872-4914-8c5d-3ed07d2a2dj4"
           tag_id: 1
           submission_id: 1
-        - event_id: 3
+        - event_id: "06335e84-2872-4914-8c5d-3ed07d2a2fkf"
           tag_id: 1
           submission_id: 1
       properties:
@@ -450,12 +451,12 @@ components:
           example: 3
           type: integer
         events:
-          description: List of unique numeric event IDs and associated tag and submission IDs
+          description: List of event UUID's and associated tag and submission IDs
           type: array
           items:
-            description: Unique numeric event ID and associated tag and submission IDs
+            description: UUID and associated tag and submission ID
             example:
-              event_id: 1
+              event_id: "06335e84-2872-4914-8c5d-3ed07d2a2dj4"
               tag_id: 1
               submission_id: 1
             properties:

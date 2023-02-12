@@ -3,16 +3,17 @@ import logging
 from datetime import datetime as dt
 from io import StringIO
 import time
-import uuid
 
 import pandas as pd
 import psycopg2.extras
 import pytz
+
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from tzlocal import get_localzone
 
-from tagbase_server.utils.db_utils import connect, create_event, update_event
+from tagbase_server.utils.db_utils import connect
+from tagbase_server.utils.rabbitmq_utils import publish_message
 
 logger = logging.getLogger(__name__)
 slack_token = os.environ.get("SLACK_BOT_TOKEN", "")
@@ -25,12 +26,10 @@ def process_global_attributes(
 ):
     event_id = uuid.uuid4()
     global_start = time.perf_counter()
-    create_event(
-        event_category="metadata",
-        event_id=event_id,
-        event_name="populating metadata for new tag submission",
-        event_status="running",
-        time_start=start,
+    publish_message(
+        "event_log/create metadata {} populating-metadata-for-new-tag-submission running {}".format(
+            event_id, start
+        )
     )
     logger.debug("Processing global attribute: %s", line)
     tokens = line.strip()[1:].split(" = ")
@@ -60,26 +59,23 @@ def process_global_attributes(
         global_finish = time.perf_counter()
         global_elapsed = round(finish - start, 2)
         submission_id = cur.fetchone()[0]
-        update_event(
-            duration=global_elapsed,
-            event_id=event_id,
-            event_status="finished",
-            submission_id=submission_id,
-            tag_id=submission_id,
-            time_end=global_finish,
+        publish_message(
+            "event_log/update {} {} finished {} {} {}".format(
+                global_elapsed, event_id, submission_id, submission_id, global_finish
+            )
         )
 
 
 def process_etuff_file(file, version=None, notes=None):
     logger.info("Started processing: %s", file)
+    import uuid
+
     event_id = uuid.uuid4()
     start = time.perf_counter()
-    create_event(
-        event_category="submission",
-        event_id=event_id,
-        event_name="new tag submission",
-        event_status="running",
-        time_start=start,
+    publish_message(
+        "event_log/create submission {} new-tag-submission running {}".format(
+            event_id, dt.now(tz=pytz.utc).astimezone(get_localzone())
+        )
     )
     submission_filename = file  # full path name is now preferred rather than - file[file.rindex("/") + 1 :]
     logger.info(
@@ -107,28 +103,27 @@ def process_etuff_file(file, version=None, notes=None):
                 submission_filename,
             )
             sub_finish = time.perf_counter()
-            sub_elapsed = round(finish - start, 2)
+            sub_elapsed = round(sub_finish - start, 2)
             cur.execute("SELECT currval('submission_submission_id_seq')")
             submission_id = cur.fetchone()[0]
-            update_event(
-                duration=sub_elapsed,
-                event_id=event_id,
-                event_status="finished",
-                submission_id=submission_id,
-                tag_id=submission_id,
-                time_end=sub_finish,
+            publish_message(
+                "event_log/update {} {} finished {} {} {}".format(
+                    sub_elapsed,
+                    event_id,
+                    submission_id,
+                    submission_id,
+                    dt.now(tz=pytz.utc).astimezone(get_localzone()),
+                )
             )
 
             metadata = []
             proc_obs = []
             s_time = time.perf_counter()
-            create_event(
-                event_category="submission",
-                event_id=event_id,
-                event_name="new tag submission",
-                event_status="running",
-                time_start=start,
-            )
+            # publish_message(
+            #     "event_log/create submission {} new-tag-submission running {}".format(
+            #         event_id, start
+            #     )
+            # )
             with open(file, "rb") as data:
                 lines = [line.decode("utf-8", "ignore") for line in data.readlines()]
                 variable_lookup = {}

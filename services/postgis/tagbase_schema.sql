@@ -47,7 +47,7 @@ COMMENT ON COLUMN events_log.submission_id IS 'Unique numeric ID assigned upon s
 
 COMMENT ON COLUMN events_log.tag_id IS 'Unique numeric Tag ID associated with the ingested tag data file';
 
-COMMENT ON COLUMN events_log.event_id IS 'Unique numeric ID associated with the persisted event';
+COMMENT ON COLUMN events_log.event_id IS 'UUID associated with the persisted event';
 
 COMMENT ON COLUMN events_log.event_category IS 'A specific phase within the Tagbase lifecycle e.g. submission, ingestion, migration, reporting.';
 
