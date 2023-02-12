@@ -36,7 +36,7 @@ def process_topic(topic=None, msg_parts=None):
     import db_utils
     import uuid
 
-    if topic == "event_log/create":
+    if topic == "events_log/create":
         db_utils.create_event(
             event_category=msg_parts[0],
             event_id=uuid.UUID(msg_parts[1]),
@@ -45,6 +45,7 @@ def process_topic(topic=None, msg_parts=None):
             time_start=msg_parts[4],
         )
     else:
+        logger.info(msg_parts)
         db_utils.update_event(
             duration=msg_parts[0],
             event_id=uuid.UUID(msg_parts[1]),
@@ -58,7 +59,7 @@ def process_topic(topic=None, msg_parts=None):
 def subscriber():
     connection = pika.BlockingConnection(pika.ConnectionParameters(host="rabbitmq"))
     channel = connection.channel()
-    channel.queue_declare(queue="event_log")
+    channel.queue_declare(queue="events_log")
 
     def callback(ch, method, properties, body):
         logger.info("Received: %r" % body)
@@ -66,7 +67,7 @@ def subscriber():
         process_topic(topic, messagedata.split(" "))
 
     channel.basic_consume(
-        queue="event_log", on_message_callback=callback, auto_ack=True
+        queue="events_log", on_message_callback=callback, auto_ack=True
     )
     logger.info("Waiting for messages...")
     channel.start_consuming()

@@ -5,10 +5,6 @@ from tagbase_server.models.tags200 import Tags200  # noqa: E501
 from tagbase_server.utils.db_utils import connect
 from tagbase_server import util
 
-import logging
-
-logger = logging.getLogger(__name__)
-
 
 def get_tag(tag_id):  # noqa: E501
     """Get information about an individual tag

@@ -26,11 +26,11 @@ def process_global_attributes(
 ):
     event_id = uuid.uuid4()
     global_start = time.perf_counter()
-    publish_message(
-        "event_log/create metadata {} populating-metadata-for-new-tag-submission running {}".format(
-            event_id, start
-        )
-    )
+    # publish_message(
+    #     "event_log/create metadata {} populating-metadata-for-new-tag-submission running {}".format(
+    #         event_id, start
+    #     )
+    # )
     logger.debug("Processing global attribute: %s", line)
     tokens = line.strip()[1:].split(" = ")
     logger.debug("Processing token: %s", tokens)
@@ -59,11 +59,11 @@ def process_global_attributes(
         global_finish = time.perf_counter()
         global_elapsed = round(finish - start, 2)
         submission_id = cur.fetchone()[0]
-        publish_message(
-            "event_log/update {} {} finished {} {} {}".format(
-                global_elapsed, event_id, submission_id, submission_id, global_finish
-            )
-        )
+        # publish_message(
+        #     "event_log/update {} {} finished {} {} {}".format(
+        #         global_elapsed, event_id, submission_id, submission_id, global_finish
+        #     )
+        # )
 
 
 def process_etuff_file(file, version=None, notes=None):
@@ -73,7 +73,7 @@ def process_etuff_file(file, version=None, notes=None):
     event_id = uuid.uuid4()
     start = time.perf_counter()
     publish_message(
-        "event_log/create submission {} new-tag-submission running {}".format(
+        "events_log/create submission {} new-tag-submission running {}".format(
             event_id, dt.now(tz=pytz.utc).astimezone(get_localzone())
         )
     )
@@ -106,8 +106,12 @@ def process_etuff_file(file, version=None, notes=None):
             sub_elapsed = round(sub_finish - start, 2)
             cur.execute("SELECT currval('submission_submission_id_seq')")
             submission_id = cur.fetchone()[0]
+            logger.info(submission_id)
+            # cur.execute("SELECT tag_id FROM submission WHERE filename = %s", (submission_filename))
+            # tag_id = cur.fetchone()[0]
+            # logger.info(tag_id)
             publish_message(
-                "event_log/update {} {} finished {} {} {}".format(
+                "events_log/update {} {} finished {} {} {}".format(
                     sub_elapsed,
                     event_id,
                     submission_id,

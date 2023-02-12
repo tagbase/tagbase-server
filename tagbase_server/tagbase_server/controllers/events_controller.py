@@ -5,6 +5,10 @@ from tagbase_server.models.response500 import Response500  # noqa: E501
 from tagbase_server.utils.db_utils import connect
 from tagbase_server import util
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def get_event(event_id):  # noqa: E501
     """Get information about an individual event
@@ -25,19 +29,18 @@ def get_event(event_id):  # noqa: E501
                 (event_id,),
             )
             result = cur.fetchone()
-            logger.info(result)
             return Event200.from_dict(
                 {
-                    "event_category": result[0],
-                    "event_id": str(result[1]),
-                    "event_name": result[2],
-                    "event_notes": result[3],
-                    "event_status": result[4],
+                    "submission_id": result[0],
+                    "tag_id": result[1],
+                    "event_id": str(result[2]),
+                    "event_category": result[3],
+                    "event_name": result[4],
                     "time_start": result[5],
                     "time_end": result[6],
                     "duration": result[7],
-                    "submission_id": result[8],
-                    "tag_id": result[9],
+                    "event_status": result[8],
+                    "event_notes": result[9],
                 }
             )
 
@@ -69,7 +72,6 @@ def list_all_events():  # noqa: E501
                 "SELECT COUNT(DISTINCT event_id) FROM events_log",
             )
             count = cur.fetchone()[0]
-            print(events)
             return Events200.from_dict({"count": count, "events": events})
 
 
@@ -89,7 +91,7 @@ def list_events(tag_id, sub_id):  # noqa: E501
     with conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT DISTINCT event_id, tag_id, submission_id "
+                "SELECT DISTINCT event_id"
                 "FROM events_log WHERE tag_id = %s AND submission_id = %s ORDER BY tag_id",
                 (tag_id, sub_id),
             )
@@ -98,8 +100,6 @@ def list_events(tag_id, sub_id):  # noqa: E501
                 events.append(
                     {
                         "event_id": str(event[0]),
-                        "tag_id": event[1],
-                        "submission_id": event[2],
                     }
                 )
             cur.execute(
@@ -127,7 +127,7 @@ def put_event(event_id, notes=None):  # noqa: E501
         with conn.cursor() as cur:
             if notes is not None:
                 cur.execute(
-                    "UPDATE events_log SET notes = %s WHERE event_id = %s",
+                    "UPDATE events_log SET event_notes = %s WHERE event_id = %s",
                     (notes, event_id),
                 )
             message = f"Event: '{str(event_id)}' successfully updated."

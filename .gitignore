@@ -71,3 +71,4 @@ postgres-data
 logs
 tagbase_server/tagbase_server/coverage.xml
 rabbitmq
+dbbackups
