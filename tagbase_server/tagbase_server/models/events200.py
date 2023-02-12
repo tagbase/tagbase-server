@@ -73,7 +73,7 @@ class Events200(Model):
     def events(self):
         """Gets the events of this Events200.
 
-        List of unique numeric event IDs and associated tag and submission IDs  # noqa: E501
+        List of event UUID's and associated tag and submission IDs  # noqa: E501
 
         :return: The events of this Events200.
         :rtype: List[Events200EventsInner]
@@ -84,7 +84,7 @@ class Events200(Model):
     def events(self, events):
         """Sets the events of this Events200.
 
-        List of unique numeric event IDs and associated tag and submission IDs  # noqa: E501
+        List of event UUID's and associated tag and submission IDs  # noqa: E501
 
         :param events: The events of this Events200.
         :type events: List[Events200EventsInner]

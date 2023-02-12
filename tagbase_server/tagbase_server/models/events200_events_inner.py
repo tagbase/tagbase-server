@@ -19,13 +19,13 @@ class Events200EventsInner(Model):
         """Events200EventsInner - a model defined in OpenAPI
 
         :param event_id: The event_id of this Events200EventsInner.  # noqa: E501
-        :type event_id: int
+        :type event_id: str
         :param tag_id: The tag_id of this Events200EventsInner.  # noqa: E501
         :type tag_id: int
         :param submission_id: The submission_id of this Events200EventsInner.  # noqa: E501
         :type submission_id: int
         """
-        self.openapi_types = {"event_id": int, "tag_id": int, "submission_id": int}
+        self.openapi_types = {"event_id": str, "tag_id": int, "submission_id": int}
 
         self.attribute_map = {
             "event_id": "event_id",
@@ -52,10 +52,10 @@ class Events200EventsInner(Model):
     def event_id(self):
         """Gets the event_id of this Events200EventsInner.
 
-        Unique numeric event ID associated with the ingested tag data file  # noqa: E501
+        UUID associated with a particular event  # noqa: E501
 
         :return: The event_id of this Events200EventsInner.
-        :rtype: int
+        :rtype: str
         """
         return self._event_id
 
@@ -63,10 +63,10 @@ class Events200EventsInner(Model):
     def event_id(self, event_id):
         """Sets the event_id of this Events200EventsInner.
 
-        Unique numeric event ID associated with the ingested tag data file  # noqa: E501
+        UUID associated with a particular event  # noqa: E501
 
         :param event_id: The event_id of this Events200EventsInner.
-        :type event_id: int
+        :type event_id: str
         """
 
         self._event_id = event_id

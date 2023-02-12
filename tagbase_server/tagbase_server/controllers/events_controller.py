@@ -11,8 +11,9 @@ def get_event(event_id):  # noqa: E501
 
     Get information about an individual event # noqa: E501
 
-    :param event_id: Numeric event ID
-    :type event_id:
+    :param event_id: Event UUID
+    :type event_id: str
+    :type event_id: str
 
     :rtype: Union[Event200, Tuple[Event200, int], Tuple[Event200, int, Dict[str, str]]
     """
@@ -68,6 +69,7 @@ def list_all_events():  # noqa: E501
                 "SELECT COUNT(DISTINCT event_id) FROM events_log",
             )
             count = cur.fetchone()[0]
+            print(events)
             return Events200.from_dict({"count": count, "events": events})
 
 
@@ -112,8 +114,9 @@ def put_event(event_id, notes=None):  # noqa: E501
 
     Update notes for an event # noqa: E501
 
-    :param event_id: Numeric event ID
-    :type event_id:
+    :param event_id: Event UUID
+    :type event_id: str
+    :type event_id: str
     :param notes: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solution-positional meta/data)
     :type notes: str
 

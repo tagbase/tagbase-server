@@ -53,7 +53,14 @@ paths:
       description: Get information about an individual event
       operationId: get_event
       parameters:
-      - $ref: '#/components/parameters/eventId'
+      - description: Event UUID
+        explode: true
+        in: path
+        name: event_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/event_id'
+        style: simple
       responses:
         "200":
           content:
@@ -75,8 +82,28 @@ paths:
       description: Update notes for an event
       operationId: put_event
       parameters:
-      - $ref: '#/components/parameters/eventId'
-      - $ref: '#/components/parameters/notes'
+      - description: Event UUID
+        explode: true
+        in: path
+        name: event_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/event_id'
+        style: simple
+      - description: "Free-form text field where details of submitted eTUFF file for\
+          \ ingest can be provided e.g. submitter name, etuff data contents (tag metadata\
+          \ and measurements + primary position data, or just secondary solution-positional\
+          \ meta/data)"
+        explode: true
+        in: query
+        name: notes
+        required: false
+        schema:
+          maxLength: 10000
+          minLength: 1
+          pattern: ^(?!\s*$).+
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -99,8 +126,8 @@ paths:
       description: Get network accessible file and execute ingestion
       operationId: ingest_get
       parameters:
-      - description: Location of a network accessible (file, ftp, http, https)
-          file e.g. 'file:///usr/src/app/data/eTUFF-sailfish-117259.txt'.
+      - description: "Location of a network accessible (file, ftp, http, https) file\
+          \ e.g. 'file:///usr/src/app/data/eTUFF-sailfish-117259.txt'."
         explode: true
         in: query
         name: file
@@ -111,9 +138,43 @@ paths:
           pattern: ^(?!\s*$).+
           type: string
         style: form
-      - $ref: '#/components/parameters/notes'
-      - $ref: '#/components/parameters/type'
-      - $ref: '#/components/parameters/version'
+      - description: "Free-form text field where details of submitted eTUFF file for\
+          \ ingest can be provided e.g. submitter name, etuff data contents (tag metadata\
+          \ and measurements + primary position data, or just secondary solution-positional\
+          \ meta/data)"
+        explode: true
+        in: query
+        name: notes
+        required: false
+        schema:
+          maxLength: 10000
+          minLength: 1
+          pattern: ^(?!\s*$).+
+          type: string
+        style: form
+      - description: "Type of file to be ingested, defaults to 'etuff'"
+        explode: true
+        in: query
+        name: type
+        required: false
+        schema:
+          default: etuff
+          enum:
+          - etuff
+          - netcdf
+          type: string
+        style: form
+      - description: Version identifier for the eTUFF tag data file ingested
+        explode: true
+        in: query
+        name: version
+        required: false
+        schema:
+          maxLength: 10
+          minLength: 1
+          pattern: ^(?!\s*$).+
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -135,10 +196,55 @@ paths:
       description: Post a local file and perform a ingest operation
       operationId: ingest_post
       parameters:
-      - $ref: '#/components/parameters/filename'
-      - $ref: '#/components/parameters/notes'
-      - $ref: '#/components/parameters/type'
-      - $ref: '#/components/parameters/version'
+      - description: Free-form text field to explicitly define the name of the file
+          to be persisted
+        explode: true
+        in: query
+        name: filename
+        required: true
+        schema:
+          maxLength: 100
+          minLength: 1
+          pattern: ^(?!\s*$).+
+          type: string
+        style: form
+      - description: "Free-form text field where details of submitted eTUFF file for\
+          \ ingest can be provided e.g. submitter name, etuff data contents (tag metadata\
+          \ and measurements + primary position data, or just secondary solution-positional\
+          \ meta/data)"
+        explode: true
+        in: query
+        name: notes
+        required: false
+        schema:
+          maxLength: 10000
+          minLength: 1
+          pattern: ^(?!\s*$).+
+          type: string
+        style: form
+      - description: "Type of file to be ingested, defaults to 'etuff'"
+        explode: true
+        in: query
+        name: type
+        required: false
+        schema:
+          default: etuff
+          enum:
+          - etuff
+          - netcdf
+          type: string
+        style: form
+      - description: Version identifier for the eTUFF tag data file ingested
+        explode: true
+        in: query
+        name: version
+        required: false
+        schema:
+          maxLength: 10
+          minLength: 1
+          pattern: ^(?!\s*$).+
+          type: string
+        style: form
       requestBody:
         content:
           application/octet-stream:
@@ -201,7 +307,14 @@ paths:
       description: Get information about an individual tag
       operationId: get_tag
       parameters:
-      - $ref: '#/components/parameters/tagId'
+      - description: Numeric tag ID
+        explode: true
+        in: path
+        name: tag_id
+        required: true
+        schema:
+          type: number
+        style: simple
       responses:
         "200":
           content:
@@ -224,10 +337,47 @@ paths:
       description: Update a tag submission
       operationId: put_tag
       parameters:
-      - $ref: '#/components/parameters/notes'
-      - $ref: '#/components/parameters/tagId'
-      - $ref: '#/components/parameters/subId'
-      - $ref: '#/components/parameters/version'
+      - description: "Free-form text field where details of submitted eTUFF file for\
+          \ ingest can be provided e.g. submitter name, etuff data contents (tag metadata\
+          \ and measurements + primary position data, or just secondary solution-positional\
+          \ meta/data)"
+        explode: true
+        in: query
+        name: notes
+        required: false
+        schema:
+          maxLength: 10000
+          minLength: 1
+          pattern: ^(?!\s*$).+
+          type: string
+        style: form
+      - description: Numeric tag ID
+        explode: true
+        in: path
+        name: tag_id
+        required: true
+        schema:
+          type: number
+        style: simple
+      - description: Numeric submission ID
+        explode: true
+        in: path
+        name: sub_id
+        required: true
+        schema:
+          type: number
+        style: simple
+      - description: Version identifier for the eTUFF tag data file ingested
+        explode: true
+        in: query
+        name: version
+        required: false
+        schema:
+          maxLength: 10
+          minLength: 1
+          pattern: ^(?!\s*$).+
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -250,8 +400,22 @@ paths:
       description: Get all events for a given tag submission
       operationId: list_events
       parameters:
-      - $ref: '#/components/parameters/tagId'
-      - $ref: '#/components/parameters/subId'
+      - description: Numeric tag ID
+        explode: true
+        in: path
+        name: tag_id
+        required: true
+        schema:
+          type: number
+        style: simple
+      - description: Numeric submission ID
+        explode: true
+        in: path
+        name: sub_id
+        required: true
+        schema:
+          type: number
+        style: simple
       responses:
         "200":
           content:
@@ -271,16 +435,18 @@ paths:
       x-openapi-router-controller: tagbase_server.controllers.events_controller
 components:
   parameters:
-    eventId:
-      description: Numeric event ID
+    event_id:
+      description: Event UUID
       explode: true
       in: path
       name: event_id
       required: true
       schema:
-        type: number
+        $ref: '#/components/schemas/event_id'
+      style: simple
     filename:
-      description: Free-form text field to explicitly define the name of the file to be persisted
+      description: Free-form text field to explicitly define the name of the file
+        to be persisted
       explode: true
       in: query
       name: filename
@@ -292,7 +458,10 @@ components:
         type: string
       style: form
     notes:
-      description: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solution-positional meta/data)
+      description: "Free-form text field where details of submitted eTUFF file for\
+        \ ingest can be provided e.g. submitter name, etuff data contents (tag metadata\
+        \ and measurements + primary position data, or just secondary solution-positional\
+        \ meta/data)"
       explode: true
       in: query
       name: notes
@@ -311,6 +480,7 @@ components:
       required: true
       schema:
         type: number
+      style: simple
     tagId:
       description: Numeric tag ID
       explode: true
@@ -319,8 +489,9 @@ components:
       required: true
       schema:
         type: number
+      style: simple
     type:
-      description: Type of file to be ingested, defaults to 'etuff'
+      description: "Type of file to be ingested, defaults to 'etuff'"
       explode: true
       in: query
       name: type
@@ -328,8 +499,8 @@ components:
       schema:
         default: etuff
         enum:
-          - etuff
-          - netcdf
+        - etuff
+        - netcdf
         type: string
       style: form
     version:
@@ -347,66 +518,78 @@ components:
   schemas:
     filename:
       description: Full name and extension of the ingested eTUFF tag data file
-      example: "eTUFF-sailfish-117259_2.txt"
+      example: eTUFF-sailfish-117259_2.txt
       title: filename
       type: string
     event200:
       description: Information for a given event
       example:
-        event_id: "06335e84-2872-4914-8c5d-3ed07d2a2dj4"
+        event_id: 06335e84-2872-4914-8c5d-3ed07d2a2dj4
         tag_id: 1
         submission_id: 1
-        event_category: "submission"
-        event_name: "new tag submission"
-        time_start: "2022-04-01T04:58:21.319061+00:00"
-        time_end: "2022-04-01T04:59:21.319061+00:00"
-        duration: "0:01:00"
-        event_status: "finished"
-        event_notes: "Some user defined notes..."
+        event_category: submission
+        event_name: new tag submission
+        time_start: 2022-04-01T04:58:21.319061+00:00
+        time_end: 2022-04-01T04:59:21.319061+00:00
+        duration: 0:01:00
+        event_status: finished
+        event_notes: Some user defined notes...
       properties:
         event_category:
-          description: ...
-          example: "..."
+          description: '...'
+          example: '...'
           type: string
         event_id:
-          $ref: '#/components/schemas/event_id'
+          description: UUID associated with a particular event
+          example: 06335e84-2872-4914-8c5d-3ed07d2a2f16
+          format: uuid
+          title: event_id
+          type: string
         event_name:
-          description: ...
-          example: "..."
+          description: '...'
+          example: '...'
           type: string
         event_notes:
-          description: Free-form text field where details of the event can be optionally entered by the client
-          example: "The event represents a data anomaly with file XYZ because of ..., this has been fixed in version ABC."
+          description: Free-form text field where details of the event can be optionally
+            entered by the client
+          example: "The event represents a data anomaly with file XYZ because of ...,\
+            \ this has been fixed in version ABC."
           type: string
         event_status:
-          description: Free-form text field where details of the event can be optionally entered by the client
+          description: Free-form text field where details of the event can be optionally
+            entered by the client
           enum:
-            - failed
-            - finished
-            - killed
-            - running
+          - failed
+          - finished
+          - killed
+          - running
           example: failed
           type: string
         time_start:
           description: Local datetime stamp at the time of the event start
-          example: '2022-04-01T04:58:21.319061+00:00'
-          #format: date
-          #pattern: '^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?$'
+          example: 2022-04-01T04:58:21.319061+00:00
           type: string
         time_end:
           description: Local datetime stamp at the time of the event end
-          example: '2022-04-01T04:58:21.319061+00:00'
-          #format: date
-          #pattern: '^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?$'
+          example: 2022-04-01T04:58:21.319061+00:00
           type: string
         duration:
-          description: The event duration e.g. different between 'time_start' and 'time_end'
-          example: "0:01:00"
+          description: The event duration e.g. different between 'time_start' and
+            'time_end'
+          example: 0:01:00
           type: string
         submission_id:
-          $ref: '#/components/schemas/submission_id'
+          description: Unique numeric ID assigned upon submission of a tag eTUFF data
+            file for ingest/importation into Tagbase
+          example: 5
+          title: submission_id
+          type: integer
         tag_id:
-          $ref: '#/components/schemas/tag_id'
+          description: Unique numeric tag ID associated with the ingested tag data
+            file
+          example: 1
+          title: tag_id
+          type: integer
       title: event200
       type: object
     eventPut200:
@@ -427,7 +610,7 @@ components:
       type: object
     event_id:
       description: UUID associated with a particular event
-      example: "06335e84-2872-4914-8c5d-3ed07d2a2f16"
+      example: 06335e84-2872-4914-8c5d-3ed07d2a2f16
       format: uuid
       title: event_id
       type: string
@@ -436,13 +619,13 @@ components:
       example:
         count: 3
         events:
-        - event_id: "06335e84-2872-4914-8c5d-3ed07d2a2f16"
+        - event_id: 06335e84-2872-4914-8c5d-3ed07d2a2f16
           tag_id: 1
           submission_id: 1
-        - event_id: "06335e84-2872-4914-8c5d-3ed07d2a2dj4"
+        - event_id: 06335e84-2872-4914-8c5d-3ed07d2a2dj4
           tag_id: 1
           submission_id: 1
-        - event_id: "06335e84-2872-4914-8c5d-3ed07d2a2fkf"
+        - event_id: 06335e84-2872-4914-8c5d-3ed07d2a2fkf
           tag_id: 1
           submission_id: 1
       properties:
@@ -452,28 +635,16 @@ components:
           type: integer
         events:
           description: List of event UUID's and associated tag and submission IDs
-          type: array
           items:
-            description: UUID and associated tag and submission ID
-            example:
-              event_id: "06335e84-2872-4914-8c5d-3ed07d2a2dj4"
-              tag_id: 1
-              submission_id: 1
-            properties:
-              event_id:
-                $ref: '#/components/schemas/event_id'
-              tag_id:
-                $ref: '#/components/schemas/tag_id'
-              submission_id:
-                $ref: '#/components/schemas/submission_id'
-            type: object
+            $ref: '#/components/schemas/events200_events_inner'
+          type: array
       title: tags200
       type: object
     ingest200:
       description: HTTP 200 success response
       example:
         code: "200"
-        elapsed: '0:00:06.506691'
+        elapsed: 0:00:06.506691
         message: Data file eTUFF-sailfish-117259.txt successfully ingested into Tagbase
           DB
       properties:
@@ -519,7 +690,8 @@ components:
       title: response500
       type: object
     submission_id:
-      description: Unique numeric ID assigned upon submission of a tag eTUFF data file for ingest/importation into Tagbase
+      description: Unique numeric ID assigned upon submission of a tag eTUFF data
+        file for ingest/importation into Tagbase
       example: 5
       title: submission_id
       type: integer
@@ -527,67 +699,36 @@ components:
       description: Information for a given tag
       example:
         tag:
-        - date_time: '2022-04-01T04:58:21.319061+00:00'
-          filename: 'eTUFF-sailfish-117259_2.txt'
+        - date_time: 2022-04-01T04:58:21.319061+00:00
+          filename: eTUFF-sailfish-117259_2.txt
           metadata:
             person_owner: John Do
             owner_contect: john@do.net
             manufacturer: telemetry inc.
             model: new_gen
             attachment_method: anchor
-          notes: 'Ingested by admin on 2022-06-01 for Sailfish tagging campaign.'
+          notes: Ingested by admin on 2022-06-01 for Sailfish tagging campaign.
           submission_id: 5
           tag_id: 3
-          version: '1'
-        - date_time: '2022-06-01T05:39:46.896088+00:00'
-          filename: 'eTUFF-sailfish-117259_2.txt'
+          version: "1"
+        - date_time: 2022-06-01T05:39:46.896088+00:00
+          filename: eTUFF-sailfish-117259_2.txt
           metadata:
             person_owner: Jane Do
             owner_contect: jane@do.net
             manufacturer: telemetry inc.
             model: newer_gen
             attachment_method: anchor
-          notes: 'Ingested by admin on 2022-06-01 for version 2 of the Sailfish tagging campaign.'
+          notes: Ingested by admin on 2022-06-01 for version 2 of the Sailfish tagging
+            campaign.
           submission_id: 6
           tag_id: 3
-          version: '2'
+          version: "2"
       properties:
         tag:
           description: List containing submissions for a given tag
           items:
-            type: object
-            properties:
-              date_time:
-                description: Local datetime stamp at the time of eTUFF tag data file ingestion
-                example: '2022-04-01T04:58:21.319061+00:00'
-                #format: date
-                #pattern: '^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?$'
-                type: string
-              filename:
-                $ref: '#/components/schemas/filename'
-              metadata:
-                description: Contains the ingested tag metadata consistent with the eTUFF specification
-                example:
-                  person_owner: John Do
-                  owner_contect: john@do.net
-                  manufacturer: telemetry inc.
-                  model: new_gen
-                  attachment_method: anchor
-                type: object
-                additionalProperties:
-                  type: string
-              notes:
-                description: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solutionpositional meta/data)
-                example: "Ingested by admin on XXXX-XX-XX to back-process campaign XYZ."
-                type: string
-              submission_id:
-                $ref: '#/components/schemas/submission_id'
-              tag_id:
-                $ref: '#/components/schemas/tag_id'
-              version:
-                description: Version identifier for the eTUFF tag data file ingested
-                example: "1"
-                type: string
+            $ref: '#/components/schemas/tag200_tag_inner'
           type: array
       title: tag200
       type: object
@@ -628,17 +769,107 @@ components:
           type: integer
         tags:
           description: List of unique numeric Tag IDs and associated filename
-          type: array
           items:
-            description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
-            example:
-              tag_id: 1
-              filename: eTUFF-sailfish-117259_2.txt
-            properties:
-              tag_id:
-                $ref: '#/components/schemas/tag_id'
-              filename:
-                $ref: '#/components/schemas/filename'
-            type: object
+            $ref: '#/components/schemas/tags200_tags_inner'
+          type: array
       title: tags200
+      type: object
+    events200_events_inner:
+      description: UUID and associated tag and submission ID
+      example:
+        event_id: 06335e84-2872-4914-8c5d-3ed07d2a2dj4
+        tag_id: 1
+        submission_id: 1
+      properties:
+        event_id:
+          description: UUID associated with a particular event
+          example: 06335e84-2872-4914-8c5d-3ed07d2a2f16
+          format: uuid
+          title: event_id
+          type: string
+        tag_id:
+          description: Unique numeric tag ID associated with the ingested tag data
+            file
+          example: 1
+          title: tag_id
+          type: integer
+        submission_id:
+          description: Unique numeric ID assigned upon submission of a tag eTUFF data
+            file for ingest/importation into Tagbase
+          example: 5
+          title: submission_id
+          type: integer
+      title: events200_events_inner
+      type: object
+    tag200_tag_inner:
+      properties:
+        date_time:
+          description: Local datetime stamp at the time of eTUFF tag data file ingestion
+          example: 2022-04-01T04:58:21.319061+00:00
+          title: date_time
+          type: string
+        filename:
+          description: Full name and extension of the ingested eTUFF tag data file
+          example: eTUFF-sailfish-117259_2.txt
+          title: filename
+          type: string
+        metadata:
+          additionalProperties:
+            type: string
+          description: Contains the ingested tag metadata consistent with the eTUFF
+            specification
+          example:
+            person_owner: John Do
+            owner_contect: john@do.net
+            manufacturer: telemetry inc.
+            model: new_gen
+            attachment_method: anchor
+          title: metadata
+          type: object
+        notes:
+          description: "Free-form text field where details of submitted eTUFF file\
+            \ for ingest can be provided e.g. submitter name, etuff data contents\
+            \ (tag metadata and measurements + primary position data, or just secondary\
+            \ solutionpositional meta/data)"
+          example: Ingested by admin on XXXX-XX-XX to back-process campaign XYZ.
+          title: notes
+          type: string
+        submission_id:
+          description: Unique numeric ID assigned upon submission of a tag eTUFF data
+            file for ingest/importation into Tagbase
+          example: 5
+          title: submission_id
+          type: integer
+        tag_id:
+          description: Unique numeric tag ID associated with the ingested tag data
+            file
+          example: 1
+          title: tag_id
+          type: integer
+        version:
+          description: Version identifier for the eTUFF tag data file ingested
+          example: "1"
+          title: version
+          type: string
+      title: tag200_tag_inner
+      type: object
+    tags200_tags_inner:
+      description: Unique numeric Tag ID associated with the ingested tag eTUFF data
+        file
+      example:
+        tag_id: 1
+        filename: eTUFF-sailfish-117259_2.txt
+      properties:
+        tag_id:
+          description: Unique numeric tag ID associated with the ingested tag data
+            file
+          example: 1
+          title: tag_id
+          type: integer
+        filename:
+          description: Full name and extension of the ingested eTUFF tag data file
+          example: eTUFF-sailfish-117259_2.txt
+          title: filename
+          type: string
+      title: tags200_tags_inner
       type: object

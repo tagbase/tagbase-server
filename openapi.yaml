@@ -53,7 +53,7 @@ paths:
       description: Get information about an individual event
       operationId: get_event
       parameters:
-      - $ref: '#/components/parameters/eventId'
+      - $ref: '#/components/parameters/event_id'
       responses:
         "200":
           content:
@@ -75,7 +75,7 @@ paths:
       description: Update notes for an event
       operationId: put_event
       parameters:
-      - $ref: '#/components/parameters/eventId'
+      - $ref: '#/components/parameters/event_id'
       - $ref: '#/components/parameters/notes'
       responses:
         "200":
@@ -271,14 +271,14 @@ paths:
       x-openapi-router-controller: tagbase_server.controllers.events_controller
 components:
   parameters:
-    eventId:
-      description: Numeric event ID
+    event_id:
+      description: Event UUID
       explode: true
       in: path
       name: event_id
       required: true
       schema:
-        type: number
+        $ref: '#/components/schemas/event_id'
     filename:
       description: Free-form text field to explicitly define the name of the file to be persisted
       explode: true

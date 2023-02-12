@@ -33,7 +33,7 @@ class Event200(Model):
         :param event_category: The event_category of this Event200.  # noqa: E501
         :type event_category: str
         :param event_id: The event_id of this Event200.  # noqa: E501
-        :type event_id: int
+        :type event_id: str
         :param event_name: The event_name of this Event200.  # noqa: E501
         :type event_name: str
         :param event_notes: The event_notes of this Event200.  # noqa: E501
@@ -53,7 +53,7 @@ class Event200(Model):
         """
         self.openapi_types = {
             "event_category": str,
-            "event_id": int,
+            "event_id": str,
             "event_name": str,
             "event_notes": str,
             "event_status": str,
@@ -126,10 +126,10 @@ class Event200(Model):
     def event_id(self):
         """Gets the event_id of this Event200.
 
-        Unique numeric event ID associated with the ingested tag data file  # noqa: E501
+        UUID associated with a particular event  # noqa: E501
 
         :return: The event_id of this Event200.
-        :rtype: int
+        :rtype: str
         """
         return self._event_id
 
@@ -137,10 +137,10 @@ class Event200(Model):
     def event_id(self, event_id):
         """Sets the event_id of this Event200.
 
-        Unique numeric event ID associated with the ingested tag data file  # noqa: E501
+        UUID associated with a particular event  # noqa: E501
 
         :param event_id: The event_id of this Event200.
-        :type event_id: int
+        :type event_id: str
         """
 
         self._event_id = event_id
@@ -211,14 +211,7 @@ class Event200(Model):
         :param event_status: The event_status of this Event200.
         :type event_status: str
         """
-        allowed_values = [
-            "failed",
-            "finished",
-            "killed",
-            "migration",
-            "postmigration",
-            "premigration",
-        ]  # noqa: E501
+        allowed_values = ["failed", "finished", "killed", "running"]  # noqa: E501
         if event_status not in allowed_values:
             raise ValueError(
                 "Invalid value for `event_status` ({0}), must be one of {1}".format(
