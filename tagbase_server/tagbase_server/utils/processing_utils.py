@@ -7,11 +7,13 @@ import time
 import pandas as pd
 import psycopg2.extras
 import pytz
+
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from tzlocal import get_localzone
 
 from tagbase_server.utils.db_utils import connect
+from tagbase_server.utils.rabbitmq_utils import publish_message
 
 logger = logging.getLogger(__name__)
 slack_token = os.environ.get("SLACK_BOT_TOKEN", "")
@@ -22,6 +24,13 @@ client = WebClient(token=slack_token)
 def process_global_attributes(
     line, cur, submission_id, metadata, submission_filename, line_counter
 ):
+    event_id = uuid.uuid4()
+    global_start = time.perf_counter()
+    # publish_message(
+    #     "event_log/create metadata {} populating-metadata-for-new-tag-submission running {}".format(
+    #         event_id, start
+    #     )
+    # )
     logger.debug("Processing global attribute: %s", line)
     tokens = line.strip()[1:].split(" = ")
     logger.debug("Processing token: %s", tokens)
@@ -47,10 +56,27 @@ def process_global_attributes(
         str_submission_id = str(submission_id)
         str_row = str(rows[0][0])
         metadata.append((str_submission_id, str_row, tokens[1]))
+        global_finish = time.perf_counter()
+        global_elapsed = round(finish - start, 2)
+        submission_id = cur.fetchone()[0]
+        # publish_message(
+        #     "event_log/update {} {} finished {} {} {}".format(
+        #         global_elapsed, event_id, submission_id, submission_id, global_finish
+        #     )
+        # )
 
 
 def process_etuff_file(file, version=None, notes=None):
+    logger.info("Started processing: %s", file)
+    import uuid
+
+    event_id = uuid.uuid4()
     start = time.perf_counter()
+    publish_message(
+        "events_log/create submission {} new-tag-submission running {}".format(
+            event_id, dt.now(tz=pytz.utc).astimezone(get_localzone())
+        )
+    )
     submission_filename = file  # full path name is now preferred rather than - file[file.rindex("/") + 1 :]
     logger.info(
         "Processing etuff file: %s",
@@ -76,13 +102,32 @@ def process_etuff_file(file, version=None, notes=None):
                 "Successful INSERT of '%s' into 'submission' table.",
                 submission_filename,
             )
-
+            sub_finish = time.perf_counter()
+            sub_elapsed = round(sub_finish - start, 2)
             cur.execute("SELECT currval('submission_submission_id_seq')")
             submission_id = cur.fetchone()[0]
+            logger.info(submission_id)
+            # cur.execute("SELECT tag_id FROM submission WHERE filename = %s", (submission_filename))
+            # tag_id = cur.fetchone()[0]
+            # logger.info(tag_id)
+            publish_message(
+                "events_log/update {} {} finished {} {} {}".format(
+                    sub_elapsed,
+                    event_id,
+                    submission_id,
+                    submission_id,
+                    dt.now(tz=pytz.utc).astimezone(get_localzone()),
+                )
+            )
 
             metadata = []
             proc_obs = []
             s_time = time.perf_counter()
+            # publish_message(
+            #     "event_log/create submission {} new-tag-submission running {}".format(
+            #         event_id, start
+            #     )
+            # )
             with open(file, "rb") as data:
                 lines = [line.decode("utf-8", "ignore") for line in data.readlines()]
                 variable_lookup = {}

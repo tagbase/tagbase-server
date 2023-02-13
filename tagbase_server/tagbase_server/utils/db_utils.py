@@ -28,7 +28,7 @@ def connect():
             {
                 "code": "500",
                 "message": "Encountered psycopg2.OperationalError when attempting to establish a connection "
-                "to the Tagbase PostgreSQL database.",
+                "to the Tagbase database.",
                 "more_info": "Contact the service administrator - {email}".format(
                     email=os.getenv("PGADMIN_DEFAULT_EMAIL")
                 ),

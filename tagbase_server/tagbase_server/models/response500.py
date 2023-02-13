@@ -54,7 +54,7 @@ class Response500(Model):
 
         :param dikt: A dict.
         :type: dict
-        :return: The Response500 of this Response500.  # noqa: E501
+        :return: The response500 of this Response500.  # noqa: E501
         :rtype: Response500
         """
         return util.deserialize_model(dikt, cls)
@@ -109,7 +109,7 @@ class Response500(Model):
     def more_info(self):
         """Gets the more_info of this Response500.
 
-        Additional details (if available) to diagnose the 500 response.  # noqa: E501
+        Additional details (if available) to diagnose the 500 response  # noqa: E501
 
         :return: The more_info of this Response500.
         :rtype: str
@@ -120,7 +120,7 @@ class Response500(Model):
     def more_info(self, more_info):
         """Sets the more_info of this Response500.
 
-        Additional details (if available) to diagnose the 500 response.  # noqa: E501
+        Additional details (if available) to diagnose the 500 response  # noqa: E501
 
         :param more_info: The more_info of this Response500.
         :type more_info: str

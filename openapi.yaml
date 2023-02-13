@@ -7,7 +7,7 @@ info:
   description: |
     tagbse-server provides HTTP endpoints for ingestion of various files \
     into a Tagbase SQL database. Input file support currently includes eTUFF (see [here](https://doi.org/10.6084/m9.figshare.10032848.v4) \
-    and [here](https://doi.org/10.6084/m9.figshare.10159820.v1)). The REST API complies with [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html).
+    and [here](https://doi.org/10.6084/m9.figshare.10159820.v1)).
   license:
     name: Apache License v2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -20,11 +20,80 @@ servers:
 - description: ICCAT Test tagbase-server
   url: https://162.13.162.49/tagbase/api/v0.7.0
 tags:
-- description: Ingestion operations.
+- description: Event Operations
+  name: events
+- description: Ingestion operations
   name: ingest
-- description: Tag Operations.
+- description: Tag Operations
   name: tags
 paths:
+  /events:
+    get:
+      description: Get information about all events
+      operationId: list_all_events
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/events200'
+          description: A list containing all events.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response500'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Get information about all events
+      tags:
+      - events
+      x-openapi-router-controller: tagbase_server.controllers.events_controller
+  /events/{event_id}:
+    get:
+      description: Get information about an individual event
+      operationId: get_event
+      parameters:
+      - $ref: '#/components/parameters/event_id'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/event200'
+          description: Information about an individual tag
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response500'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Get information about an individual event
+      tags:
+      - events
+      x-openapi-router-controller: tagbase_server.controllers.events_controller
+    put:
+      description: Update notes for an event
+      operationId: put_event
+      parameters:
+      - $ref: '#/components/parameters/event_id'
+      - $ref: '#/components/parameters/notes'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/eventPut200'
+          description: A success message confirming ingestion.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response500'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Update the 'notes' associated with an event
+      tags:
+      - events
+      x-openapi-router-controller: tagbase_server.controllers.events_controller
   /ingest:
     get:
       description: Get network accessible file and execute ingestion
@@ -50,13 +119,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Ingest200'
+                $ref: '#/components/schemas/ingest200'
           description: A success message confirming ingestion.
         "500":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/response500'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Get network accessible file and execute ingestion
       tags:
@@ -93,13 +162,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Ingest200'
+                $ref: '#/components/schemas/ingest200'
           description: A success message confirming ingestion.
         "500":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/response500'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Post a local file and perform a ingest operation
       tags:
@@ -115,13 +184,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Tags200'
-          description: A success message confirming ingestion.
+                $ref: '#/components/schemas/tags200'
+          description: A list of all tags.
         "500":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/response500'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Get information about all tags
       tags:
@@ -138,13 +207,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Tag200'
-          description: A success message confirming ingestion.
+                $ref: '#/components/schemas/tag200'
+          description: Information about an individual tag.
         "500":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/response500'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Get information about an individual tag
       tags:
@@ -164,20 +233,52 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TagPut200'
-          description: A success message confirming ingestion.
+                $ref: '#/components/schemas/tagPut200'
+          description: Message confirming successful data update
         "500":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
-          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+                $ref: '#/components/schemas/response500'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml
       summary: Update the 'notes' and/or 'version' associated with a tag submission
       tags:
       - tags
       x-openapi-router-controller: tagbase_server.controllers.tags_controller
+  /tags/{tag_id}/subs/{sub_id}/events:
+    get:
+      description: Get all events for a given tag submission
+      operationId: list_events
+      parameters:
+      - $ref: '#/components/parameters/tagId'
+      - $ref: '#/components/parameters/subId'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/events200'
+          description: Message confirming successful data update
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response500'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml
+      summary: Get all events for a given tag submission
+      tags:
+      - events
+      x-openapi-router-controller: tagbase_server.controllers.events_controller
 components:
   parameters:
+    event_id:
+      description: Event UUID
+      explode: true
+      in: path
+      name: event_id
+      required: true
+      schema:
+        $ref: '#/components/schemas/event_id'
     filename:
       description: Free-form text field to explicitly define the name of the file to be persisted
       explode: true
@@ -203,7 +304,7 @@ components:
         type: string
       style: form
     subId:
-      description: Existing submission id for an existing tag
+      description: Numeric submission ID
       explode: true
       in: path
       name: sub_id
@@ -211,7 +312,7 @@ components:
       schema:
         type: number
     tagId:
-      description: Existing tag id
+      description: Numeric tag ID
       explode: true
       in: path
       name: tag_id
@@ -249,13 +350,132 @@ components:
       example: "eTUFF-sailfish-117259_2.txt"
       title: filename
       type: string
-    Ingest200:
+    event200:
+      description: Information for a given event
+      example:
+        event_id: "06335e84-2872-4914-8c5d-3ed07d2a2dj4"
+        tag_id: 1
+        submission_id: 1
+        event_category: "submission"
+        event_name: "new tag submission"
+        time_start: "2022-04-01T04:58:21.319061+00:00"
+        time_end: "2022-04-01T04:59:21.319061+00:00"
+        duration: "0:01:00"
+        event_status: "finished"
+        event_notes: "Some user defined notes..."
+      properties:
+        event_category:
+          description: ...
+          example: "..."
+          type: string
+        event_id:
+          $ref: '#/components/schemas/event_id'
+        event_name:
+          description: ...
+          example: "..."
+          type: string
+        event_notes:
+          description: Free-form text field where details of the event can be optionally entered by the client
+          example: "The event represents a data anomaly with file XYZ because of ..., this has been fixed in version ABC."
+          type: string
+        event_status:
+          description: Free-form text field where details of the event can be optionally entered by the client
+          enum:
+            - failed
+            - finished
+            - killed
+            - running
+          example: failed
+          type: string
+        time_start:
+          description: Local datetime stamp at the time of the event start
+          example: '2022-04-01T04:58:21.319061+00:00'
+          #format: date
+          #pattern: '^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?$'
+          type: string
+        time_end:
+          description: Local datetime stamp at the time of the event end
+          example: '2022-04-01T04:58:21.319061+00:00'
+          #format: date
+          #pattern: '^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?$'
+          type: string
+        duration:
+          description: The event duration e.g. different between 'time_start' and 'time_end'
+          example: "0:01:00"
+          type: string
+        submission_id:
+          $ref: '#/components/schemas/submission_id'
+        tag_id:
+          $ref: '#/components/schemas/tag_id'
+      title: event200
+      type: object
+    eventPut200:
+      description: Event update response
+      example:
+        code: "200"
+        message: Notes for event '1' successfully updated.
+      properties:
+        code:
+          description: HTTP status code
+          example: "200"
+          type: string
+        message:
+          description: A string detailing specifics of the HTTP operation
+          example: Notes for event '1' successfully updated.
+          type: string
+      title: eventPut200
+      type: object
+    event_id:
+      description: UUID associated with a particular event
+      example: "06335e84-2872-4914-8c5d-3ed07d2a2f16"
+      format: uuid
+      title: event_id
+      type: string
+    events200:
+      description: Response detailing all available events
+      example:
+        count: 3
+        events:
+        - event_id: "06335e84-2872-4914-8c5d-3ed07d2a2f16"
+          tag_id: 1
+          submission_id: 1
+        - event_id: "06335e84-2872-4914-8c5d-3ed07d2a2dj4"
+          tag_id: 1
+          submission_id: 1
+        - event_id: "06335e84-2872-4914-8c5d-3ed07d2a2fkf"
+          tag_id: 1
+          submission_id: 1
+      properties:
+        count:
+          description: Total count of unique events
+          example: 3
+          type: integer
+        events:
+          description: List of event UUID's and associated tag and submission IDs
+          type: array
+          items:
+            description: UUID and associated tag and submission ID
+            example:
+              event_id: "06335e84-2872-4914-8c5d-3ed07d2a2dj4"
+              tag_id: 1
+              submission_id: 1
+            properties:
+              event_id:
+                $ref: '#/components/schemas/event_id'
+              tag_id:
+                $ref: '#/components/schemas/tag_id'
+              submission_id:
+                $ref: '#/components/schemas/submission_id'
+            type: object
+      title: tags200
+      type: object
+    ingest200:
       description: HTTP 200 success response
       example:
         code: "200"
         elapsed: '0:00:06.506691'
         message: Data file eTUFF-sailfish-117259.txt successfully ingested into Tagbase
-          DB.
+          DB
       properties:
         code:
           description: HTTP status code
@@ -267,11 +487,11 @@ components:
         message:
           description: A string detailing specifics of an HTTP operation
           example: Data file eTUFF-sailfish-117259.txt successfully ingested into
-            Tagbase DB.
+            Tagbase DB
           type: string
-      title: Ingest200
+      title: ingest200
       type: object
-    Response500:
+    response500:
       description: 500 Internal Server Error
       example:
         code: "200"
@@ -286,19 +506,24 @@ components:
         message:
           description: A string detailing specifics of the HTTP 500 response
           example: Data file eTUFF-sailfish-117259.txt successfully ingested into
-            Tagbase DB.
+            Tagbase DB
           type: string
         more_info:
-          description: Additional details (if available) to diagnose the 500 response.
+          description: Additional details (if available) to diagnose the 500 response
           example: https://httpwg.org/specs/rfc7231.html#status.500
           type: string
         trace:
           description: Trace diagnostic information related to the response
           example: 123e4567-e89b-12d3-a456-426614174000
           type: string
-      title: Response500
+      title: response500
       type: object
-    Tag200:
+    submission_id:
+      description: Unique numeric ID assigned upon submission of a tag eTUFF data file for ingest/importation into Tagbase
+      example: 5
+      title: submission_id
+      type: integer
+    tag200:
       description: Information for a given tag
       example:
         tag:
@@ -328,7 +553,7 @@ components:
           version: '2'
       properties:
         tag:
-          description: List containing one or more submissions for a given tag
+          description: List containing submissions for a given tag
           items:
             type: object
             properties:
@@ -356,21 +581,17 @@ components:
                 example: "Ingested by admin on XXXX-XX-XX to back-process campaign XYZ."
                 type: string
               submission_id:
-                description: Unique numeric ID assigned upon submission of a tag eTUFF data file for ingest/importation into Tagbase
-                example: 5
-                type: integer
+                $ref: '#/components/schemas/submission_id'
               tag_id:
-                description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
-                example: 3
-                type: integer
+                $ref: '#/components/schemas/tag_id'
               version:
                 description: Version identifier for the eTUFF tag data file ingested
                 example: "1"
                 type: string
           type: array
-      title: Tag200
+      title: tag200
       type: object
-    TagPut200:
+    tagPut200:
       description: HTTP 200 success response
       example:
         code: "200"
@@ -384,9 +605,14 @@ components:
           description: A string detailing specifics of an HTTP operation
           example: Tag '1' submission '5' successfully updated.
           type: string
-      title: TagPut200
+      title: tagPut200
       type: object
-    Tags200:
+    tag_id:
+      description: Unique numeric tag ID associated with the ingested tag data file
+      example: 1
+      title: tag_id
+      type: integer
+    tags200:
       description: Response detailing all available unique tags and associated filename
       example:
         count: 2
@@ -410,13 +636,9 @@ components:
               filename: eTUFF-sailfish-117259_2.txt
             properties:
               tag_id:
-                description: Unique numeric Tag ID associated with the ingested tag data file
-                example: 1
-                type: integer
+                $ref: '#/components/schemas/tag_id'
               filename:
-                description: Full name and extension of the ingested eTUFF tag data file
-                example: eTUFF-sailfish-117259.txt
-                type: string
+                $ref: '#/components/schemas/filename'
             type: object
-      title: Tags200
+      title: tags200
       type: object

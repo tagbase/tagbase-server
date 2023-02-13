@@ -43,7 +43,7 @@ class Ingest200(Model):
 
         :param dikt: A dict.
         :type: dict
-        :return: The Ingest200 of this Ingest200.  # noqa: E501
+        :return: The ingest200 of this Ingest200.  # noqa: E501
         :rtype: Ingest200
         """
         return util.deserialize_model(dikt, cls)
