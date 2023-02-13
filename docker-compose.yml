@@ -39,6 +39,23 @@ services:
     networks:
       - internal-network
     restart: unless-stopped
+  fswatch:
+    build:
+      context: ./services/fswatch
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+    labels:
+      "docker_compose_diagram.cluster": "Internal Network"
+      "docker_compose_diagram.description": "Automatic file ingestion"
+      "docker_compose_diagram.icon": "go"
+    links:
+      - tagbase_server
+    networks:
+      - internal-network
+    restart: unless-stopped
+    volumes:
+      - ./staging_data:/usr/src/app/staging_data:ro
   nginx:
     build:
       context: ./services/nginx
