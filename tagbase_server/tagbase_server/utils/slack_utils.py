@@ -8,6 +8,7 @@ slack_channel = os.environ.get("SLACK_BOT_CHANNEL", "tagbase-server")
 client = WebClient(token=slack_token)
 logger = logging.getLogger(__name__)
 
+
 def post_msg(msg):
     logger.warning(msg)
     try:
