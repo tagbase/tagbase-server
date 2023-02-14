@@ -7,16 +7,12 @@ import time
 import pandas as pd
 import psycopg2.extras
 import pytz
-from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
 from tzlocal import get_localzone
 
 from tagbase_server.utils.db_utils import connect
+from tagbase_server.utils.slack_utils import post_msg
 
 logger = logging.getLogger(__name__)
-slack_token = os.environ.get("SLACK_BOT_TOKEN", "")
-slack_channel = os.environ.get("SLACK_BOT_CHANNEL", "tagbase-server")
-client = WebClient(token=slack_token)
 
 
 def process_all_lines_for_global_attributes(
@@ -71,7 +67,7 @@ def process_line_for_global_attributes(
             f"*{submission_filename}* _line:{line_counter}_ - "
             f"Unable to locate attribute_name *{tokens[0]}* in _metadata_types_ table."
         )
-        post_msg_to_slack(msg)
+        post_msg(msg)
     else:
         str_submission_id = str(submission_id)
         str_row = str(rows[0][0])
@@ -229,7 +225,7 @@ def process_etuff_file(file, version=None, notes=None):
                             f"*{submission_filename}* _line:{line_counter}_ - "
                             f"No datetime... skipping line: {stripped_line}"
                         )
-                        post_msg_to_slack(msg)
+                        post_msg(msg)
                         continue
 
                     proc_obs.append(
