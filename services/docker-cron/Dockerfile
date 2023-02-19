@@ -23,9 +23,8 @@ RUN crontab -u tagbase /etc/cron.d/docker-cron \
 
 COPY --chown=tagbase:tagbase . .
 
-RUN python3 -m pip install pip --upgrade pip
-
-RUN python3 -m pip install -r requirements.txt --no-cache-dir
+RUN python3 -m pip install pip --upgrade pip && \
+    python3 -m pip install -r requirements.txt --no-cache-dir
 
 RUN touch .env \
     && echo "export POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> /usr/src/app/.env \
