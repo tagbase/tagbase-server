@@ -53,12 +53,13 @@ def process_all_lines_for_global_attributes(
         metadata.append((str_submission_id, str(attribute_id), attribute_value))
         attrbs_map.pop(attribute_name)
 
-    not_found_attributes = ", ".join(attrbs_map.keys())
-    msg = (
-        f"*{submission_filename}* _line:{line_counter}_ - "
-        f"Unable to locate attribute_names *{not_found_attributes}* in _metadata_types_ table."
-    )
-    post_msg(msg)
+    if len(attrbs_map.keys()) > 0:
+        not_found_attributes = ", ".join(attrbs_map.keys())
+        msg = (
+            f"*{submission_filename}* _line:{line_counter}_ - "
+            f"Unable to locate attribute_names *{not_found_attributes}* in _metadata_types_ table."
+        )
+        post_msg(msg)
 
 
 def process_global_attributes(lines, cur, submission_id, metadata, submission_filename):
