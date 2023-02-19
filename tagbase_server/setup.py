@@ -15,7 +15,7 @@ VERSION = "v0.7.0"
 
 REQUIRES = [
     "connexion[swagger-ui]==2.14.2",
-    "flask[async]==2.2.2",
+    "flask[async]==2.2.3",
     "gunicorn==20.1.0",
     "pandas>=1.4.2",
     "parmap>=1.5.3",
