@@ -58,19 +58,7 @@ def process_all_lines_for_global_attributes(
         f"*{submission_filename}* _line:{line_counter}_ - "
         f"Unable to locate attribute_names *{not_found_attributes}* in _metadata_types_ table."
     )
-    post_msg_to_slack(msg)
-
-
-def post_msg_to_slack(msg):
-    logger.warning(msg)
-    try:
-        client.chat_postMessage(
-            channel=slack_channel, text="<!channel> :warning: " + msg
-        )
-    except SlackApiError as e:
-        logger.error(e)
-    except Exception:
-        logger.exception("Something went wrong while posting to slack")
+    post_msg(msg)
 
 
 def process_global_attributes(lines, cur, submission_id, metadata, submission_filename):

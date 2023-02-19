@@ -18,3 +18,5 @@ def post_msg(msg):
         )
     except SlackApiError as e:
         logger.error(e)
+    except Exception:
+        logger.exception("Something went wrong while posting to slack")
