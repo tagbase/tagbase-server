@@ -130,6 +130,7 @@ services:
       - POSTGRES_PASS=${POSTGRES_PASSWORD}
       - POSTGRES_USER=tagbase
       - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting
+      - SCRIPTS_LOCKFILE_DIR=/docker-entrypoint-initdb.d/
     expose:
       - ${POSTGRES_PORT}
     healthcheck:

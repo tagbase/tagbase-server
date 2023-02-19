@@ -5,6 +5,6 @@ while true
       do
       	filename="${line##*/}"
         echo "Contents of /usr/src/app/staging_data changed; Processing: $line"
-        curl -X 'POST' tagbase_server:5433/tagbase/api/v0.7.0/ingest?filename="$filename" -H 'accept: application/json' -H 'Content-Type: text/plain' -T $line
+        curl -X 'POST' tagbase_server:5433/tagbase/api/v0.7.0/ingest?filename="$filename" -H 'accept: application/json' -T $line
       done
   done
