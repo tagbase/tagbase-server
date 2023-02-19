@@ -16,7 +16,12 @@ logger = logging.getLogger(__name__)
 
 
 def process_all_lines_for_global_attributes(
-    global_attributes_lines, cur, submission_id, metadata, submission_filename, line_counter
+    global_attributes_lines,
+    cur,
+    submission_id,
+    metadata,
+    submission_filename,
+    line_counter,
 ):
     attrbs_map = {}
     for line in global_attributes_lines:
@@ -29,8 +34,13 @@ def process_all_lines_for_global_attributes(
         else:
             logger.warning("Metadata line %s NOT in expected format!", line)
 
-    attrbs_names = ', '.join(['\'{}\''.format(attrib_name) for attrib_name in attrbs_map.keys()])
-    attrbs_ids_query = "SELECT attribute_id, attribute_name FROM metadata_types WHERE attribute_name IN ({})".format(attrbs_names)
+    attrbs_names = ", ".join(
+        ["'{}'".format(attrib_name) for attrib_name in attrbs_map.keys()]
+    )
+    attrbs_ids_query = (
+        "SELECT attribute_id, attribute_name FROM metadata_types "
+        "WHERE attribute_name IN ({})".format(attrbs_names)
+    )
     logger.debug("Query=%s", attrbs_ids_query)
     cur.execute(attrbs_ids_query)
     rows = cur.fetchall()
@@ -49,29 +59,6 @@ def process_all_lines_for_global_attributes(
         f"Unable to locate attribute_names *{not_found_attributes}* in _metadata_types_ table."
     )
     post_msg_to_slack(msg)
-
-
-def process_line_for_global_attributes(
-    line, cur, submission_id, metadata, submission_filename, line_counter
-):
-    logger.debug("Processing global attribute: %s", line)
-    tokens = line.strip()[1:].split(" = ")
-    logger.debug("Processing token: %s", tokens)
-    cur.execute(
-        "SELECT attribute_id FROM metadata_types WHERE attribute_name = %s",
-        (tokens[0],),
-    )
-    rows = cur.fetchall()
-    if len(rows) == 0:
-        msg = (
-            f"*{submission_filename}* _line:{line_counter}_ - "
-            f"Unable to locate attribute_name *{tokens[0]}* in _metadata_types_ table."
-        )
-        post_msg(msg)
-    else:
-        str_submission_id = str(submission_id)
-        str_row = str(rows[0][0])
-        metadata.append((str_submission_id, str_row, tokens[1]))
 
 
 def post_msg_to_slack(msg):
@@ -104,19 +91,8 @@ def process_global_attributes(lines, cur, submission_id, metadata, submission_fi
         submission_id,
         metadata,
         submission_filename,
-        processed_lines
+        processed_lines,
     )
-    # for global_attribute in global_attributes:
-    #     process_line_for_global_attributes(
-    #         global_attribute,
-    #         cur,
-    #         submission_id,
-    #         metadata,
-    #         submission_filename,
-    #         processed_lines,
-    #     )
-
-    # returning -1 because lines is an 0-indexed array
     return processed_lines - 1 if processed_lines > 0 else 0
 
 
