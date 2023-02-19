@@ -14,8 +14,8 @@ VERSION = "v0.7.0"
 # http://pypi.python.org/pypi/setuptools
 
 REQUIRES = [
-    "connexion[swagger-ui]==2.14.1",
-    "flask[async]==2.2.2",
+    "connexion[swagger-ui]==2.14.2",
+    "flask[async]==2.2.3",
     "gunicorn==20.1.0",
     "pandas>=1.4.2",
     "parmap>=1.5.3",
@@ -27,7 +27,7 @@ REQUIRES = [
     "setuptools>=21.0.0",
     "slack-sdk>=3.17.2",
     "tzlocal>=4.1",
-    "werkzeug==2.2.2",
+    "werkzeug==2.2.3",
 ]
 
 setup(
