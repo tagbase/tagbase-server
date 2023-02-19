@@ -19,6 +19,42 @@ slack_channel = os.environ.get("SLACK_BOT_CHANNEL", "tagbase-server")
 client = WebClient(token=slack_token)
 
 
+def process_all_lines_for_global_attributes(
+    global_attributes_lines, cur, submission_id, metadata, submission_filename, line_counter
+):
+    attrbs_map = {}
+    for line in global_attributes_lines:
+        line = line.strip()
+        logger.debug("Processing global attribute: %s", line)
+        tokens = line[1:].split(" = ")
+        # attribute_name = tokens[0], attribute_value = tokens[1]
+        if len(tokens) > 1:
+            attrbs_map[tokens[0]] = tokens[1]
+        else:
+            logger.warning("Metadata line %s NOT in expected format!", line)
+
+    attrbs_names = ', '.join(['\'{}\''.format(attrib_name) for attrib_name in attrbs_map.keys()])
+    attrbs_ids_query = "SELECT attribute_id, attribute_name FROM metadata_types WHERE attribute_name IN ({})".format(attrbs_names)
+    logger.debug("Query=%s", attrbs_ids_query)
+    cur.execute(attrbs_ids_query)
+    rows = cur.fetchall()
+
+    str_submission_id = str(submission_id)
+    for row in rows:
+        attribute_id = row[0]
+        attribute_name = row[1]
+        attribute_value = attrbs_map[attribute_name]
+        metadata.append((str_submission_id, str(attribute_id), attribute_value))
+        attrbs_map.pop(attribute_name)
+
+    not_found_attributes = ", ".join(attrbs_map.keys())
+    msg = (
+        f"*{submission_filename}* _line:{line_counter}_ - "
+        f"Unable to locate attribute_names *{not_found_attributes}* in _metadata_types_ table."
+    )
+    post_msg_to_slack(msg)
+
+
 def process_line_for_global_attributes(
     line, cur, submission_id, metadata, submission_filename, line_counter
 ):
@@ -50,6 +86,8 @@ def post_msg_to_slack(msg):
         )
     except SlackApiError as e:
         logger.error(e)
+    except Exception:
+        logger.exception("Something went wrong while posting to slack")
 
 
 def process_global_attributes(lines, cur, submission_id, metadata, submission_filename):
@@ -64,15 +102,23 @@ def process_global_attributes(lines, cur, submission_id, metadata, submission_fi
         else:
             break
 
-    for global_attribute in global_attributes:
-        process_line_for_global_attributes(
-            global_attribute,
-            cur,
-            submission_id,
-            metadata,
-            submission_filename,
-            processed_lines,
-        )
+    process_all_lines_for_global_attributes(
+        global_attributes,
+        cur,
+        submission_id,
+        metadata,
+        submission_filename,
+        processed_lines
+    )
+    # for global_attribute in global_attributes:
+    #     process_line_for_global_attributes(
+    #         global_attribute,
+    #         cur,
+    #         submission_id,
+    #         metadata,
+    #         submission_filename,
+    #         processed_lines,
+    #     )
 
     # returning -1 because lines is an 0-indexed array
     return processed_lines - 1 if processed_lines > 0 else 0
