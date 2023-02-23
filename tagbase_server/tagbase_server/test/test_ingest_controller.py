@@ -22,7 +22,7 @@ class TestIngestController(BaseTestCase):
             "Accept": "application/json",
         }
         response = self.client.open(
-            "/tagbase/api/v0.7.0/ingest",
+            "/tagbase/api/v0.8.0/ingest",
             method="GET",
             headers=headers,
             query_string=query_string,
