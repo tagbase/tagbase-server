@@ -3,7 +3,7 @@ FROM python:bullseye
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ARG POSTGRES_PASSWORD
-ARG POSTGRES_PORT
+ARG PGBOUNCER_PORT
 
 WORKDIR /usr/src/app
 
@@ -28,7 +28,7 @@ RUN python3 -m pip install pip --upgrade pip && \
 
 RUN touch .env \
     && echo "export POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> /usr/src/app/.env \
-    && echo "export POSTGRES_PORT=${POSTGRES_PORT}" >> /usr/src/app/.env
+    && echo "export PGBOUNCER_PORT=${PGBOUNCER_PORT}" >> /usr/src/app/.env
 
 RUN chmod 777 -R /usr/src/app
 
