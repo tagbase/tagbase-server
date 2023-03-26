@@ -1,11 +1,12 @@
-[dev_server]
-tagbase_server_devserver docker_service_name=tagbase_server_devserver
+#[dev_server]
+#tagbase_server_devserver docker_service_name=tagbase_server_devserver
 
 #[prod_server]
 #one.example.com
 
 [dev_servers]
-18.116.62.197
+#ansible_env.TAGBASE_DEV_SERVER
+3.15.0.82
 
 #one.example.com
 

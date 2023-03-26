@@ -48,6 +48,8 @@ namespace :deploy do
   task :copy_env_app do
     on roles(:app) do
       execute '(cp /home/ubuntu/tagbase-server/.env /home/ubuntu/tagbase-server/current;)'
+      execute '(mkdir /home/ubuntu/tagbase-server/current/service/nginx/ssl;)'
+      execute '(cd /home/ubuntu/tagbase-server/current/service/nginx/ssl; openssl req -x509 -nodes -newkey rsa:2048 -keyout key.pem -out cert.pem -sha256 -days 365 -subj "/C=GB/ST=London/L=London/O=Alros/OU=IT Department/CN=localhost")'
     end
   end
 
@@ -55,9 +57,9 @@ namespace :deploy do
   task :rebuild_deps do
     on roles(:app) do
       # Your restart mechanism here, for example:
-      execute '(cd /home/ubuntu/tagbase-server/current; sudo docker-compose build --build-arg POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" --build-arg POSTGRES_PORT="${POSTGRES_PORT}" --build-arg NGINX_USER="${NGINX_USER}" --build-arg NGINX_PASS="${NGINX_PASS}")'
+      execute '(cd /home/ubuntu/tagbase-server/current; sudo docker-compose build --build-arg POSTGRES_PASSWORD="tagbase" --build-arg POSTGRES_PORT="5432" --build-arg NGINX_USER="tagbase" --build-arg NGINX_PASS="tagbase")'
 
-      #execute (cd /home/ubuntu/tagbase-server; docker-compose down; docker-compose up -d)
+      execute '(cd /home/ubuntu/tagbase-server/current; sudo docker-compose down; sudo docker-compose up -d)'
     end
   end
 
