@@ -34,4 +34,5 @@ RUN chmod 777 -R /usr/src/app
 
 USER tagbase
 
-ENTRYPOINT ["./entrypoint.sh"]
+#ENTRYPOINT ["./entrypoint.sh"]
+RUN cron
