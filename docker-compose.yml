@@ -130,7 +130,7 @@ services:
       - POSTGRES_PASS=${POSTGRES_PASSWORD}
       - POSTGRES_USER=tagbase
       - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting
-      - SCRIPTS_LOCKFILE_DIR=/docker-entrypoint-initdb.d/
+      - SCRIPTS_LOCKFILE_DIR=/opt/data/
     expose:
       - ${POSTGRES_PORT}
     healthcheck:
@@ -153,6 +153,7 @@ services:
       - ./dbbackups:/backups
       - ./postgis-data:/var/lib/postgresql
       - ./services/postgis/tagbase_schema.sql:/docker-entrypoint-initdb.d/tagbase_schema.sql
+      - ./services/postgis/lockfiles:/opt/data/
   slack_docker:
     environment:
       - webhook=${webhook}
