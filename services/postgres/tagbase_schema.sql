@@ -813,7 +813,6 @@ ALTER TABLE submission_submission_id_seq OWNER TO postgres;
 
 ALTER SEQUENCE submission_submission_id_seq OWNED BY submission.submission_id;
 
-SELECT setval('submission_submission_id_seq', COALESCE(max(submission_id) + 1, 1), true) FROM submission;
 
 --
 -- Name: submission_tag_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -830,7 +829,6 @@ CREATE SEQUENCE submission_tag_id_seq
 ALTER TABLE submission_tag_id_seq OWNER TO postgres;
 
 ALTER SEQUENCE submission_tag_id_seq OWNED BY submission.tag_id;
-SELECT setval('submission_tag_id_seq', COALESCE(max(tag_id) + 1, 1), true) FROM submission;
 
 --
 -- Name: observation_types variable_id; Type: DEFAULT; Schema: public; Owner: postgres
