@@ -1,8 +1,9 @@
 #!/usr/bin/env sh
-PATH_TO_CHECK=/usr/src/app/staging_data
+PATH_TO_CHECK=/usr/src/app/staging_data/
 while true
   do
-    fswatch --one-event $PATH_TO_CHECK --event Created --event MovedTo --event IsFile | while read line
+    fswatch --one-event $PATH_TO_CHECK --event Created --event MovedTo --event IsFile --event Updated | while read line
+    #fswatch --one-event $PATH_TO_CHECK | while read line
       do
       	filename="${line##*/}"
         echo "Contents of $PATH_TO_CHECK changed; Processing: $line"
