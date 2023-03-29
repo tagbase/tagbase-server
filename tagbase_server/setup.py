@@ -1,34 +1,21 @@
 # coding: utf-8
 
+import pathlib
+import pkg_resources
 import sys
 from setuptools import setup, find_packages
 
 NAME = "tagbase_server"
 VERSION = "v0.8.0"
 
-# To install the library, run the following
-#
-# python setup.py install
-#
-# prerequisite: setuptools
-# http://pypi.python.org/pypi/setuptools
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
-REQUIRES = [
-    "connexion[swagger-ui]==2.14.2",
-    "flask[async]==2.2.3",
-    "gunicorn==20.1.0",
-    "pandas>=1.4.2",
-    "parmap>=1.5.3",
-    "patool>=1.12",
-    "psycopg2-binary==2.9.3",
-    "python_dateutil>=2.6.0",
-    "pytz>=2021.3",
-    "pyunpack>=0.3",
-    "setuptools>=21.0.0",
-    "slack-sdk>=3.17.2",
-    "tzlocal>=4.1",
-    "werkzeug==2.2.3",
-]
+with pathlib.Path("requirements.txt").open() as requirements_txt:
+    install_requires = [
+        str(requirement)
+        for requirement in pkg_resources.parse_requirements(requirements_txt)
+    ]
 
 setup(
     name=NAME,
@@ -37,12 +24,10 @@ setup(
     author_email="tagtuna@gmail.com",
     url="https://github.com/tagbase/tagbase-server/",
     keywords=["OpenAPI", "tagbase-server API"],
-    install_requires=REQUIRES,
+    install_requires=install_requires,
     packages=find_packages(),
     package_data={"": ["openapi/openapi.yaml"]},
     include_package_data=True,
     entry_points={"console_scripts": ["tagbase_server=tagbase_server.__main__:app"]},
-    long_description="""\
-    tagbse-server provides HTTP endpoints for ingestion of various files into the Tagbase SQL database. Input file support includes eTUFF (see [here](https://doi.org/10.6084/m9.figshare.10032848.v4) and [here](https://doi.org/10.6084/m9.figshare.10159820.v1)) and [nc-eTAG](https://github.com/oceandatainterop/nc-eTAG/) files; a metadata and data interoperability standard for (non-acoustic) electronic tagging datasets.
-    """,
+    long_description=long_description,
 )
