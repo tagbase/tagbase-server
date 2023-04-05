@@ -23,7 +23,7 @@ jobs:
           image: jamescooke/openapi-validator:latest
           options: -v ${{ github.workspace }}:/data 
           run: |
-            lint-openapi --ruleset openapi.yaml
+            lint-openapi --ruleset .spectral.yaml openapi.yaml
             exit $?
   sonarcloud:
     name: SonarCloud Analysis
