@@ -253,34 +253,34 @@ components:
       description: 'An error response for an operation.'
       type: object
       properties:
-        error:
-          $ref: '#/components/schemas/Error'
+        errors:
+          type: array
+          minItems: 0,
+          maxItems: 100,
+          description: 'The array of error entries associated with the error response',
+          items:
+            $ref: '#/components/schemas/Error'
         trace:
           description: 'The error trace information.'
           example: 123e4567-e89b-12d3-a456-426614174000
           format: uuid
           type: string
     Error:
-      description: An error response entry.
-      example:
-        code: "500"
-        message: Unable to connect to the Tagbase database
-        more_info: https://httpwg.org/specs/rfc7231.html#status.500
+      description: 'An error response entry.'
+      type: object
       properties:
         code:
-          description: HTTP status code
-          example: "500"
+          description: 'The error code.'
           type: string
+          enum:
+            - '500'
+            - '501'
         message:
-          description: A string detailing specifics of the error response
-          example: Data file eTUFF-sailfish-117259.txt ingestion unsuccessful.
+          description: 'The error message.'
           type: string
         more_info:
-          description: Additional details (if available) to diagnose.
-          example: https://httpwg.org/specs/rfc7231.html#status.500
+          description: 'Additional info about the error.'
           type: string
-      title: Response500
-      type: object
     Ingest200:
       description: HTTP 200 success response
       example:
