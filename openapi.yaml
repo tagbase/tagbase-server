@@ -374,6 +374,8 @@ components:
                 description: Version identifier for the eTUFF tag data file ingested
                 example: "1"
                 type: string
+          minItems: 0
+          maxItems: 100
           type: array
       title: Tag200
       type: object
