@@ -3,10 +3,10 @@
 
 #[prod_server]
 #one.example.com
+#ansible_env.TAGBASE_DEV_SERVER
 
 [dev_servers]
-#ansible_env.TAGBASE_DEV_SERVER
-3.15.0.82
+18.118.1.177
 
 #one.example.com
 
