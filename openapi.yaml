@@ -408,9 +408,6 @@ components:
           type: integer
         tag_id:
           $ref: '#/components/schemas/tag_id'
-          description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
-          example: 3
-          type: integer
         version:
           description: Version identifier for the eTUFF tag data file ingested
           example: "1"
