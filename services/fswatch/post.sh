@@ -7,10 +7,10 @@ while true
     fswatch --batch-marker=EOF -xn $PATH_TO_CHECK | while read file event; do
       echo $file $event
       if [ $file = "EOF" ]; then 
-        do
+        #do
           #filename="${file##*/}"
-          echo "Contents of $PATH_TO_CHECK changed; Processing: $file"
+        echo "Contents of $PATH_TO_CHECK changed; Processing: $file"
           # curl -X 'POST' tagbase_server:5433/tagbase/api/v0.9.0/ingest?filename="$filename" -H 'accept: application/json' -T $line
-        done
+        #done
       fi
   done
