@@ -56,7 +56,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/ErrorContainer'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Get network accessible file and execute ingestion
       tags:
@@ -99,7 +99,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/ErrorContainer'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Post a local file and perform a ingest operation
       tags:
@@ -121,7 +121,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/ErrorContainer'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Get information about all tags
       tags:
@@ -144,7 +144,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/ErrorContainer'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Get information about an individual tag
       tags:
@@ -170,7 +170,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/ErrorContainer'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Update the 'notes' and/or 'version' associated with a tag submission
       tags:
@@ -249,6 +249,38 @@ components:
       example: "eTUFF-sailfish-117259_2.txt"
       title: filename
       type: string
+    ErrorContainer:
+      description: 'An error response for an operation.'
+      type: object
+      properties:
+        error:
+          $ref: '#/components/schemas/Error'
+        trace:
+          description: 'The error trace information.'
+          example: 123e4567-e89b-12d3-a456-426614174000
+          format: uuid
+          type: string
+    Error:
+      description: An error response entry.
+      example:
+        code: "500"
+        message: Unable to connect to the Tagbase database
+        more_info: https://httpwg.org/specs/rfc7231.html#status.500
+      properties:
+        code:
+          description: HTTP status code
+          example: "500"
+          type: string
+        message:
+          description: A string detailing specifics of the error response
+          example: Data file eTUFF-sailfish-117259.txt ingestion unsuccessful.
+          type: string
+        more_info:
+          description: Additional details (if available) to diagnose.
+          example: https://httpwg.org/specs/rfc7231.html#status.500
+          type: string
+      title: Response500
+      type: object
     Ingest200:
       description: HTTP 200 success response
       example:
@@ -270,33 +302,6 @@ components:
             Tagbase DB.
           type: string
       title: Ingest200
-      type: object
-    Response500:
-      description: 500 Internal Server Error
-      example:
-        code: "200"
-        message: Unable to connect to the Tagbase database
-        more_info: https://httpwg.org/specs/rfc7231.html#status.500
-        trace: 123e4567-e89b-12d3-a456-426614174000
-      properties:
-        code:
-          description: HTTP status code
-          example: "200"
-          type: string
-        message:
-          description: A string detailing specifics of the HTTP 500 response
-          example: Data file eTUFF-sailfish-117259.txt successfully ingested into
-            Tagbase DB.
-          type: string
-        more_info:
-          description: Additional details (if available) to diagnose the 500 response.
-          example: https://httpwg.org/specs/rfc7231.html#status.500
-          type: string
-        trace:
-          description: Trace diagnostic information related to the response
-          example: 123e4567-e89b-12d3-a456-426614174000
-          type: string
-      title: Response500
       type: object
     Tag200:
       description: Information for a given tag
