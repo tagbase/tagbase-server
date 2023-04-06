@@ -15,11 +15,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3 # Required to mount the Github Workspace to a volume
-      - name: Install NodeJS and ibm-cloud/openapi-ruleset
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-      - run: npm install @ibm-cloud/openapi-ruleset
       - name: Lint OpenAPI Specification
         uses: addnab/docker-run-action@v3
         with:
@@ -28,7 +23,7 @@ jobs:
           image: jamescooke/openapi-validator:latest
           options: -v ${{ github.workspace }}:/data 
           run: |
-            lint-openapi --ruleset .spectral.yaml openapi.yaml
+            lint-openapi openapi.yaml
             exit $?
   sonarcloud:
     name: SonarCloud Analysis
