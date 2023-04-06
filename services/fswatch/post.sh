@@ -6,7 +6,21 @@ while true
     #fswatch --one-event $PATH_TO_CHECK | while read line
       do
       	filename="${line##*/}"
-        echo "Contents of $PATH_TO_CHECK changed; Processing: $line"
+        echo "Contents of $PATH_TO_CHECK changed; Checking: $filename"
+
+        # waiting for file to be fully uploaded
+        for (( ; ; ))
+        do
+            size_bfr=$(stat -c%s "$f")
+            sleep 0.5
+            size_aftr=$(stat -c%s "$f")
+            if [ $size_bfr -eq $size_aftr ];
+            then
+                break;
+            fi
+        done
+
+        echo "Processing: $filename"
         curl -X 'POST' tagbase_server:5433/tagbase/api/v0.9.0/ingest?filename="$filename" -H 'accept: application/json' -T $line
       done
   done
