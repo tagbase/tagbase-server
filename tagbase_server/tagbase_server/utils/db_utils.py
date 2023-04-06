@@ -18,8 +18,8 @@ def connect():
         conn = psycopg2.connect(
             dbname="tagbase",
             user="tagbase",
-            host="postgis",
-            port=os.getenv("POSTGRES_PORT"),
+            host="pgbouncer",
+            port=os.getenv("PGBOUNCER_PORT"),
             password=os.getenv("POSTGRES_PASSWORD"),
         )
     except psycopg2.OperationalError as poe:
