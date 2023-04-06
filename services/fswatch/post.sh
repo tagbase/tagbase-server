@@ -4,7 +4,7 @@ while true
   do
     #fswatch --one-event $PATH_TO_CHECK --event Created --event MovedTo --event IsFile --event Updated | while read line
     #fswatch --one-event $PATH_TO_CHECK | while read line
-    fswatch --batch-marker=EOF -xn $PATH_TO_CHECK | while read file event; do
+    fswatch --batch-marker=EOF --event-flags --numeric --event Updated --event IsFile $PATH_TO_CHECK | while read file event; do
       echo $file $event
       if [ $file = "EOF" ]; then 
         #do
