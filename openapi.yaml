@@ -153,7 +153,7 @@ paths:
   /tags/{tag_id}/subs/{sub_id}:
     put:
       description: Update a tag submission
-      operationId: put_tag
+      operationId: replace_tag
       parameters:
       - $ref: '#/components/parameters/notes'
       - $ref: '#/components/parameters/tagId'
@@ -190,18 +190,6 @@ components:
         pattern: ^(?!\s*$).+
         type: string
       style: form
-    notes:
-      description: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solution-positional meta/data)
-      explode: true
-      in: query
-      name: notes
-      required: false
-      schema:
-        maxLength: 10000
-        minLength: 1
-        pattern: ^(?!\s*$).+
-        type: string
-      style: form
     subId:
       description: Existing submission id for an existing tag
       explode: true
@@ -218,6 +206,18 @@ components:
       required: true
       schema:
         type: number
+    notes:
+      description: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solution-positional meta/data)
+      explode: true
+      in: query
+      name: notes
+      required: false
+      schema:
+        maxLength: 10000
+        minLength: 1
+        pattern: ^(?!\s*$).+
+        type: string
+      style: form
     type:
       description: Type of file to be ingested, defaults to 'etuff'
       explode: true

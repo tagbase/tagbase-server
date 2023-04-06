@@ -23,7 +23,7 @@ jobs:
           image: jamescooke/openapi-validator:latest
           options: -v ${{ github.workspace }}:/data 
           run: |
-            lint-openapi openapi.yaml
+            lint-openapi --warnings-limit 0 openapi.yaml
             exit $?
   sonarcloud:
     name: SonarCloud Analysis
