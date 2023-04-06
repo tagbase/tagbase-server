@@ -273,8 +273,10 @@ components:
           description: 'The error code.'
           type: string
           enum:
-            - '500'
-            - '501'
+            - 'internal_server_error'
+            - 'bad_request'
+            - 'unauthorized'
+            - 'service_unavilable'
         message:
           description: 'The error message.'
           type: string
