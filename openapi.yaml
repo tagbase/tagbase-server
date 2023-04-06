@@ -155,9 +155,9 @@ paths:
       description: Update a tag submission
       operationId: replace_tag
       parameters:
-      - $ref: '#/components/parameters/notes'
-      - $ref: '#/components/parameters/tagId'
       - $ref: '#/components/parameters/subId'
+      - $ref: '#/components/parameters/tagId'
+      - $ref: '#/components/parameters/notes'
       - $ref: '#/components/parameters/version'
       responses:
         "200":
