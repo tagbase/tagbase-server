@@ -337,43 +337,7 @@ components:
         tag:
           description: List containing one or more submissions for a given tag
           items:
-            type: object
-            properties:
-              date_time:
-                description: Local datetime stamp at the time of eTUFF tag data file ingestion
-                example: '2022-04-01T04:58:21.319061+00:00'
-                #format: date
-                #pattern: '^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?$'
-                type: string
-              filename:
-                $ref: '#/components/schemas/filename'
-              metadata:
-                description: Contains the ingested tag metadata consistent with the eTUFF specification
-                example:
-                  person_owner: John Do
-                  owner_contect: john@do.net
-                  manufacturer: telemetry inc.
-                  model: new_gen
-                  attachment_method: anchor
-                type: object
-                additionalProperties:
-                  type: string
-              notes:
-                description: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solutionpositional meta/data)
-                example: "Ingested by admin on XXXX-XX-XX to back-process campaign XYZ."
-                type: string
-              submission_id:
-                description: Unique numeric ID assigned upon submission of a tag eTUFF data file for ingest/importation into Tagbase
-                example: 5
-                type: integer
-              tag_id:
-                description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
-                example: 3
-                type: integer
-              version:
-                description: Version identifier for the eTUFF tag data file ingested
-                example: "1"
-                type: string
+            $ref: '#/components/schemas/TagSubmission'
           minItems: 0
           maxItems: 100
           type: array
@@ -395,6 +359,44 @@ components:
           type: string
       title: TagPut200
       type: object
+    TagSubmission:
+      type: object
+      properties:
+        date_time:
+          description: Local datetime stamp at the time of eTUFF tag data file ingestion
+          example: '2022-04-01T04:58:21.319061+00:00'
+          #format: date
+          #pattern: '^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?$'
+          type: string
+        filename:
+          $ref: '#/components/schemas/filename'
+        metadata:
+          description: Contains the ingested tag metadata consistent with the eTUFF specification
+          example:
+            person_owner: John Do
+            owner_contect: john@do.net
+            manufacturer: telemetry inc.
+            model: new_gen
+            attachment_method: anchor
+          type: object
+          additionalProperties:
+            type: string
+        notes:
+          description: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solutionpositional meta/data)
+          example: "Ingested by admin on XXXX-XX-XX to back-process campaign XYZ."
+          type: string
+        submission_id:
+          description: Unique numeric ID assigned upon submission of a tag eTUFF data file for ingest/importation into Tagbase
+          example: 5
+          type: integer
+        tag_id:
+          description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
+          example: 3
+          type: integer
+        version:
+          description: Version identifier for the eTUFF tag data file ingested
+          example: "1"
+          type: string
     Tags200:
       description: Response detailing all available unique tags and associated filename
       example:
@@ -427,5 +429,7 @@ components:
                 example: eTUFF-sailfish-117259.txt
                 type: string
             type: object
+          minItems: 0
+          maxItems: 100000
       title: Tags200
       type: object
