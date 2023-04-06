@@ -249,6 +249,10 @@ components:
       example: "eTUFF-sailfish-117259_2.txt"
       title: filename
       type: string
+    tag_id:
+      description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
+      example: 3
+      type: integer
     ErrorContainer:
       description: 'An error response for an operation.'
       type: object
@@ -305,6 +309,17 @@ components:
           type: string
       title: Ingest200
       type: object
+    Metadata:
+      description: Contains the ingested tag metadata consistent with the eTUFF specification
+      example:
+        person_owner: John Do
+        owner_contect: john@do.net
+        manufacturer: telemetry inc.
+        model: new_gen
+        attachment_method: anchor
+      type: object
+      additionalProperties:
+        type: string
     Tag200:
       description: Information for a given tag
       example:
@@ -359,6 +374,17 @@ components:
           type: string
       title: TagPut200
       type: object
+    Tag:
+      description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
+      example:
+        tag_id: 1
+        filename: eTUFF-sailfish-117259_2.txt
+      properties:
+        tag_id:
+          $ref: '#/components/schemas/tag_id'
+        filename:
+          $ref: '#/components/schemas/filename'
+      type: object
     TagSubmission:
       type: object
       properties:
@@ -371,16 +397,7 @@ components:
         filename:
           $ref: '#/components/schemas/filename'
         metadata:
-          description: Contains the ingested tag metadata consistent with the eTUFF specification
-          example:
-            person_owner: John Do
-            owner_contect: john@do.net
-            manufacturer: telemetry inc.
-            model: new_gen
-            attachment_method: anchor
-          type: object
-          additionalProperties:
-            type: string
+          $ref: '#/components/schemas/Metadata'
         notes:
           description: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solutionpositional meta/data)
           example: "Ingested by admin on XXXX-XX-XX to back-process campaign XYZ."
@@ -390,6 +407,7 @@ components:
           example: 5
           type: integer
         tag_id:
+          $ref: '#/components/schemas/tag_id'
           description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
           example: 3
           type: integer
@@ -415,20 +433,7 @@ components:
           description: List of unique numeric Tag IDs and associated filename
           type: array
           items:
-            description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
-            example:
-              tag_id: 1
-              filename: eTUFF-sailfish-117259_2.txt
-            properties:
-              tag_id:
-                description: Unique numeric Tag ID associated with the ingested tag data file
-                example: 1
-                type: integer
-              filename:
-                description: Full name and extension of the ingested eTUFF tag data file
-                example: eTUFF-sailfish-117259.txt
-                type: string
-            type: object
+            $ref: '#/components/schemas/Tag'
           minItems: 0
           maxItems: 100000
       title: Tags200
