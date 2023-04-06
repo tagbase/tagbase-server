@@ -13,4 +13,5 @@ while true
           # curl -X 'POST' tagbase_server:5433/tagbase/api/v0.9.0/ingest?filename="$filename" -H 'accept: application/json' -T $line
         #done
       fi
+    done
   done
