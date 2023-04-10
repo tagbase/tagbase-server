@@ -8,7 +8,6 @@ import tagbase_server.utils.processing_utils as pu
 
 
 class TestIngest(unittest.TestCase):
-    PG_VERSION = "postgres:9.5"
     SAMPLE_METADATA_LINES = [
         "// global attributes:",
         "// etag device attributes:",
