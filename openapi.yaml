@@ -56,7 +56,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/ErrorContainer'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Get network accessible file and execute ingestion
       tags:
@@ -74,7 +74,7 @@ paths:
         content:
           application/octet-stream:
             schema:
-              description: Compressed binary file containing one or more eTUFF files
+              description: Compressed binary e.g. zip file containing one or more eTUFF files
               format: binary
               maxLength: 1000000000
               minLength: 1
@@ -82,7 +82,7 @@ paths:
           text/plain:
             schema:
               description: Plain text eTUFF file
-              format: text
+              format: binary
               maxLength: 1000000000
               minLength: 1
               type: string
@@ -99,7 +99,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/ErrorContainer'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Post a local file and perform a ingest operation
       tags:
@@ -121,7 +121,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/ErrorContainer'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Get information about all tags
       tags:
@@ -144,7 +144,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/ErrorContainer'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Get information about an individual tag
       tags:
@@ -153,11 +153,11 @@ paths:
   /tags/{tag_id}/subs/{sub_id}:
     put:
       description: Update a tag submission
-      operationId: put_tag
+      operationId: replace_tag
       parameters:
-      - $ref: '#/components/parameters/notes'
-      - $ref: '#/components/parameters/tagId'
       - $ref: '#/components/parameters/subId'
+      - $ref: '#/components/parameters/tagId'
+      - $ref: '#/components/parameters/notes'
       - $ref: '#/components/parameters/version'
       responses:
         "200":
@@ -170,7 +170,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/ErrorContainer'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Update the 'notes' and/or 'version' associated with a tag submission
       tags:
@@ -186,18 +186,6 @@ components:
       required: true
       schema:
         maxLength: 100
-        minLength: 1
-        pattern: ^(?!\s*$).+
-        type: string
-      style: form
-    notes:
-      description: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solution-positional meta/data)
-      explode: true
-      in: query
-      name: notes
-      required: false
-      schema:
-        maxLength: 10000
         minLength: 1
         pattern: ^(?!\s*$).+
         type: string
@@ -218,6 +206,18 @@ components:
       required: true
       schema:
         type: number
+    notes:
+      description: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solution-positional meta/data)
+      explode: true
+      in: query
+      name: notes
+      required: false
+      schema:
+        maxLength: 10000
+        minLength: 1
+        pattern: ^(?!\s*$).+
+        type: string
+      style: form
     type:
       description: Type of file to be ingested, defaults to 'etuff'
       explode: true
@@ -249,6 +249,44 @@ components:
       example: "eTUFF-sailfish-117259_2.txt"
       title: filename
       type: string
+    tag_id:
+      description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
+      example: 3
+      type: integer
+    ErrorContainer:
+      description: 'An error response for an operation.'
+      type: object
+      properties:
+        errors:
+          type: array
+          minItems: 0
+          maxItems: 100
+          description: 'The array of error entries associated with the error response'
+          items:
+            $ref: '#/components/schemas/Error'
+        trace:
+          description: 'The error trace information.'
+          example: 123e4567-e89b-12d3-a456-426614174000
+          format: uuid
+          type: string
+    Error:
+      description: 'An error response entry.'
+      type: object
+      properties:
+        code:
+          description: 'The error code.'
+          type: string
+          enum:
+            - 'internal_server_error'
+            - 'bad_request'
+            - 'unauthorized'
+            - 'service_unavilable'
+        message:
+          description: 'The error message.'
+          type: string
+        more_info:
+          description: 'Additional info about the error.'
+          type: string
     Ingest200:
       description: HTTP 200 success response
       example:
@@ -271,33 +309,17 @@ components:
           type: string
       title: Ingest200
       type: object
-    Response500:
-      description: 500 Internal Server Error
+    Metadata:
+      description: Contains the ingested tag metadata consistent with the eTUFF specification
       example:
-        code: "200"
-        message: Unable to connect to the Tagbase database
-        more_info: https://httpwg.org/specs/rfc7231.html#status.500
-        trace: 123e4567-e89b-12d3-a456-426614174000
-      properties:
-        code:
-          description: HTTP status code
-          example: "200"
-          type: string
-        message:
-          description: A string detailing specifics of the HTTP 500 response
-          example: Data file eTUFF-sailfish-117259.txt successfully ingested into
-            Tagbase DB.
-          type: string
-        more_info:
-          description: Additional details (if available) to diagnose the 500 response.
-          example: https://httpwg.org/specs/rfc7231.html#status.500
-          type: string
-        trace:
-          description: Trace diagnostic information related to the response
-          example: 123e4567-e89b-12d3-a456-426614174000
-          type: string
-      title: Response500
+        person_owner: John Do
+        owner_contect: john@do.net
+        manufacturer: telemetry inc.
+        model: new_gen
+        attachment_method: anchor
       type: object
+      additionalProperties:
+        type: string
     Tag200:
       description: Information for a given tag
       example:
@@ -330,43 +352,9 @@ components:
         tag:
           description: List containing one or more submissions for a given tag
           items:
-            type: object
-            properties:
-              date_time:
-                description: Local datetime stamp at the time of eTUFF tag data file ingestion
-                example: '2022-04-01T04:58:21.319061+00:00'
-                #format: date
-                #pattern: '^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?$'
-                type: string
-              filename:
-                $ref: '#/components/schemas/filename'
-              metadata:
-                description: Contains the ingested tag metadata consistent with the eTUFF specification
-                example:
-                  person_owner: John Do
-                  owner_contect: john@do.net
-                  manufacturer: telemetry inc.
-                  model: new_gen
-                  attachment_method: anchor
-                type: object
-                additionalProperties:
-                  type: string
-              notes:
-                description: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solutionpositional meta/data)
-                example: "Ingested by admin on XXXX-XX-XX to back-process campaign XYZ."
-                type: string
-              submission_id:
-                description: Unique numeric ID assigned upon submission of a tag eTUFF data file for ingest/importation into Tagbase
-                example: 5
-                type: integer
-              tag_id:
-                description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
-                example: 3
-                type: integer
-              version:
-                description: Version identifier for the eTUFF tag data file ingested
-                example: "1"
-                type: string
+            $ref: '#/components/schemas/TagSubmission'
+          minItems: 0
+          maxItems: 100
           type: array
       title: Tag200
       type: object
@@ -386,6 +374,44 @@ components:
           type: string
       title: TagPut200
       type: object
+    Tag:
+      description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
+      example:
+        tag_id: 1
+        filename: eTUFF-sailfish-117259_2.txt
+      properties:
+        tag_id:
+          $ref: '#/components/schemas/tag_id'
+        filename:
+          $ref: '#/components/schemas/filename'
+      type: object
+    TagSubmission:
+      type: object
+      properties:
+        date_time:
+          description: Local datetime stamp at the time of eTUFF tag data file ingestion
+          example: '2022-04-01T04:58:21.319061+00:00'
+          #format: date
+          #pattern: '^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?$'
+          type: string
+        filename:
+          $ref: '#/components/schemas/filename'
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        notes:
+          description: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solutionpositional meta/data)
+          example: "Ingested by admin on XXXX-XX-XX to back-process campaign XYZ."
+          type: string
+        submission_id:
+          description: Unique numeric ID assigned upon submission of a tag eTUFF data file for ingest/importation into Tagbase
+          example: 5
+          type: integer
+        tag_id:
+          $ref: '#/components/schemas/tag_id'
+        version:
+          description: Version identifier for the eTUFF tag data file ingested
+          example: "1"
+          type: string
     Tags200:
       description: Response detailing all available unique tags and associated filename
       example:
@@ -404,19 +430,8 @@ components:
           description: List of unique numeric Tag IDs and associated filename
           type: array
           items:
-            description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
-            example:
-              tag_id: 1
-              filename: eTUFF-sailfish-117259_2.txt
-            properties:
-              tag_id:
-                description: Unique numeric Tag ID associated with the ingested tag data file
-                example: 1
-                type: integer
-              filename:
-                description: Full name and extension of the ingested eTUFF tag data file
-                example: eTUFF-sailfish-117259.txt
-                type: string
-            type: object
+            $ref: '#/components/schemas/Tag'
+          minItems: 0
+          maxItems: 100000
       title: Tags200
       type: object
