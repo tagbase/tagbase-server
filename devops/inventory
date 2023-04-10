@@ -6,7 +6,7 @@
 #ansible_env.TAGBASE_DEV_SERVER
 
 [dev_servers]
-18.118.1.177
+18.118.107.90
 
 #one.example.com
 

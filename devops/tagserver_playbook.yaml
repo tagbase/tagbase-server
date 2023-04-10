@@ -4,6 +4,13 @@
   become: true
 
   tasks:
+    - name: Update and upgrade apt packages
+      become: true
+      apt:
+        upgrade: yes
+        update_cache: yes
+        cache_valid_time: 86400 # one day validity
+
     - name: Install apt-transport-https
       ansible.builtin.apt:
         name:
@@ -30,7 +37,7 @@
         name:
           - docker
           - docker.io
-          #- docker-compose
+          - docker-compose
           - docker-registry
         state: latest
         update_cache: true
@@ -47,14 +54,14 @@
         - net-tools
         - postgresql-client
 
-    - name: Install docker-compose
-      command: sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64" -o /usr/local/bin/docker-compose
-
-    - name: Create symbolic link for docker-compose
-      command: sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
-
-    - name: Setting permissions right for docker-compose
-      command: sudo chmod +x /usr/local/bin/docker-compose
+#    - name: Install docker-compose
+#      command: sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64" -o /usr/local/bin/docker-compose
+#
+#    - name: Create symbolic link for docker-compose
+#      command: sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+#
+#    - name: Setting permissions right for docker-compose
+#      command: sudo chmod +x /usr/local/bin/docker-compose
 
     - name: Create dir for project
       command: mkdir -p /home/ubuntu/tagbase-server/
@@ -72,6 +79,6 @@
                  POSTGRES_PORT=5432
                  SLACK_BOT_CHANNEL=tagbase-server
                  SLACK_BOT_TOKEN=XYZXYZ
-                 NGINX_USER=nginx_user
-                 NGINX_PASS=nginx_pass
+                 NGINX_USER=tagbase
+                 NGINX_PASS=tagbase
         dest: /home/ubuntu/tagbase-server/.env
