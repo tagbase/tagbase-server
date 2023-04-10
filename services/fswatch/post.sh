@@ -22,3 +22,4 @@ while true
         echo "Processing: $filename"
         curl -X 'POST' tagbase_server:5433/tagbase/api/v0.10.0/ingest?filename="$filename" -H 'accept: application/json' -T $line
       done
+  done
