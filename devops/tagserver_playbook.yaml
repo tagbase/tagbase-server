@@ -54,15 +54,6 @@
         - net-tools
         - postgresql-client
 
-#    - name: Install docker-compose
-#      command: sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64" -o /usr/local/bin/docker-compose
-#
-#    - name: Create symbolic link for docker-compose
-#      command: sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
-#
-#    - name: Setting permissions right for docker-compose
-#      command: sudo chmod +x /usr/local/bin/docker-compose
-
     - name: Create dir for project
       command: mkdir -p /home/ubuntu/tagbase-server/
 
