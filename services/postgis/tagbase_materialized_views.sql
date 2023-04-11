@@ -14,7 +14,7 @@ AS
     variable.date_time AS measurement_date_time,
     data_position.date_time AS position_date_time,
     data_position.lat,
-    CASE WHEN data_position.lon > 180 THEN data_position.lon - 360 ELSE data_position.lon END,
+    CASE WHEN data_position.lon::INTEGER > 180 THEN data_position.lon::INTEGER - 360 ELSE data_position.lon::INTEGER END,
     data_position.lat_err,
     data_position.lon_err
    FROM ( SELECT x.variable_value,
@@ -46,7 +46,7 @@ AS
     data.date_time AS measurement_date_time,
     data_position.date_time AS position_date_time,
     data_position.lat,
-    CASE WHEN data_position.lon > 180 THEN data_position.lon - 360 ELSE data_position.lon END,
+    CASE WHEN data_position.lon::INTEGER > 180 THEN data_position.lon::INTEGER - 360 ELSE data_position.lon::INTEGER END,
     data_position.lat_err,
     data_position.lon_err
    FROM ( SELECT data_histogram_bin_info.min_value,
@@ -72,7 +72,7 @@ AS
     data.date_time AS measurement_date_time,
     data_position.date_time AS position_date_time,
     data_position.lat,
-    CASE WHEN data_position.lon > 180 THEN data_position.lon - 360 ELSE data_position.lon END,
+    CASE WHEN data_position.lon::INTEGER > 180 THEN data_position.lon::INTEGER - 360 ELSE data_position.lon::INTEGER END,
     data_position.lat_err,
     data_position.lon_err
    FROM ( SELECT data_profile.submission_id,
