@@ -10,14 +10,17 @@ services:
       - POSTGRES_PASS=${POSTGRES_PASSWORD}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_HOST=postgis
+      - REMOVE_BEFORE=30
     hostname: pg-backups
-    image: kartoza/pg-backup:14-3.3
+    image: kartoza/pg-backup:15-3.3
     labels:
       "docker_compose_diagram.cluster": "Internal Network"
       "docker_compose_diagram.description": "Docker PostGIS backup"
       "docker_compose_diagram.icon": "docker"
     links:
       - postgis
+    networks:
+      - internal-network
     volumes:
       - ./dbbackups:/backups
     restart: on-failure
