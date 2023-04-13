@@ -13,12 +13,12 @@ info:
     url: https://www.apache.org/licenses/LICENSE-2.0
   termsOfService: TODO
   title: tagbase-server API
-  version: v0.10.0
+  version: v0.10.1
 servers:
 - description: Local development tagbase-server
-  url: https://localhost/tagbase/api/v0.10.0
+  url: https://localhost/tagbase/api/v0.10.1
 - description: ICCAT Test tagbase-server
-  url: https://162.13.162.49/tagbase/api/v0.10.0
+  url: https://162.13.162.49/tagbase/api/v0.10.1
 tags:
 - description: Ingestion operations.
   name: ingest
