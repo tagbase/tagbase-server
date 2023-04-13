@@ -84,6 +84,17 @@ def process_global_attributes(lines, cur, submission_id, metadata, submission_fi
     return processed_lines - 1 if processed_lines > 0 else 0
 
 
+def get_tag_id(cur, submission_filename):
+    sql_query = "SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) FROM submission WHERE filename = '{}'".format(
+        submission_filename
+    )
+    logger.debug("Executing: %s", sql_query)
+    cur.execute(sql_query)
+    result = cur.fetchone()[0]
+    logger.debug("Result: %s", result)
+    return result
+
+
 def process_etuff_file(file, version=None, notes=None):
     start = time.perf_counter()
     submission_filename = file  # full path name is now preferred rather than - file[file.rindex("/") + 1 :]
@@ -91,16 +102,16 @@ def process_etuff_file(file, version=None, notes=None):
         "Processing etuff file: %s",
         submission_filename,
     )
+
     conn = connect()
     conn.autocommit = True
     with conn:
         with conn.cursor() as cur:
+            tag_id = get_tag_id(cur, submission_filename)
             cur.execute(
-                "INSERT INTO submission (tag_id, filename, date_time, notes, version) "
-                "VALUES ((SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) "
-                "FROM submission WHERE filename = %s), %s, %s, %s, %s)",
+                "INSERT INTO submission (tag_id, filename, date_time, notes, version) VALUES (%s, %s, %s, %s, %s)",
                 (
-                    submission_filename,
+                    tag_id,
                     submission_filename,
                     dt.now(tz=pytz.utc).astimezone(get_localzone()),
                     notes,
@@ -198,7 +209,7 @@ def process_etuff_file(file, version=None, notes=None):
                             variable_id,
                             tokens[2],
                             submission_id,
-                            str(submission_id),
+                            tag_id,
                         ]
                     )
 
@@ -215,7 +226,7 @@ def process_etuff_file(file, version=None, notes=None):
                 a = x[0]
                 b = x[1]
                 c = x[2]
-                mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, str(c), submission_id))
+                mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, str(c), tag_id))
                 cur.execute(
                     "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES "
                     + mog.decode("utf-8")
