@@ -148,11 +148,11 @@ paths:
       - tags
       x-openapi-router-controller: tagbase_server.controllers.tags_controller
   /tags/{tag_id}:
+    parameters:
+      - $ref: '#/components/parameters/tagId'
     delete:
       description: Delete an individual tag
       operationId: delete_tag
-      parameters:
-      - $ref: '#/components/parameters/tagId'
       responses:
         "200":
           content:
@@ -173,8 +173,6 @@ paths:
     get:
       description: Get information about an individual tag
       operationId: get_tag
-      parameters:
-      - $ref: '#/components/parameters/tagId'
       responses:
         "200":
           content:
