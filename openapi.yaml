@@ -193,12 +193,12 @@ paths:
       - tags
       x-openapi-router-controller: tagbase_server.controllers.tags_controller
   /tags/{tag_id}/subs/{sub_id}:
+    parameters:
+      - $ref: '#/components/parameters/subId'
+      - $ref: '#/components/parameters/tagId'
     delete:
       description: Delete a tag submission
       operationId: delete_sub
-      parameters:
-      - $ref: '#/components/parameters/subId'
-      - $ref: '#/components/parameters/tagId'
       responses:
         "200":
           content:
@@ -220,8 +220,6 @@ paths:
       description: Update a tag submission
       operationId: replace_tag
       parameters:
-      - $ref: '#/components/parameters/subId'
-      - $ref: '#/components/parameters/tagId'
       - $ref: '#/components/parameters/notes'
       - $ref: '#/components/parameters/version'
       responses:
