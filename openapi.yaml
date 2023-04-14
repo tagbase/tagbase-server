@@ -107,6 +107,26 @@ paths:
       x-codegen-request-body-name: body
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
   /tags:
+    delete:
+      description: Delete all tags
+      operationId: delete_tags
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagDelete200'
+          description: A success message confirming ingestion.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContainer'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Delete all tags
+      tags:
+      - tags
+      x-openapi-router-controller: tagbase_server.controllers.tags_controller
     get:
       description: Get information about all tags
       operationId: list_tags
@@ -128,6 +148,28 @@ paths:
       - tags
       x-openapi-router-controller: tagbase_server.controllers.tags_controller
   /tags/{tag_id}:
+    delete:
+      description: Delete an individual tag
+      operationId: delete_tag
+      parameters:
+      - $ref: '#/components/parameters/tagId'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag200'
+          description: A success message confirming ingestion.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContainer'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Delete an individual tag
+      tags:
+      - tags
+      x-openapi-router-controller: tagbase_server.controllers.tags_controller
     get:
       description: Get information about an individual tag
       operationId: get_tag
@@ -151,6 +193,29 @@ paths:
       - tags
       x-openapi-router-controller: tagbase_server.controllers.tags_controller
   /tags/{tag_id}/subs/{sub_id}:
+    delete:
+      description: Delete a tag submission
+      operationId: delete_sub
+      parameters:
+      - $ref: '#/components/parameters/subId'
+      - $ref: '#/components/parameters/tagId'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagDelete200'
+          description: A success message confirming ingestion.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContainer'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Delete a tag submission
+      tags:
+      - tags
+      x-openapi-router-controller: tagbase_server.controllers.tags_controller
     put:
       description: Update a tag submission
       operationId: replace_tag
@@ -357,6 +422,22 @@ components:
           maxItems: 100
           type: array
       title: Tag200
+      type: object
+    TagDelete200:
+      description: HTTP 200 success response
+      example:
+        code: "200"
+        message: All tags successfully deleted.
+      properties:
+        code:
+          description: HTTP status code
+          example: "200"
+          type: string
+        message:
+          description: A string detailing specifics of an HTTP operation
+          example: All tags successfully deleted.
+          type: string
+      title: TagPut200
       type: object
     TagPut200:
       description: HTTP 200 success response
