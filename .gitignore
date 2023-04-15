@@ -69,7 +69,7 @@ target/
 postgres-data
 logs
 tagbase_server/tagbase_server/coverage.xml
-services/postgis/lockfile
+services/postgis/lockfiles
 postgis-data
 dbbackups
 staging_data

@@ -1,11 +1,58 @@
 from tagbase_server.utils.db_utils import connect
 
 from tagbase_server.models.tag200 import Tag200  # noqa: E501
+from tagbase_server.models.tag_delete200 import TagDelete200  # noqa: E501
 from tagbase_server.models.tag_put200 import TagPut200  # noqa: E501
 
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def delete_sub(sub_id, tag_id):  # noqa: E501
+    """Delete a tag submission
+
+    Delete a tag submission # noqa: E501
+
+    :param sub_id: Existing submission id for an existing tag
+    :type sub_id: 
+    :param tag_id: Existing tag id
+    :type tag_id: 
+
+    :rtype: Union[TagDelete200, Tuple[TagDelete200, int], Tuple[TagDelete200, int, Dict[str, str]]
+    """
+    return 'do some magic!'
+
+
+def delete_tag(tag_id):  # noqa: E501
+    """Delete an individual tag
+
+    Delete an individual tag # noqa: E501
+
+    :param tag_id: Existing tag id
+    :type tag_id: 
+
+    :rtype: Union[TagDelete200, Tuple[TagDelete200, int], Tuple[TagDelete200, int, Dict[str, str]]
+    """
+    return 'do some magic!'
+
+
+def delete_tags():  # noqa: E501
+    """Delete all tags
+
+    Delete all tags # noqa: E501
+
+
+    :rtype: Union[TagDelete200, Tuple[TagDelete200, int], Tuple[TagDelete200, int, Dict[str, str]]
+    """
+    conn = connect()
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "TRUNCATE submission CASCADE",
+            )
+            count = cur.fetchone()[0]
+            TagDelete200.from_dict({"code": "200", "message": "Successfully deleted all tags!"})
 
 
 def get_tag(tag_id):  # noqa: E501
@@ -14,7 +61,7 @@ def get_tag(tag_id):  # noqa: E501
     Get information about an individual tag # noqa: E501
 
     :param tag_id: Existing tag id
-    :type tag_id:
+    :type tag_id: 
 
     :rtype: Union[Tag200, Tuple[Tag200, int], Tuple[Tag200, int, Dict[str, str]]
     """
@@ -73,15 +120,15 @@ def list_tags():  # noqa: E501
             return {"count": count, "tags": tags}
 
 
-def put_tag(tag_id, sub_id, notes=None, version=None):  # noqa: E501
+def replace_tag(sub_id, tag_id, notes=None, version=None):  # noqa: E501
     """Update the &#39;notes&#39; and/or &#39;version&#39; associated with a tag submission
 
     Update a tag submission # noqa: E501
 
-    :param tag_id: Existing tag id
-    :type tag_id:
     :param sub_id: Existing submission id for an existing tag
-    :type sub_id:
+    :type sub_id: 
+    :param tag_id: Existing tag id
+    :type tag_id: 
     :param notes: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solution-positional meta/data)
     :type notes: str
     :param version: Version identifier for the eTUFF tag data file ingested

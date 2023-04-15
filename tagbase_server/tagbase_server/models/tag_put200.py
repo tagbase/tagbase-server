@@ -23,15 +23,21 @@ class TagPut200(Model):
         :param message: The message of this TagPut200.  # noqa: E501
         :type message: str
         """
-        self.openapi_types = {"code": str, "message": str}
+        self.openapi_types = {
+            'code': str,
+            'message': str
+        }
 
-        self.attribute_map = {"code": "code", "message": "message"}
+        self.attribute_map = {
+            'code': 'code',
+            'message': 'message'
+        }
 
         self._code = code
         self._message = message
 
     @classmethod
-    def from_dict(cls, dikt) -> "TagPut200":
+    def from_dict(cls, dikt) -> 'TagPut200':
         """Returns the dict as a model
 
         :param dikt: A dict.

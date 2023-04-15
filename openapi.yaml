@@ -116,7 +116,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TagDelete200'
-          description: A success message confirming ingestion.
+          description: A success message confirming deletion.
         "500":
           content:
             application/json:
@@ -158,8 +158,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Tag200'
-          description: A success message confirming ingestion.
+                $ref: '#/components/schemas/TagDelete200'
+          description: A success message confirming deletion.
         "500":
           content:
             application/json:
@@ -203,7 +203,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TagDelete200'
-          description: A success message confirming ingestion.
+          description: A success message confirming deletion.
         "500":
           content:
             application/json:
@@ -341,7 +341,7 @@ components:
             - 'internal_server_error'
             - 'bad_request'
             - 'unauthorized'
-            - 'service_unavilable'
+            - 'service_unavailable'
         message:
           description: 'The error message.'
           type: string
@@ -423,7 +423,7 @@ components:
       description: HTTP 200 success response
       example:
         code: "200"
-        message: All tags successfully deleted.
+        message: Delete operation successful.
       properties:
         code:
           description: HTTP status code
@@ -433,7 +433,7 @@ components:
           description: A string detailing specifics of an HTTP operation
           example: All tags successfully deleted.
           type: string
-      title: TagPut200
+      title: TagDelete200
       type: object
     TagPut200:
       description: HTTP 200 success response

@@ -4,10 +4,10 @@ info:
     email: tagtuna@gmail.com
     name: Tagbase Dev Team
     url: https://github.com/tagbase/tagbase-server/issues
-  description: "tagbse-server provides HTTP endpoints for ingestion of various files\
-    \ \\\ninto a Tagbase SQL database. Input file support currently includes eTUFF\
-    \ (see [here](https://doi.org/10.6084/m9.figshare.10032848.v4) \\\nand [here](https://doi.org/10.6084/m9.figshare.10159820.v1)).\
-    \ The REST API complies with [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html).\n"
+  description: |
+    tagbse-server provides HTTP endpoints for ingestion of various files \
+    into a Tagbase SQL database. Input file support currently includes eTUFF (see [here](https://doi.org/10.6084/m9.figshare.10032848.v4) \
+    and [here](https://doi.org/10.6084/m9.figshare.10159820.v1)). The REST API complies with [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html).
   license:
     name: Apache License v2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -90,7 +90,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/ErrorContainer'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Get network accessible file and execute ingestion
       tags:
@@ -100,7 +100,8 @@ paths:
       description: Post a local file and perform a ingest operation
       operationId: ingest_post
       parameters:
-      - description: "Free-form text field to explicitly define the name of the file to be persisted"
+      - description: Free-form text field to explicitly define the name of the file
+          to be persisted
         explode: true
         in: query
         name: filename
@@ -152,7 +153,8 @@ paths:
         content:
           application/octet-stream:
             schema:
-              description: compressed binary file containing one or more eTUFF files
+              description: Compressed binary e.g. zip file containing one or more
+                eTUFF files
               format: binary
               maxLength: 1000000000
               minLength: 1
@@ -160,7 +162,7 @@ paths:
           text/plain:
             schema:
               description: Plain text eTUFF file
-              format: text
+              format: binary
               maxLength: 1000000000
               minLength: 1
               type: string
@@ -177,7 +179,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/ErrorContainer'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Post a local file and perform a ingest operation
       tags:
@@ -185,6 +187,26 @@ paths:
       x-codegen-request-body-name: body
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
   /tags:
+    delete:
+      description: Delete all tags
+      operationId: delete_tags
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagDelete200'
+          description: A success message confirming deletion.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContainer'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Delete all tags
+      tags:
+      - tags
+      x-openapi-router-controller: tagbase_server.controllers.tags_controller
     get:
       description: Get information about all tags
       operationId: list_tags
@@ -199,13 +221,42 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/ErrorContainer'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Get information about all tags
       tags:
       - tags
       x-openapi-router-controller: tagbase_server.controllers.tags_controller
   /tags/{tag_id}:
+    delete:
+      description: Delete an individual tag
+      operationId: delete_tag
+      parameters:
+      - description: Existing tag id
+        explode: true
+        in: path
+        name: tag_id
+        required: true
+        schema:
+          type: number
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagDelete200'
+          description: A success message confirming deletion.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContainer'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Delete an individual tag
+      tags:
+      - tags
+      x-openapi-router-controller: tagbase_server.controllers.tags_controller
     get:
       description: Get information about an individual tag
       operationId: get_tag
@@ -229,17 +280,70 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/ErrorContainer'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Get information about an individual tag
       tags:
       - tags
       x-openapi-router-controller: tagbase_server.controllers.tags_controller
   /tags/{tag_id}/subs/{sub_id}:
+    delete:
+      description: Delete a tag submission
+      operationId: delete_sub
+      parameters:
+      - description: Existing submission id for an existing tag
+        explode: true
+        in: path
+        name: sub_id
+        required: true
+        schema:
+          type: number
+        style: simple
+      - description: Existing tag id
+        explode: true
+        in: path
+        name: tag_id
+        required: true
+        schema:
+          type: number
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagDelete200'
+          description: A success message confirming deletion.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContainer'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Delete a tag submission
+      tags:
+      - tags
+      x-openapi-router-controller: tagbase_server.controllers.tags_controller
     put:
       description: Update a tag submission
-      operationId: put_tag
+      operationId: replace_tag
       parameters:
+      - description: Existing submission id for an existing tag
+        explode: true
+        in: path
+        name: sub_id
+        required: true
+        schema:
+          type: number
+        style: simple
+      - description: Existing tag id
+        explode: true
+        in: path
+        name: tag_id
+        required: true
+        schema:
+          type: number
+        style: simple
       - description: "Free-form text field where details of submitted eTUFF file for\
           \ ingest can be provided e.g. submitter name, etuff data contents (tag metadata\
           \ and measurements + primary position data, or just secondary solution-positional\
@@ -254,22 +358,6 @@ paths:
           pattern: ^(?!\s*$).+
           type: string
         style: form
-      - description: Existing tag id
-        explode: true
-        in: path
-        name: tag_id
-        required: true
-        schema:
-          type: number
-        style: simple
-      - description: Existing submission id for an existing tag
-        explode: true
-        in: path
-        name: sub_id
-        required: true
-        schema:
-          type: number
-        style: simple
       - description: Version identifier for the eTUFF tag data file ingested
         explode: true
         in: query
@@ -292,7 +380,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Response500'
+                $ref: '#/components/schemas/ErrorContainer'
           description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
       summary: Update the 'notes' and/or 'version' associated with a tag submission
       tags:
@@ -301,28 +389,14 @@ paths:
 components:
   parameters:
     filename:
-      description: Free-form text field to explicitly define the name of the file to be persisted
+      description: Free-form text field to explicitly define the name of the file
+        to be persisted
       explode: true
       in: query
       name: filename
       required: true
       schema:
         maxLength: 100
-        minLength: 1
-        pattern: ^(?!\s*$).+
-        type: string
-      style: form
-    notes:
-      description: "Free-form text field where details of submitted eTUFF file for\
-        \ ingest can be provided e.g. submitter name, etuff data contents (tag metadata\
-        \ and measurements + primary position data, or just secondary solution-positional\
-        \ meta/data)"
-      explode: true
-      in: query
-      name: notes
-      required: false
-      schema:
-        maxLength: 10000
         minLength: 1
         pattern: ^(?!\s*$).+
         type: string
@@ -345,6 +419,21 @@ components:
       schema:
         type: number
       style: simple
+    notes:
+      description: "Free-form text field where details of submitted eTUFF file for\
+        \ ingest can be provided e.g. submitter name, etuff data contents (tag metadata\
+        \ and measurements + primary position data, or just secondary solution-positional\
+        \ meta/data)"
+      explode: true
+      in: query
+      name: notes
+      required: false
+      schema:
+        maxLength: 10000
+        minLength: 1
+        pattern: ^(?!\s*$).+
+        type: string
+      style: form
     type:
       description: "Type of file to be ingested, defaults to 'etuff'"
       explode: true
@@ -376,6 +465,53 @@ components:
       example: eTUFF-sailfish-117259_2.txt
       title: filename
       type: string
+    tag_id:
+      description: Unique numeric Tag ID associated with the ingested tag eTUFF data
+        file
+      example: 3
+      title: tag_id
+      type: integer
+    ErrorContainer:
+      description: An error response for an operation.
+      properties:
+        errors:
+          description: The array of error entries associated with the error response
+          items:
+            $ref: '#/components/schemas/Error'
+          maxItems: 100
+          minItems: 0
+          title: errors
+          type: array
+        trace:
+          description: The error trace information.
+          example: 123e4567-e89b-12d3-a456-426614174000
+          format: uuid
+          title: trace
+          type: string
+      title: ErrorContainer
+      type: object
+    Error:
+      description: An error response entry.
+      properties:
+        code:
+          description: The error code.
+          enum:
+          - internal_server_error
+          - bad_request
+          - unauthorized
+          - service_unavailable
+          title: code
+          type: string
+        message:
+          description: The error message.
+          title: message
+          type: string
+        more_info:
+          description: Additional info about the error.
+          title: more_info
+          type: string
+      title: Error
+      type: object
     Ingest200:
       description: HTTP 200 success response
       example:
@@ -398,32 +534,17 @@ components:
           type: string
       title: Ingest200
       type: object
-    Response500:
-      description: 500 Internal Server Error
+    Metadata:
+      additionalProperties:
+        type: string
+      description: Contains the ingested tag metadata consistent with the eTUFF specification
       example:
-        code: "200"
-        message: Unable to connect to the Tagbase database
-        more_info: https://httpwg.org/specs/rfc7231.html#status.500
-        trace: 123e4567-e89b-12d3-a456-426614174000
-      properties:
-        code:
-          description: HTTP status code
-          example: "200"
-          type: string
-        message:
-          description: A string detailing specifics of the HTTP 500 response
-          example: Data file eTUFF-sailfish-117259.txt successfully ingested into
-            Tagbase DB.
-          type: string
-        more_info:
-          description: Additional details (if available) to diagnose the 500 response.
-          example: https://httpwg.org/specs/rfc7231.html#status.500
-          type: string
-        trace:
-          description: Trace diagnostic information related to the response
-          example: 123e4567-e89b-12d3-a456-426614174000
-          type: string
-      title: Response500
+        person_owner: John Do
+        owner_contect: john@do.net
+        manufacturer: telemetry inc.
+        model: new_gen
+        attachment_method: anchor
+      title: Metadata
       type: object
     Tag200:
       description: Information for a given tag
@@ -458,9 +579,27 @@ components:
         tag:
           description: List containing one or more submissions for a given tag
           items:
-            $ref: '#/components/schemas/Tag200_tag_inner'
+            $ref: '#/components/schemas/TagSubmission'
+          maxItems: 100
+          minItems: 0
           type: array
       title: Tag200
+      type: object
+    TagDelete200:
+      description: HTTP 200 success response
+      example:
+        code: "200"
+        message: Delete operation successful.
+      properties:
+        code:
+          description: HTTP status code
+          example: "200"
+          type: string
+        message:
+          description: A string detailing specifics of an HTTP operation
+          example: All tags successfully deleted.
+          type: string
+      title: TagDelete200
       type: object
     TagPut200:
       description: HTTP 200 success response
@@ -478,28 +617,27 @@ components:
           type: string
       title: TagPut200
       type: object
-    Tags200:
-      description: Response detailing all available unique tags and associated filename
+    Tag:
+      description: Unique numeric Tag ID associated with the ingested tag eTUFF data
+        file
       example:
-        count: 2
-        tags:
-        - tag_id: 1
-          filename: eTUFF-sailfish-117259_2.txt
-        - tag_id: 2
-          filename: eTUFF-sailfish-117259.txt
+        tag_id: 1
+        filename: eTUFF-sailfish-117259_2.txt
       properties:
-        count:
-          description: Total count of unique tags
-          example: 2
+        tag_id:
+          description: Unique numeric Tag ID associated with the ingested tag eTUFF
+            data file
+          example: 3
+          title: tag_id
           type: integer
-        tags:
-          description: List of unique numeric Tag IDs and associated filename
-          items:
-            $ref: '#/components/schemas/Tags200_tags_inner'
-          type: array
-      title: Tags200
+        filename:
+          description: Full name and extension of the ingested eTUFF tag data file
+          example: eTUFF-sailfish-117259_2.txt
+          title: filename
+          type: string
+      title: Tag
       type: object
-    Tag200_tag_inner:
+    TagSubmission:
       properties:
         date_time:
           description: Local datetime stamp at the time of eTUFF tag data file ingestion
@@ -522,7 +660,7 @@ components:
             manufacturer: telemetry inc.
             model: new_gen
             attachment_method: anchor
-          title: metadata
+          title: Metadata
           type: object
         notes:
           description: "Free-form text field where details of submitted eTUFF file\
@@ -549,23 +687,28 @@ components:
           example: "1"
           title: version
           type: string
-      title: Tag200_tag_inner
+      title: TagSubmission
       type: object
-    Tags200_tags_inner:
-      description: Unique numeric Tag ID associated with the ingested tag eTUFF data
-        file
+    Tags200:
+      description: Response detailing all available unique tags and associated filename
       example:
-        tag_id: 1
-        filename: eTUFF-sailfish-117259_2.txt
+        count: 2
+        tags:
+        - tag_id: 1
+          filename: eTUFF-sailfish-117259_2.txt
+        - tag_id: 2
+          filename: eTUFF-sailfish-117259.txt
       properties:
-        tag_id:
-          description: Unique numeric Tag ID associated with the ingested tag data
-            file
-          example: 1
+        count:
+          description: Total count of unique tags
+          example: 2
           type: integer
-        filename:
-          description: Full name and extension of the ingested eTUFF tag data file
-          example: eTUFF-sailfish-117259.txt
-          type: string
-      title: Tags200_tags_inner
+        tags:
+          description: List of unique numeric Tag IDs and associated filename
+          items:
+            $ref: '#/components/schemas/Tag'
+          maxItems: 100000
+          minItems: 0
+          type: array
+      title: Tags200
       type: object
