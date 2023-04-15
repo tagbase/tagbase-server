@@ -408,7 +408,7 @@ components:
       name: sub_id
       required: true
       schema:
-        type: number
+        type: integer
       style: simple
     tagId:
       description: Existing tag id
@@ -417,7 +417,7 @@ components:
       name: tag_id
       required: true
       schema:
-        type: number
+        type: integer
       style: simple
     notes:
       description: "Free-form text field where details of submitted eTUFF file for\

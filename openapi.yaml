@@ -258,7 +258,7 @@ components:
       name: sub_id
       required: true
       schema:
-        type: number
+        type: integer
     tagId:
       description: Existing tag id
       explode: true
@@ -266,7 +266,7 @@ components:
       name: tag_id
       required: true
       schema:
-        type: number
+        type: integer
     notes:
       description: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solution-positional meta/data)
       explode: true
