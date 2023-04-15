@@ -16,7 +16,7 @@ class TestTagController(BaseTestCase):
             "Accept": "application/json",
         }
         response = self.client.open(
-            f"/tagbase/api/v0.10.1/tags/{3}/sub_id/{6}"., method="DELETE", headers=headers
+            f"/tagbase/api/v0.10.1/tags/{3}/sub_id/{6}", method="DELETE", headers=headers
         )
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
