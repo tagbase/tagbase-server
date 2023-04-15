@@ -15,7 +15,9 @@ class TestTagController(BaseTestCase):
             "Accept": "application/json",
         }
         response = self.client.open(
-            f"/tagbase/api/v0.10.1/tags/{3}/sub_id/{6}",
+            "/tagbase/api/v0.10.1/tags/{tag_id}/sub_id/{sub_id}".format(
+                tag_id=3, sub_id=3
+            ),
             method="DELETE",
             headers=headers,
         )
