@@ -18,6 +18,7 @@ class TestTagController(BaseTestCase):
         response = self.client.open(
             f"/tagbase/api/v0.10.1/tags/{3}/sub_id/{6}", method="DELETE", headers=headers
         )
+        print(response)
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
 
@@ -32,6 +33,7 @@ class TestTagController(BaseTestCase):
         response = self.client.open(
             "/tagbase/api/v0.10.1/tags/{tag_id}".format(tag_id=3), method="DELETE", headers=headers
         )
+        print(response)
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
 
@@ -46,6 +48,7 @@ class TestTagController(BaseTestCase):
         response = self.client.open(
             "/tagbase/api/v0.10.1/tags", method="DELETE", headers=headers
         )
+        print(response)
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
 
