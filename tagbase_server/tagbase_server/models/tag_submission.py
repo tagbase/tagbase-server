@@ -15,7 +15,16 @@ class TagSubmission(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, date_time=None, filename=None, metadata=None, notes=None, submission_id=None, tag_id=None, version=None):  # noqa: E501
+    def __init__(
+        self,
+        date_time=None,
+        filename=None,
+        metadata=None,
+        notes=None,
+        submission_id=None,
+        tag_id=None,
+        version=None,
+    ):  # noqa: E501
         """TagSubmission - a model defined in OpenAPI
 
         :param date_time: The date_time of this TagSubmission.  # noqa: E501
@@ -34,23 +43,23 @@ class TagSubmission(Model):
         :type version: str
         """
         self.openapi_types = {
-            'date_time': str,
-            'filename': str,
-            'metadata': Dict[str, str],
-            'notes': str,
-            'submission_id': int,
-            'tag_id': int,
-            'version': str
+            "date_time": str,
+            "filename": str,
+            "metadata": Dict[str, str],
+            "notes": str,
+            "submission_id": int,
+            "tag_id": int,
+            "version": str,
         }
 
         self.attribute_map = {
-            'date_time': 'date_time',
-            'filename': 'filename',
-            'metadata': 'metadata',
-            'notes': 'notes',
-            'submission_id': 'submission_id',
-            'tag_id': 'tag_id',
-            'version': 'version'
+            "date_time": "date_time",
+            "filename": "filename",
+            "metadata": "metadata",
+            "notes": "notes",
+            "submission_id": "submission_id",
+            "tag_id": "tag_id",
+            "version": "version",
         }
 
         self._date_time = date_time
@@ -62,7 +71,7 @@ class TagSubmission(Model):
         self._version = version
 
     @classmethod
-    def from_dict(cls, dikt) -> 'TagSubmission':
+    def from_dict(cls, dikt) -> "TagSubmission":
         """Returns the dict as a model
 
         :param dikt: A dict.

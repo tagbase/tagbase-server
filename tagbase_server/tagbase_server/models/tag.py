@@ -23,21 +23,15 @@ class Tag(Model):
         :param filename: The filename of this Tag.  # noqa: E501
         :type filename: str
         """
-        self.openapi_types = {
-            'tag_id': int,
-            'filename': str
-        }
+        self.openapi_types = {"tag_id": int, "filename": str}
 
-        self.attribute_map = {
-            'tag_id': 'tag_id',
-            'filename': 'filename'
-        }
+        self.attribute_map = {"tag_id": "tag_id", "filename": "filename"}
 
         self._tag_id = tag_id
         self._filename = filename
 
     @classmethod
-    def from_dict(cls, dikt) -> 'Tag':
+    def from_dict(cls, dikt) -> "Tag":
         """Returns the dict as a model
 
         :param dikt: A dict.

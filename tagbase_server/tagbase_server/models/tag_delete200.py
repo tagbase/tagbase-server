@@ -23,21 +23,15 @@ class TagDelete200(Model):
         :param message: The message of this TagDelete200.  # noqa: E501
         :type message: str
         """
-        self.openapi_types = {
-            'code': str,
-            'message': str
-        }
+        self.openapi_types = {"code": str, "message": str}
 
-        self.attribute_map = {
-            'code': 'code',
-            'message': 'message'
-        }
+        self.attribute_map = {"code": "code", "message": "message"}
 
         self._code = code
         self._message = message
 
     @classmethod
-    def from_dict(cls, dikt) -> 'TagDelete200':
+    def from_dict(cls, dikt) -> "TagDelete200":
         """Returns the dict as a model
 
         :param dikt: A dict.

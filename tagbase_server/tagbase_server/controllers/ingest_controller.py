@@ -66,7 +66,7 @@ def ingest_post(filename, body, notes=None, type=None, version=None):  # noqa: E
 
     :param filename: Free-form text field to explicitly define the name of the file to be persisted
     :type filename: str
-    :param body: 
+    :param body:
     :type body: str
     :param notes: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solution-positional meta/data)
     :type notes: str

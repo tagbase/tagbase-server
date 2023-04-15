@@ -25,16 +25,12 @@ class Ingest200(Model):
         :param message: The message of this Ingest200.  # noqa: E501
         :type message: str
         """
-        self.openapi_types = {
-            'code': str,
-            'elapsed': str,
-            'message': str
-        }
+        self.openapi_types = {"code": str, "elapsed": str, "message": str}
 
         self.attribute_map = {
-            'code': 'code',
-            'elapsed': 'elapsed',
-            'message': 'message'
+            "code": "code",
+            "elapsed": "elapsed",
+            "message": "message",
         }
 
         self._code = code
@@ -42,7 +38,7 @@ class Ingest200(Model):
         self._message = message
 
     @classmethod
-    def from_dict(cls, dikt) -> 'Ingest200':
+    def from_dict(cls, dikt) -> "Ingest200":
         """Returns the dict as a model
 
         :param dikt: A dict.

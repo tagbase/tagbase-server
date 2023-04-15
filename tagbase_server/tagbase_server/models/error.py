@@ -25,16 +25,12 @@ class Error(Model):
         :param more_info: The more_info of this Error.  # noqa: E501
         :type more_info: str
         """
-        self.openapi_types = {
-            'code': str,
-            'message': str,
-            'more_info': str
-        }
+        self.openapi_types = {"code": str, "message": str, "more_info": str}
 
         self.attribute_map = {
-            'code': 'code',
-            'message': 'message',
-            'more_info': 'more_info'
+            "code": "code",
+            "message": "message",
+            "more_info": "more_info",
         }
 
         self._code = code
@@ -42,7 +38,7 @@ class Error(Model):
         self._more_info = more_info
 
     @classmethod
-    def from_dict(cls, dikt) -> 'Error':
+    def from_dict(cls, dikt) -> "Error":
         """Returns the dict as a model
 
         :param dikt: A dict.
@@ -72,11 +68,17 @@ class Error(Model):
         :param code: The code of this Error.
         :type code: str
         """
-        allowed_values = ["internal_server_error", "bad_request", "unauthorized", "service_unavailable"]  # noqa: E501
+        allowed_values = [
+            "internal_server_error",
+            "bad_request",
+            "unauthorized",
+            "service_unavailable",
+        ]  # noqa: E501
         if code not in allowed_values:
             raise ValueError(
-                "Invalid value for `code` ({0}), must be one of {1}"
-                .format(code, allowed_values)
+                "Invalid value for `code` ({0}), must be one of {1}".format(
+                    code, allowed_values
+                )
             )
 
         self._code = code
