@@ -21,12 +21,14 @@ def delete_sub(sub_id, tag_id):  # noqa: E501
 
     :rtype: Union[TagDelete200, Tuple[TagDelete200, int], Tuple[TagDelete200, int, Dict[str, str]]
     """
+    logger.info(int(tag_id))
+    logger.info(int(sub_id))
     conn = connect()
     with conn:
         with conn.cursor() as cur:
             cur.execute(
-                "DELETE FROM submission WHERE tag_id = '%s' AND submission_id = '%s' CASCADE",
-                (tag_id, sub_id),
+                "DELETE FROM submission WHERE tag_id = %s AND submission_id = %s",
+                (int(tag_id), int(sub_id)),
             )
             message = f"tag_id: '{int(tag_id)}' sub_id: '{int(sub_id)}' successfully deleted."
             TagDelete200.from_dict(
@@ -48,8 +50,8 @@ def delete_tag(tag_id):  # noqa: E501
     with conn:
         with conn.cursor() as cur:
             cur.execute(
-                "DELETE FROM submission WHERE tag_id = '%s'",
-                (tag_id,),
+                "DELETE FROM submission WHERE tag_id = %s",
+                (int(tag_id),),
             )
             message = f"Tag: '{int(tag_id)}' successfully deleted."
             TagDelete200.from_dict(

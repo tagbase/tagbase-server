@@ -111,7 +111,7 @@ paths:
       description: Delete all tags
       operationId: delete_tags
       responses:
-        "200":
+        "204":
           content:
             application/json:
               schema:
@@ -154,7 +154,7 @@ paths:
       description: Delete an individual tag
       operationId: delete_tag
       responses:
-        "200":
+        "204":
           content:
             application/json:
               schema:
@@ -198,7 +198,7 @@ paths:
       description: Delete a tag submission
       operationId: delete_sub
       responses:
-        "200":
+        "204":
           content:
             application/json:
               schema:

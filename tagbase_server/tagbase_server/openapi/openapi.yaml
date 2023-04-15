@@ -191,7 +191,7 @@ paths:
       description: Delete all tags
       operationId: delete_tags
       responses:
-        "200":
+        "204":
           content:
             application/json:
               schema:
@@ -241,7 +241,7 @@ paths:
           type: number
         style: simple
       responses:
-        "200":
+        "204":
           content:
             application/json:
               schema:
@@ -308,7 +308,7 @@ paths:
           type: number
         style: simple
       responses:
-        "200":
+        "204":
           content:
             application/json:
               schema:
