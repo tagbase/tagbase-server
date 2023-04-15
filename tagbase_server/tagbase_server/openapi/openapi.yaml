@@ -238,7 +238,7 @@ paths:
         name: tag_id
         required: true
         schema:
-          type: number
+          type: integer
         style: simple
       responses:
         "204":
@@ -267,7 +267,7 @@ paths:
         name: tag_id
         required: true
         schema:
-          type: number
+          type: integer
         style: simple
       responses:
         "200":
@@ -297,7 +297,7 @@ paths:
         name: sub_id
         required: true
         schema:
-          type: number
+          type: integer
         style: simple
       - description: Existing tag id
         explode: true
@@ -305,7 +305,7 @@ paths:
         name: tag_id
         required: true
         schema:
-          type: number
+          type: integer
         style: simple
       responses:
         "204":
@@ -334,7 +334,7 @@ paths:
         name: sub_id
         required: true
         schema:
-          type: number
+          type: integer
         style: simple
       - description: Existing tag id
         explode: true
@@ -342,7 +342,7 @@ paths:
         name: tag_id
         required: true
         schema:
-          type: number
+          type: integer
         style: simple
       - description: "Free-form text field where details of submitted eTUFF file for\
           \ ingest can be provided e.g. submitter name, etuff data contents (tag metadata\
