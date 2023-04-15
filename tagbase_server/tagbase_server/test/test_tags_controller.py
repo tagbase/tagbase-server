@@ -15,13 +15,12 @@ class TestTagController(BaseTestCase):
             "Accept": "application/json",
         }
         response = self.client.open(
-            "/tagbase/api/v0.10.1/tags/{tag_id}/sub_id/{sub_id}".format(
+            "/tagbase/api/v0.10.1/tags/{tag_id}/subs/{sub_id}".format(
                 tag_id=3, sub_id=3
             ),
             method="DELETE",
             headers=headers,
         )
-        print(response)
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
     def test_delete_tag(self):
@@ -37,7 +36,6 @@ class TestTagController(BaseTestCase):
             method="DELETE",
             headers=headers,
         )
-        print(response)
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
     def test_delete_tags(self):
@@ -51,7 +49,6 @@ class TestTagController(BaseTestCase):
         response = self.client.open(
             "/tagbase/api/v0.10.1/tags", method="DELETE", headers=headers
         )
-        print(response)
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
     """TagController integration test stubs"""
