@@ -6,7 +6,6 @@ from tagbase_server.test import BaseTestCase
 
 
 class TestTagController(BaseTestCase):
-
     def test_delete_sub(self):
         """Test case for delete_sub
 
@@ -16,11 +15,12 @@ class TestTagController(BaseTestCase):
             "Accept": "application/json",
         }
         response = self.client.open(
-            f"/tagbase/api/v0.10.1/tags/{3}/sub_id/{6}", method="DELETE", headers=headers
+            f"/tagbase/api/v0.10.1/tags/{3}/sub_id/{6}",
+            method="DELETE",
+            headers=headers,
         )
         print(response)
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
-
 
     def test_delete_tag(self):
         """Test case for delete_tag
@@ -31,11 +31,12 @@ class TestTagController(BaseTestCase):
             "Accept": "application/json",
         }
         response = self.client.open(
-            "/tagbase/api/v0.10.1/tags/{tag_id}".format(tag_id=3), method="DELETE", headers=headers
+            "/tagbase/api/v0.10.1/tags/{tag_id}".format(tag_id=3),
+            method="DELETE",
+            headers=headers,
         )
         print(response)
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
-
 
     def test_delete_tags(self):
         """Test case for delete_tags
@@ -50,7 +51,6 @@ class TestTagController(BaseTestCase):
         )
         print(response)
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
-
 
     """TagController integration test stubs"""
 
