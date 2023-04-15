@@ -1,7 +1,6 @@
 from tagbase_server.utils.db_utils import connect
 
 from tagbase_server.models.tag200 import Tag200  # noqa: E501
-from tagbase_server.models.tag_delete200 import TagDelete200  # noqa: E501
 from tagbase_server.models.tag_put200 import TagPut200  # noqa: E501
 
 import logging
@@ -19,7 +18,7 @@ def delete_sub(sub_id, tag_id):  # noqa: E501
     :param tag_id: Existing tag id
     :type tag_id: int
 
-    :rtype: Union[TagDelete200, Tuple[TagDelete200, int], Tuple[TagDelete200, int, Dict[str, str]]
+    :rtype: Union[None, Tuple[None, int], Tuple[None, int, Dict[str, str]]
     """
     conn = connect()
     with conn:
@@ -28,10 +27,6 @@ def delete_sub(sub_id, tag_id):  # noqa: E501
                 "DELETE FROM submission WHERE tag_id = %s AND submission_id = %s",
                 (int(tag_id), int(sub_id)),
             )
-            message = (
-                f"tag_id: '{int(tag_id)}' sub_id: '{int(sub_id)}' successfully deleted."
-            )
-            TagDelete200.from_dict({"code": "204", "message": message})
 
 
 def delete_tag(tag_id):  # noqa: E501
@@ -42,7 +37,7 @@ def delete_tag(tag_id):  # noqa: E501
     :param tag_id: Existing tag id
     :type tag_id: int
 
-    :rtype: Union[TagDelete200, Tuple[TagDelete200, int], Tuple[TagDelete200, int, Dict[str, str]]
+    :rtype: Union[None, Tuple[None, int], Tuple[None, int, Dict[str, str]]
     """
     conn = connect()
     with conn:
@@ -51,8 +46,6 @@ def delete_tag(tag_id):  # noqa: E501
                 "DELETE FROM submission WHERE tag_id = %s",
                 (int(tag_id),),
             )
-            message = f"Tag: '{int(tag_id)}' successfully deleted."
-            TagDelete200.from_dict({"code": "204", "message": message})
 
 
 def delete_tags():  # noqa: E501
@@ -61,16 +54,13 @@ def delete_tags():  # noqa: E501
     Delete all tags # noqa: E501
 
 
-    :rtype: Union[TagDelete200, Tuple[TagDelete200, int], Tuple[TagDelete200, int, Dict[str, str]]
+    :rtype: Union[None, Tuple[None, int], Tuple[None, int, Dict[str, str]]
     """
     conn = connect()
     with conn:
         with conn.cursor() as cur:
             cur.execute(
                 "TRUNCATE submission CASCADE",
-            )
-            TagDelete200.from_dict(
-                {"code": "204", "message": "Successfully deleted all tags!"}
             )
 
 

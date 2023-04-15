@@ -15,7 +15,6 @@ tagbase_server/models/error_container.py
 tagbase_server/models/ingest200.py
 tagbase_server/models/tag.py
 tagbase_server/models/tag200.py
-tagbase_server/models/tag_delete200.py
 tagbase_server/models/tag_put200.py
 tagbase_server/models/tag_submission.py
 tagbase_server/models/tags200.py

@@ -191,12 +191,6 @@ paths:
       description: Delete all tags
       operationId: delete_tags
       responses:
-        "204":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TagDelete200'
-          description: A success message confirming deletion.
         "500":
           content:
             application/json:
@@ -241,12 +235,6 @@ paths:
           type: integer
         style: simple
       responses:
-        "204":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TagDelete200'
-          description: A success message confirming deletion.
         "500":
           content:
             application/json:
@@ -308,12 +296,6 @@ paths:
           type: integer
         style: simple
       responses:
-        "204":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TagDelete200'
-          description: A success message confirming deletion.
         "500":
           content:
             application/json:
@@ -584,22 +566,6 @@ components:
           minItems: 0
           type: array
       title: Tag200
-      type: object
-    TagDelete200:
-      description: HTTP 200 success response
-      example:
-        code: "200"
-        message: Delete operation successful.
-      properties:
-        code:
-          description: HTTP status code
-          example: "200"
-          type: string
-        message:
-          description: A string detailing specifics of an HTTP operation
-          example: All tags successfully deleted.
-          type: string
-      title: TagDelete200
       type: object
     TagPut200:
       description: HTTP 200 success response
