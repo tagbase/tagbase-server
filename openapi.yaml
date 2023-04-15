@@ -111,7 +111,7 @@ paths:
       description: Delete all tags
       operationId: delete_tags
       responses:
-        "204"
+        "204":
           description: Successful delete operation.
         "500":
           content:
@@ -150,7 +150,7 @@ paths:
       description: Delete an individual tag
       operationId: delete_tag
       responses:
-        "204"
+        "204":
           description: Successful delete operation.
         "500":
           content:
@@ -190,7 +190,7 @@ paths:
       description: Delete a tag submission
       operationId: delete_sub
       responses:
-        "204"
+        "204":
           description: Successful delete operation.
         "500":
           content:

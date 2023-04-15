@@ -191,7 +191,7 @@ paths:
       description: Delete all tags
       operationId: delete_tags
       responses:
-        "204"
+        "204":
           description: Successful delete operation.
         "500":
           content:
@@ -237,7 +237,7 @@ paths:
           type: integer
         style: simple
       responses:
-        "204"
+        "204":
           description: Successful delete operation.
         "500":
           content:
@@ -300,7 +300,7 @@ paths:
           type: integer
         style: simple
       responses:
-        "204"
+        "204":
           description: Successful delete operation.
         "500":
           content:
