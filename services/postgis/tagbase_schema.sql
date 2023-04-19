@@ -1126,7 +1126,7 @@ ALTER TABLE ONLY data_position
 --
 
 ALTER TABLE ONLY data_time_series
-    ADD CONSTRAINT data_time_series_data_submission_id_fkey FOREIGN KEY (submission_id) REFERENCES submission(submission_id);
+    ADD CONSTRAINT data_time_series_data_submission_id_fkey FOREIGN KEY (submission_id) REFERENCES submission(submission_id) ON DELETE CASCADE;
 
 
 --
@@ -1158,7 +1158,7 @@ ALTER TABLE ONLY data_profile
 --
 
 ALTER TABLE ONLY data_profile
-    ADD CONSTRAINT dataprofile_submission_fkey FOREIGN KEY (submission_id) REFERENCES submission(submission_id);
+    ADD CONSTRAINT dataprofile_submission_fkey FOREIGN KEY (submission_id) REFERENCES submission(submission_id) ON DELETE CASCADE;
 
 
 --

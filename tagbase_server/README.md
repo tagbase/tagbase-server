@@ -21,13 +21,13 @@ python3 -m tagbase_server
 and open your browser to here:
 
 ```
-http://localhost:8080/v0.10.1/ui/
+http://localhost:8080/tagbase/api/v0.10.1/ui/
 ```
 
 Your OpenAPI definition lives here:
 
 ```
-http://localhost:8080/v0.10.1/openapi.json
+http://localhost:8080/tagbase/api/v0.10.1/openapi.json
 ```
 
 To launch the integration tests, use tox:

@@ -107,6 +107,22 @@ paths:
       x-codegen-request-body-name: body
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
   /tags:
+    delete:
+      description: Delete all tags
+      operationId: delete_tags
+      responses:
+        "204":
+          description: Successful delete operation.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContainer'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Delete all tags
+      tags:
+      - tags
+      x-openapi-router-controller: tagbase_server.controllers.tags_controller
     get:
       description: Get information about all tags
       operationId: list_tags
@@ -128,11 +144,27 @@ paths:
       - tags
       x-openapi-router-controller: tagbase_server.controllers.tags_controller
   /tags/{tag_id}:
+    parameters:
+      - $ref: '#/components/parameters/tagId'
+    delete:
+      description: Delete an individual tag
+      operationId: delete_tag
+      responses:
+        "204":
+          description: Successful delete operation.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContainer'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Delete an individual tag
+      tags:
+      - tags
+      x-openapi-router-controller: tagbase_server.controllers.tags_controller
     get:
       description: Get information about an individual tag
       operationId: get_tag
-      parameters:
-      - $ref: '#/components/parameters/tagId'
       responses:
         "200":
           content:
@@ -151,12 +183,29 @@ paths:
       - tags
       x-openapi-router-controller: tagbase_server.controllers.tags_controller
   /tags/{tag_id}/subs/{sub_id}:
+    parameters:
+      - $ref: '#/components/parameters/subId'
+      - $ref: '#/components/parameters/tagId'
+    delete:
+      description: Delete a tag submission
+      operationId: delete_sub
+      responses:
+        "204":
+          description: Successful delete operation.
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContainer'
+          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+      summary: Delete a tag submission
+      tags:
+      - tags
+      x-openapi-router-controller: tagbase_server.controllers.tags_controller
     put:
       description: Update a tag submission
       operationId: replace_tag
       parameters:
-      - $ref: '#/components/parameters/subId'
-      - $ref: '#/components/parameters/tagId'
       - $ref: '#/components/parameters/notes'
       - $ref: '#/components/parameters/version'
       responses:
@@ -197,7 +246,7 @@ components:
       name: sub_id
       required: true
       schema:
-        type: number
+        type: integer
     tagId:
       description: Existing tag id
       explode: true
@@ -205,7 +254,7 @@ components:
       name: tag_id
       required: true
       schema:
-        type: number
+        type: integer
     notes:
       description: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solution-positional meta/data)
       explode: true
@@ -280,7 +329,7 @@ components:
             - 'internal_server_error'
             - 'bad_request'
             - 'unauthorized'
-            - 'service_unavilable'
+            - 'service_unavailable'
         message:
           description: 'The error message.'
           type: string
