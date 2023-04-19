@@ -6,10 +6,10 @@ from datetime import date, datetime  # noqa: F401
 from typing import List, Dict  # noqa: F401
 
 from tagbase_server.models.base_model_ import Model
-from tagbase_server.models.tags200_tags_inner import Tags200TagsInner
+from tagbase_server.models.tag import Tag
 from tagbase_server import util
 
-from tagbase_server.models.tags200_tags_inner import Tags200TagsInner  # noqa: E501
+from tagbase_server.models.tag import Tag  # noqa: E501
 
 
 class Tags200(Model):
@@ -24,9 +24,9 @@ class Tags200(Model):
         :param count: The count of this Tags200.  # noqa: E501
         :type count: int
         :param tags: The tags of this Tags200.  # noqa: E501
-        :type tags: List[Tags200TagsInner]
+        :type tags: List[Tag]
         """
-        self.openapi_types = {"count": int, "tags": List[Tags200TagsInner]}
+        self.openapi_types = {"count": int, "tags": List[Tag]}
 
         self.attribute_map = {"count": "count", "tags": "tags"}
 
@@ -74,7 +74,7 @@ class Tags200(Model):
         List of unique numeric Tag IDs and associated filename  # noqa: E501
 
         :return: The tags of this Tags200.
-        :rtype: List[Tags200TagsInner]
+        :rtype: List[Tag]
         """
         return self._tags
 
@@ -85,7 +85,15 @@ class Tags200(Model):
         List of unique numeric Tag IDs and associated filename  # noqa: E501
 
         :param tags: The tags of this Tags200.
-        :type tags: List[Tags200TagsInner]
+        :type tags: List[Tag]
         """
+        if tags is not None and len(tags) > 100000:
+            raise ValueError(
+                "Invalid value for `tags`, number of items must be less than or equal to `100000`"
+            )  # noqa: E501
+        if tags is not None and len(tags) < 0:
+            raise ValueError(
+                "Invalid value for `tags`, number of items must be greater than or equal to `0`"
+            )  # noqa: E501
 
         self._tags = tags
