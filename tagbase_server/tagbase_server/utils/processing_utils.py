@@ -68,7 +68,7 @@ def process_global_attributes(
     global_attributes = []
 
     while line := file_handler.readline():
-        line = line.decode('UTF-8')
+        line = line.decode("UTF-8")
         processed_lines += 1
         if line.startswith("//"):
             continue
@@ -149,8 +149,12 @@ def process_etuff_file(file, version=None, notes=None):
             # get tag_id based on max tag_id value found in the submission table
             tag_id = get_tag_id(cur, submission_filename)
 
-            submission_id = insert_new_submission(cur, tag_id, submission_filename, notes, version)
-            logger.info("Working with submission_id={} tag_id={}".format(submission_id, tag_id))
+            submission_id = insert_new_submission(
+                cur, tag_id, submission_filename, notes, version
+            )
+            logger.debug(
+                "Working with submission_id={} tag_id={}".format(submission_id, tag_id)
+            )
 
             metadata = []
             proc_obs = []
@@ -167,7 +171,7 @@ def process_etuff_file(file, version=None, notes=None):
 
                 while line := data.readline():
                     line_counter += 1
-                    line = line.decode('UTF-8')
+                    line = line.decode("UTF-8")
                     tokens = line.split(",")
                     tokens = [token.replace('"', "") for token in tokens]
                     if not tokens:
