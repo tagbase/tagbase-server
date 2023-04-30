@@ -20,7 +20,6 @@ def process_all_lines_for_global_attributes(
     submission_id,
     metadata,
     submission_filename,
-    line_counter,
 ):
     attrbs_map = {}
     for line in global_attributes_lines:
@@ -55,17 +54,15 @@ def process_all_lines_for_global_attributes(
     if len(attrbs_map.keys()) > 0:
         not_found_attributes = ", ".join(attrbs_map.keys())
         msg = (
-            f"*{submission_filename}* _line:{line_counter}_ - "
+            f"*{submission_filename}*\n"
             f"Unable to locate attribute_names *{not_found_attributes}* in _metadata_types_ table."
         )
         post_msg(msg)
 
 
-def process_global_attributes(
-    file_handler, cur, submission_id, metadata, submission_filename
-):
-    processed_lines = 0
+def _get_global_attributes(file_handler):
     global_attributes = []
+    processed_lines = 0
 
     while line := file_handler.readline():
         line = line.decode("UTF-8")
@@ -77,15 +74,8 @@ def process_global_attributes(
         else:
             break
 
-    process_all_lines_for_global_attributes(
-        global_attributes,
-        cur,
-        submission_id,
-        metadata,
-        submission_filename,
-        processed_lines,
-    )
-    return processed_lines - 1 if processed_lines > 0 else 0
+    processed_lines = processed_lines - 1 if processed_lines > 0 else 0
+    return global_attributes, processed_lines
 
 
 def get_tag_id(cur, submission_filename):
@@ -164,8 +154,13 @@ def process_etuff_file(file, version=None, notes=None):
                 line_counter = 0
                 variable_lookup = {}
 
-                metadata_lines = process_global_attributes(
-                    data, cur, submission_id, metadata, submission_filename
+                global_attributes, metadata_lines = _get_global_attributes(data)
+                process_all_lines_for_global_attributes(
+                    global_attributes,
+                    cur,
+                    submission_id,
+                    metadata,
+                    submission_filename,
                 )
                 line_counter += metadata_lines
 

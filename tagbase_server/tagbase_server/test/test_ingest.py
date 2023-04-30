@@ -43,7 +43,7 @@ class TestIngest(unittest.TestCase):
         cur = conn.cursor()
 
         metadata = []
-        processed_lines = pu.process_global_attributes(
+        processed_lines = pu.process_all_lines_for_global_attributes(
             TestIngest.SAMPLE_METADATA_LINES,
             cur,
             TestIngest.fake_submission_id,
@@ -75,7 +75,7 @@ class TestIngest(unittest.TestCase):
         cur = conn.cursor()
 
         metadata = []
-        processed_lines = pu.process_global_attributes(
+        processed_lines = pu.process_all_lines_for_global_attributes(
             TestIngest.SAMPLE_METADATA_LINES,
             cur,
             TestIngest.fake_submission_id,
