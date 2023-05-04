@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import builtins
 import unittest
 from unittest import mock
 
@@ -9,19 +10,33 @@ import tagbase_server.utils.processing_utils as pu
 
 class TestIngest(unittest.TestCase):
     SAMPLE_METADATA_LINES = [
-        "// global attributes:",
-        "// etag device attributes:",
-        ':instrument_name = "159903_2012_117464"',
-        ':instrument_type = "s"',
-        ':manufacturer = "Wildlife"',
-        ':model = "SPOT"',
-        ':owner_contact = "a@a.org"',
-        ':person_owner = "foo bar"',
-        ':ptt = "117464"',
+        b"// global attributes:",
+        b"// etag device attributes:",
+        b':instrument_name = "159903_2012_117464"',
+        b':instrument_type = "s"',
+        b':manufacturer = "Wildlife"',
+        b':model = "SPOT"',
+        b':owner_contact = "a@a.org"',
+        b':person_owner = "foo bar"',
+        b':ptt = "117464"',
     ]
 
     fake_submission_id = 1
     fake_submission_filename = "test_file"
+
+    @mock.patch.object(builtins, "open", new_callable=mock.mock_open, read_data=SAMPLE_METADATA_LINES[0])
+    def test_not_finding_any_global_attributes(self, mock_open):
+        with mock_open(TestIngest.fake_submission_filename, "r") as f:
+            global_attributes, processed_lines = pu._get_global_attributes(f)
+            self.assertEquals(len(global_attributes), 0)
+            self.assertEquals(processed_lines, 0)
+
+    @mock.patch.object(builtins, "open", new_callable=mock.mock_open, read_data=SAMPLE_METADATA_LINES[2])
+    def test_finding_a_global_attributes(self, mock_open):
+        with mock_open(TestIngest.fake_submission_filename, "r") as f:
+            global_attributes, processed_lines = pu._get_global_attributes(f)
+            self.assertEquals(len(global_attributes), 1)
+            self.assertEquals(global_attributes[0], ':instrument_name = "159903_2012_117464"')
 
     @mock.patch("psycopg2.connect")
     def test_processing_file_metadata_with_existing_attributes(self, mock_connect):
@@ -43,8 +58,9 @@ class TestIngest(unittest.TestCase):
         cur = conn.cursor()
 
         metadata = []
+        encoded_metadata_lines = [line.decode("utf-8") for line in TestIngest.SAMPLE_METADATA_LINES]
         processed_lines = pu.process_all_lines_for_global_attributes(
-            TestIngest.SAMPLE_METADATA_LINES,
+            encoded_metadata_lines,
             cur,
             TestIngest.fake_submission_id,
             metadata,
@@ -75,8 +91,9 @@ class TestIngest(unittest.TestCase):
         cur = conn.cursor()
 
         metadata = []
+        encoded_metadata_lines = [line.decode("utf-8") for line in TestIngest.SAMPLE_METADATA_LINES]
         processed_lines = pu.process_all_lines_for_global_attributes(
-            TestIngest.SAMPLE_METADATA_LINES,
+            encoded_metadata_lines,
             cur,
             TestIngest.fake_submission_id,
             metadata,
