@@ -1,17 +1,12 @@
-import logging
-from multiprocessing import cpu_count
-import time
-import parmap
+import connexion
+import six
+from typing import Dict
+from typing import Tuple
+from typing import Union
 
+from tagbase_server.models.error_container import ErrorContainer  # noqa: E501
 from tagbase_server.models.ingest200 import Ingest200  # noqa: E501
-from tagbase_server.utils.io_utils import (
-    process_get_input_data,
-    process_post_input_data,
-)
-from tagbase_server.utils.io_utils import unpack_compressed_binary
-from tagbase_server.utils.processing_utils import process_etuff_file
-
-logger = logging.getLogger(__name__)
+from tagbase_server import util
 
 
 def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
@@ -30,33 +25,7 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
 
     :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
     """
-    start = time.perf_counter()
-    data_file = process_get_input_data(file)
-    etuff_files = []
-    if not data_file.endswith(".txt"):
-        etuff_files = unpack_compressed_binary(data_file)
-    else:
-        etuff_files.append(data_file)
-    logger.info("etuff ingestion queue: %s", etuff_files)
-    # if synchronous ingestion is desired then use parmap.map
-    result = parmap.map_async(
-        process_etuff_file,
-        etuff_files,
-        version=version,
-        notes=notes,
-        pm_parallel=True,
-        pm_processes=cpu_count(),
-    )
-    finish = time.perf_counter()
-    elapsed = round(finish - start, 2)
-    return Ingest200.from_dict(
-        {
-            "code": "200",
-            "elapsed": elapsed,
-            "message": "Asynchronously ingesting %s file(s) into Tagbase DB."
-            % len(etuff_files),
-        }
-    )
+    return "do some magic!"
 
 
 def ingest_post(filename, body, notes=None, type=None, version=None):  # noqa: E501
@@ -77,30 +46,4 @@ def ingest_post(filename, body, notes=None, type=None, version=None):  # noqa: E
 
     :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
     """
-    start = time.perf_counter()
-    data_file = process_post_input_data(filename, body)
-    etuff_files = []
-    if not data_file.endswith(".txt"):
-        etuff_files = unpack_compressed_binary(data_file)
-    else:
-        etuff_files.append(data_file)
-    logger.info("etuff ingestion queue: %s", etuff_files)
-    # if synchronous ingestion is desired then use parmap.map
-    result = parmap.map_async(
-        process_etuff_file,
-        etuff_files,
-        version=version,
-        notes=notes,
-        pm_parallel=True,
-        pm_processes=cpu_count(),
-    )
-    finish = time.perf_counter()
-    elapsed = round(finish - start, 2)
-    return Ingest200.from_dict(
-        {
-            "code": "200",
-            "elapsed": elapsed,
-            "message": "Asynchronously ingesting %s file(s) into Tagbase DB."
-            % len(etuff_files),
-        }
-    )
+    return "do some magic!"
