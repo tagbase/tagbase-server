@@ -467,7 +467,7 @@ components:
           items:
             $ref: '#/components/schemas/Error'
           maxItems: 100
-          minItems: 0
+          minItems: 1
           title: errors
           type: array
         trace:

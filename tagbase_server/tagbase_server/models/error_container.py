@@ -68,9 +68,9 @@ class ErrorContainer(Model):
             raise ValueError(
                 "Invalid value for `errors`, number of items must be less than or equal to `100`"
             )  # noqa: E501
-        if errors is not None and len(errors) < 0:
+        if errors is not None and len(errors) < 1:
             raise ValueError(
-                "Invalid value for `errors`, number of items must be greater than or equal to `0`"
+                "Invalid value for `errors`, number of items must be greater than or equal to `1`"
             )  # noqa: E501
 
         self._errors = errors
