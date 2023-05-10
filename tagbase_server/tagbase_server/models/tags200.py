@@ -91,9 +91,9 @@ class Tags200(Model):
             raise ValueError(
                 "Invalid value for `tags`, number of items must be less than or equal to `100000`"
             )  # noqa: E501
-        if tags is not None and len(tags) < 0:
+        if tags is not None and len(tags) < 1:
             raise ValueError(
-                "Invalid value for `tags`, number of items must be greater than or equal to `0`"
+                "Invalid value for `tags`, number of items must be greater than or equal to `1`"
             )  # noqa: E501
 
         self._tags = tags

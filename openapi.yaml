@@ -402,7 +402,7 @@ components:
           description: List containing one or more submissions for a given tag
           items:
             $ref: '#/components/schemas/TagSubmission'
-          minItems: 0
+          minItems: 1
           maxItems: 100
           type: array
       title: Tag200
@@ -480,7 +480,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
-          minItems: 0
+          minItems: 1
           maxItems: 100000
       title: Tags200
       type: object
