@@ -569,7 +569,7 @@ components:
           items:
             $ref: '#/components/schemas/TagSubmission'
           maxItems: 100
-          minItems: 0
+          minItems: 1
           type: array
       title: Tag200
       type: object
@@ -680,7 +680,7 @@ components:
           items:
             $ref: '#/components/schemas/Tag'
           maxItems: 100000
-          minItems: 0
+          minItems: 1
           type: array
       title: Tags200
       type: object
