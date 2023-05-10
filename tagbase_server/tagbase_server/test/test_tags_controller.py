@@ -15,7 +15,7 @@ class TestTagController(BaseTestCase):
             "Accept": "application/json",
         }
         response = self.client.open(
-            "/tagbase/api/v0.10.1/tags/{tag_id}/subs/{sub_id}".format(
+            "/tagbase/api/v0.11.0/tags/{tag_id}/subs/{sub_id}".format(
                 tag_id=3, sub_id=3
             ),
             method="DELETE",
@@ -32,7 +32,7 @@ class TestTagController(BaseTestCase):
             "Accept": "application/json",
         }
         response = self.client.open(
-            "/tagbase/api/v0.10.1/tags/{tag_id}".format(tag_id=3),
+            "/tagbase/api/v0.11.0/tags/{tag_id}".format(tag_id=3),
             method="DELETE",
             headers=headers,
         )
@@ -47,7 +47,7 @@ class TestTagController(BaseTestCase):
             "Accept": "application/json",
         }
         response = self.client.open(
-            "/tagbase/api/v0.10.1/tags", method="DELETE", headers=headers
+            "/tagbase/api/v0.11.0/tags", method="DELETE", headers=headers
         )
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
@@ -62,7 +62,7 @@ class TestTagController(BaseTestCase):
             "Accept": "application/json",
         }
         response = self.client.open(
-            "/tagbase/api/v0.10.1/tags/{tag_id}".format(tag_id=3),
+            "/tagbase/api/v0.11.0/tags/{tag_id}".format(tag_id=3),
             method="GET",
             headers=headers,
         )
@@ -77,7 +77,7 @@ class TestTagController(BaseTestCase):
             "Accept": "application/json",
         }
         response = self.client.open(
-            "/tagbase/api/v0.10.1/tags", method="GET", headers=headers
+            "/tagbase/api/v0.11.0/tags", method="GET", headers=headers
         )
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
@@ -94,7 +94,7 @@ class TestTagController(BaseTestCase):
             ("version", 2),
         ]
         response = self.client.open(
-            "/tagbase/api/v0.10.1/tags/{tag_id}/subs/{sub_id}".format(
+            "/tagbase/api/v0.11.0/tags/{tag_id}/subs/{sub_id}".format(
                 tag_id=3, sub_id=6
             ),
             method="PUT",
