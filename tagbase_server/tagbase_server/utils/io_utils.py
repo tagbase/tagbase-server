@@ -1,4 +1,5 @@
 import glob
+import hashlib
 import logging
 import os
 import re
@@ -8,6 +9,20 @@ from pyunpack import Archive
 from urllib.request import urlopen
 
 logger = logging.getLogger(__name__)
+
+
+def compute_sha256(file_name):
+    """
+    A memory optimised way of computing SHA256 hash
+
+    :param file_name: The data file to compute a SHA256 hash for.
+    :type file_name: str
+    """
+    hash_sha256 = hashlib.sha256()
+    with open(file_name, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_sha256.update(chunk)
+    return hash_sha256.hexdigest()
 
 
 def process_get_input_data(file):

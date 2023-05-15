@@ -738,7 +738,8 @@ CREATE TABLE submission (
     date_time timestamp(6) with time zone DEFAULT now() NOT NULL,
     filename text NOT NULL,
     version character varying(50),
-    notes text
+    notes text,
+    hash_sha256 character varying(64)
 );
 
 
@@ -791,6 +792,13 @@ COMMENT ON COLUMN submission.version IS 'Version identifier for the eTUFF tag da
 --
 
 COMMENT ON COLUMN submission.notes IS 'Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just  secondary solutionpositional meta/data)';
+
+
+--
+-- Name: COLUMN submission.notes; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN submission.hash_sha256 IS 'SHA256 hash representing the contents of the submission eTUFF file.';
 
 
 --

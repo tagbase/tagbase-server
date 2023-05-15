@@ -37,3 +37,28 @@ def connect():
         )
     logger.debug("Successfully connected to TagbaseDB.")
     return conn
+
+
+def detect_duplicate(hash_sha256):
+    """
+    Detect a duplicate file by performing a lookup on submission SHA256 hash.
+    Returns True if duplicate.
+
+    :param hash_sha256: A SHA256 hash.
+    :type hash_sha256: str
+    """
+    conn = connect()
+    conn.autocommit = True
+    with conn:
+        with conn.cursor() as cur:
+            logger.info("Querying...")
+            cur.execute(
+                "SELECT hash_sha256 FROM submission WHERE hash_sha256 = %s",
+                (hash_sha256,),
+            )
+            duplicate = cur.fetchone()[0]
+            logger.info(duplicate)
+            if duplicate is not None:
+                return True
+            else:
+                return False
