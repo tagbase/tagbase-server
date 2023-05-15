@@ -24,8 +24,7 @@ def delete_sub(sub_id, tag_id):  # noqa: E501
     with conn:
         with conn.cursor() as cur:
             cur.execute(
-                "DELETE FROM submission WHERE tag_id = %s AND submission_id = %s",
-                (int(tag_id), int(sub_id)),
+                "CALL sp_delete_submission(%s, %s);", (int(tag_id), int(sub_id))
             )
 
 
@@ -42,10 +41,7 @@ def delete_tag(tag_id):  # noqa: E501
     conn = connect()
     with conn:
         with conn.cursor() as cur:
-            cur.execute(
-                "DELETE FROM submission WHERE tag_id = %s",
-                (int(tag_id),),
-            )
+            cur.execute("CALL sp_delete_tag(%s);", (int(tag_id)))
 
 
 def delete_tags():  # noqa: E501
@@ -59,9 +55,7 @@ def delete_tags():  # noqa: E501
     conn = connect()
     with conn:
         with conn.cursor() as cur:
-            cur.execute(
-                "TRUNCATE submission CASCADE",
-            )
+            cur.execute("CALL sp_delete_all_tags();")
 
 
 def get_tag(tag_id):  # noqa: E501

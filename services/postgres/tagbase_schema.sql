@@ -1221,6 +1221,24 @@ ALTER TABLE ONLY proc_observations
 -- PostgreSQL database dump complete
 --
 
+CREATE PROCEDURE sp_delete_submission(tag_id_param integer, submission_id_param integer)
+LANGUAGE SQL
+AS $$
+DELETE FROM submission WHERE tag_id = tag_id_param AND submission_id = submission_id_param
+$$;
+
+CREATE PROCEDURE sp_delete_tag(tag_id_param integer)
+LANGUAGE SQL
+AS $$
+DELETE FROM submission WHERE tag_id = tag_id_param
+$$;
+
+CREATE PROCEDURE sp_delete_all_tags()
+LANGUAGE SQL
+AS $$
+TRUNCATE submission CASCADE
+$$;
+
 --
 -- The following TRIGGER ensures that upon ingestion of an eTUFF file into tagbase-server,
 -- the data migration procedure is executed. The only remaining manual database administration
