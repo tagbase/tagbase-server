@@ -795,7 +795,7 @@ COMMENT ON COLUMN submission.notes IS 'Free-form text field where details of sub
 
 
 --
--- Name: COLUMN submission.notes; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN submission.hash_sha256; Type: COMMENT; Schema: public; Owner: postgres
 --
 
 COMMENT ON COLUMN submission.hash_sha256 IS 'SHA256 hash representing the contents of the submission eTUFF file.';

@@ -94,7 +94,7 @@ def insert_new_submission(
     cur, tag_id, submission_filename, notes, version, hash_sha256
 ):
     cur.execute(
-        "INSERT INTO submission (tag_id, filename, date_time, notes, version) VALUES (%s, %s, %s, %s, %s, %s)",
+        "INSERT INTO submission (tag_id, filename, date_time, notes, version, hash_sha256) VALUES (%s, %s, %s, %s, %s, %s)",
         (
             tag_id,
             submission_filename,
