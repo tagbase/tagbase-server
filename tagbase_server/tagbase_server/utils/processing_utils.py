@@ -190,9 +190,7 @@ def process_etuff_file(file, version=None, notes=None):
                 cur, tag_id, submission_filename, notes, version, hash_sha256
             )
             logger.debug(
-                "Working with submission_id={} tag_id={}".format(
-                    submission_id, tag_id
-                )
+                "Working with submission_id={} tag_id={}".format(submission_id, tag_id)
             )
 
             metadata = []

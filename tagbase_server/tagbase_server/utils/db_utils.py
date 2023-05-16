@@ -37,4 +37,3 @@ def connect():
         )
     logger.debug("Successfully connected to TagbaseDB.")
     return conn
-
