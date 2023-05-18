@@ -9,6 +9,7 @@ import pytz
 from tzlocal import get_localzone
 
 from tagbase_server.utils.db_utils import connect
+from tagbase_server.utils.io_utils import compute_sha256
 from tagbase_server.utils.slack_utils import post_msg
 
 logger = logging.getLogger(__name__)
@@ -95,6 +96,64 @@ def get_tag_id(cur, submission_filename):
     return result
 
 
+def insert_new_submission(
+    cur, tag_id, submission_filename, notes, version, hash_sha256
+):
+    cur.execute(
+        "INSERT INTO submission (tag_id, filename, date_time, notes, version, hash_sha256) VALUES (%s, %s, %s, %s, %s, %s)",
+        (
+            tag_id,
+            submission_filename,
+            dt.now(tz=pytz.utc).astimezone(get_localzone()),
+            notes,
+            version,
+            hash_sha256,
+        ),
+    )
+    logger.info(
+        "Successful INSERT of '%s' into 'submission' table.",
+        submission_filename,
+    )
+
+    cur.execute("SELECT currval('submission_submission_id_seq')")
+    submission_id = cur.fetchone()[0]
+    logger.debug("New submission_id=%d", submission_id)
+    return submission_id
+
+
+def detect_duplicate(cursor, hash_sha256):
+    """
+    Detect a duplicate file by performing a lookup on submission SHA256 hash.
+    Returns True if duplicate.
+
+    :param hash_sha256: A SHA256 hash.
+    :type hash_sha256: str
+
+    :param cursor: A database cursor
+    :type cursor: cursor connection
+    """
+    logger.debug("Detecting duplicate...")
+    cursor.execute(
+        "SELECT hash_sha256 FROM submission WHERE hash_sha256 = %s",
+        (hash_sha256,),
+    )
+    db_results = cursor.fetchone()
+
+    if not db_results:
+        return False
+    duplicate = db_results[0]
+
+    logger.info(
+        "Computed hash: %s Duplicate: %s",
+        hash_sha256,
+        duplicate,
+    )
+    if duplicate is not None:
+        return True
+    else:
+        return False
+
+
 def process_etuff_file(file, version=None, notes=None):
     start = time.perf_counter()
     submission_filename = file  # full path name is now preferred rather than - file[file.rindex("/") + 1 :]
@@ -105,18 +164,22 @@ def process_etuff_file(file, version=None, notes=None):
 
     conn = connect()
     conn.autocommit = True
+
     with conn:
         with conn.cursor() as cur:
-            tag_id = get_tag_id(cur, submission_filename)
-            cur.execute(
-                "INSERT INTO submission (tag_id, filename, date_time, notes, version) VALUES (%s, %s, %s, %s, %s)",
-                (
-                    tag_id,
+            hash_sha256 = compute_sha256(submission_filename)
+            if detect_duplicate(cur, hash_sha256):
+                logger.info(
+                    "Data file '%s' with SHA256 hash '%s' identified as duplicate. No ingestion performed.",
                     submission_filename,
-                    dt.now(tz=pytz.utc).astimezone(get_localzone()),
-                    notes,
-                    version,
-                ),
+                    hash_sha256,
+                )
+                return 1
+
+            tag_id = get_tag_id(cur, submission_filename)
+
+            submission_id = insert_new_submission(
+                cur, tag_id, submission_filename, notes, version, hash_sha256
             )
             logger.info(
                 "Successful INSERT of '%s' into 'submission' table.",
@@ -162,7 +225,9 @@ def process_etuff_file(file, version=None, notes=None):
                         else:
                             try:
                                 logger.debug(
-                                    "variable_name=%s\ttokens=%s", variable_name, tokens
+                                    "variable_name=%s\ttokens=%s",
+                                    variable_name,
+                                    tokens,
                                 )
                                 cur.execute(
                                     "INSERT INTO observation_types("

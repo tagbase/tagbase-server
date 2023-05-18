@@ -738,7 +738,8 @@ CREATE TABLE submission (
     date_time timestamp(6) with time zone DEFAULT now() NOT NULL,
     filename text NOT NULL,
     version character varying(50),
-    notes text
+    notes text,
+    hash_sha256 character varying(64) NOT NULL
 );
 
 
@@ -791,6 +792,13 @@ COMMENT ON COLUMN submission.version IS 'Version identifier for the eTUFF tag da
 --
 
 COMMENT ON COLUMN submission.notes IS 'Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just  secondary solutionpositional meta/data)';
+
+
+--
+-- Name: COLUMN submission.hash_sha256; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN submission.hash_sha256 IS 'SHA256 hash representing the contents of the submission eTUFF file.';
 
 
 --
@@ -1217,9 +1225,23 @@ ALTER TABLE ONLY proc_observations
     ADD CONSTRAINT proc_observations_variable_id_fkey FOREIGN KEY (variable_id) REFERENCES observation_types(variable_id);
 
 
---
--- PostgreSQL database dump complete
---
+CREATE PROCEDURE sp_delete_submission(tag_id_param integer, submission_id_param integer)
+LANGUAGE SQL
+AS $$
+DELETE FROM submission WHERE tag_id = tag_id_param AND submission_id = submission_id_param
+$$;
+
+CREATE PROCEDURE sp_delete_tag(tag_id_param integer)
+LANGUAGE SQL
+AS $$
+DELETE FROM submission WHERE tag_id = tag_id_param
+$$;
+
+CREATE PROCEDURE sp_delete_all_tags()
+LANGUAGE SQL
+AS $$
+TRUNCATE submission CASCADE
+$$;
 
 --
 -- The following TRIGGER ensures that upon ingestion of an eTUFF file into tagbase-server,

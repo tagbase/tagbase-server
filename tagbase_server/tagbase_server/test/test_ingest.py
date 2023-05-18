@@ -56,6 +56,19 @@ class TestIngest(unittest.TestCase):
         assert metadata[1][2], "SPOT"
 
     @mock.patch("psycopg2.connect")
+    def test_processing_duplicate_file(self, mock_connect):
+        computes_hash_sha256 = "some-hash-sha256"
+        mock_con = mock_connect.return_value
+        mock_cur = mock_con.cursor.return_value
+        # duplicate stored in the db
+        mock_cur.fetchone.return_value = computes_hash_sha256
+
+        has_duplicate = pu.detect_duplicate(mock_cur, computes_hash_sha256)
+        assert has_duplicate, True
+        has_no_duplicate = pu.detect_duplicate(mock_cur, "non-existing-hash")
+        assert has_no_duplicate, False
+
+    @mock.patch("psycopg2.connect")
     def test_processing_file_metadata_without_attributes(self, mock_connect):
         metadata_attribs_in_db = []
         # result of psycopg2.connect(**connection_stuff)
