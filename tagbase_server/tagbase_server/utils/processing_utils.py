@@ -96,6 +96,31 @@ def get_tag_id(cur, submission_filename):
     return result
 
 
+def insert_new_submission(
+    cur, tag_id, submission_filename, notes, version, hash_sha256
+):
+    cur.execute(
+        "INSERT INTO submission (tag_id, filename, date_time, notes, version, hash_sha256) VALUES (%s, %s, %s, %s, %s, %s)",
+        (
+            tag_id,
+            submission_filename,
+            dt.now(tz=pytz.utc).astimezone(get_localzone()),
+            notes,
+            version,
+            hash_sha256,
+        ),
+    )
+    logger.info(
+        "Successful INSERT of '%s' into 'submission' table.",
+        submission_filename,
+    )
+
+    cur.execute("SELECT currval('submission_submission_id_seq')")
+    submission_id = cur.fetchone()[0]
+    logger.debug("New submission_id=%d", submission_id)
+    return submission_id
+
+
 def detect_duplicate(cursor, hash_sha256):
     """
     Detect a duplicate file by performing a lookup on submission SHA256 hash.
