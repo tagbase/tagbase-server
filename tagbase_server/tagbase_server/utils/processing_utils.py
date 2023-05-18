@@ -20,6 +20,7 @@ def process_all_lines_for_global_attributes(
     submission_id,
     metadata,
     submission_filename,
+    line_counter,
 ):
     attrbs_map = {}
     for line in global_attributes_lines:
@@ -54,18 +55,16 @@ def process_all_lines_for_global_attributes(
     if len(attrbs_map.keys()) > 0:
         not_found_attributes = ", ".join(attrbs_map.keys())
         msg = (
-            f"*{submission_filename}*\n"
+            f"*{submission_filename}* _line:{line_counter}_ - "
             f"Unable to locate attribute_names *{not_found_attributes}* in _metadata_types_ table."
         )
         post_msg(msg)
 
 
-def _get_global_attributes(file_handler):
-    global_attributes = []
+def process_global_attributes(lines, cur, submission_id, metadata, submission_filename):
     processed_lines = 0
-
-    while line := file_handler.readline():
-        line = line.decode("UTF-8")
+    global_attributes = []
+    for line in lines:
         processed_lines += 1
         if line.startswith("//"):
             continue
@@ -74,8 +73,15 @@ def _get_global_attributes(file_handler):
         else:
             break
 
-    processed_lines = processed_lines - 1 if processed_lines > 0 else 0
-    return global_attributes, processed_lines
+    process_all_lines_for_global_attributes(
+        global_attributes,
+        cur,
+        submission_id,
+        metadata,
+        submission_filename,
+        processed_lines,
+    )
+    return processed_lines - 1 if processed_lines > 0 else 0
 
 
 def get_tag_id(cur, submission_filename):
@@ -87,41 +93,6 @@ def get_tag_id(cur, submission_filename):
     result = cur.fetchone()[0]
     logger.debug("Result: %s", result)
     return result
-
-
-def insert_new_submission(cur, tag_id, submission_filename, notes, version):
-    cur.execute(
-        "INSERT INTO submission (tag_id, filename, date_time, notes, version) VALUES (%s, %s, %s, %s, %s)",
-        (
-            tag_id,
-            submission_filename,
-            dt.now(tz=pytz.utc).astimezone(get_localzone()),
-            notes,
-            version,
-        ),
-    )
-    logger.info(
-        "Successful INSERT of '%s' into 'submission' table.",
-        submission_filename,
-    )
-
-    cur.execute("SELECT currval('submission_submission_id_seq')")
-    submission_id = cur.fetchone()[0]
-    logger.debug("New submission_id=%d", submission_id)
-    return submission_id
-
-
-def insert_metadata(cur, tag_id, metadata):
-    for x in metadata:
-        a = x[0]
-        b = x[1]
-        c = x[2]
-        mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, str(c), tag_id))
-        cur.execute(
-            "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES "
-            + mog.decode("utf-8")
-        )
-    logger.debug("metadata: %s", metadata)
 
 
 def process_etuff_file(file, version=None, notes=None):
@@ -136,43 +107,47 @@ def process_etuff_file(file, version=None, notes=None):
     conn.autocommit = True
     with conn:
         with conn.cursor() as cur:
-            # get tag_id based on max tag_id value found in the submission table
             tag_id = get_tag_id(cur, submission_filename)
+            cur.execute(
+                "INSERT INTO submission (tag_id, filename, date_time, notes, version) VALUES (%s, %s, %s, %s, %s)",
+                (
+                    tag_id,
+                    submission_filename,
+                    dt.now(tz=pytz.utc).astimezone(get_localzone()),
+                    notes,
+                    version,
+                ),
+            )
+            logger.info(
+                "Successful INSERT of '%s' into 'submission' table.",
+                submission_filename,
+            )
 
-            submission_id = insert_new_submission(
-                cur, tag_id, submission_filename, notes, version
-            )
-            logger.debug(
-                "Working with submission_id={} tag_id={}".format(submission_id, tag_id)
-            )
+            cur.execute("SELECT currval('submission_submission_id_seq')")
+            submission_id = cur.fetchone()[0]
 
             metadata = []
             proc_obs = []
 
             s_time = time.perf_counter()
-            with open(file, mode="rb") as data:
-                line_counter = 0
-                variable_lookup = {}
+            with open(file, "rb") as data:
+                lines = [line.decode("utf-8", "ignore") for line in data.readlines()]
+            lines_length = len(lines)
 
-                global_attributes, metadata_lines = _get_global_attributes(data)
-                process_all_lines_for_global_attributes(
-                    global_attributes,
-                    cur,
-                    submission_id,
-                    metadata,
-                    submission_filename,
-                )
-                line_counter += metadata_lines
+            line_counter = 0
+            variable_lookup = {}
 
-                while line := data.readline():
-                    line_counter += 1
-                    line = line.decode("UTF-8")
-                    tokens = line.split(",")
-                    tokens = [token.replace('"', "") for token in tokens]
-                    if not tokens:
-                        continue
+            metadata_lines = process_global_attributes(
+                lines, cur, submission_id, metadata, submission_filename
+            )
+            line_counter += metadata_lines
 
-                    # get variable
+            for counter in range(metadata_lines, lines_length):
+                line = lines[line_counter]
+                line_counter += 1
+                tokens = line.split(",")
+                tokens = [token.replace('"', "") for token in tokens]
+                if tokens:
                     variable_name = tokens[3]
                     if variable_name in variable_lookup:
                         variable_id = variable_lookup[variable_name]
@@ -212,8 +187,6 @@ def process_etuff_file(file, version=None, notes=None):
                             )
                             variable_id = cur.fetchone()[0]
                         variable_lookup[variable_name] = variable_id
-
-                    # get date from token
                     date_time = None
                     if tokens[0] != '""' and tokens[0] != "":
                         if tokens[0].startswith('"'):
@@ -240,17 +213,27 @@ def process_etuff_file(file, version=None, notes=None):
                         ]
                     )
 
-                len_proc_obs = len(proc_obs)
-                e_time = time.perf_counter()
-                sub_elapsed = round(e_time - s_time, 2)
-                logger.info(
-                    "Built raw 'proc_observations' data structure from %s observations in: %s second(s)",
-                    len_proc_obs,
-                    sub_elapsed,
+            len_proc_obs = len(proc_obs)
+            e_time = time.perf_counter()
+            sub_elapsed = round(e_time - s_time, 2)
+            logger.info(
+                "Built raw 'proc_observations' data structure from %s observations in: %s second(s)",
+                len_proc_obs,
+                sub_elapsed,
+            )
+
+            for x in metadata:
+                a = x[0]
+                b = x[1]
+                c = x[2]
+                mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, str(c), tag_id))
+                cur.execute(
+                    "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES "
+                    + mog.decode("utf-8")
                 )
+            logger.debug("metadata: %s", metadata)
 
-            insert_metadata(cur, tag_id, metadata)
-
+            # build pandas df
             s_time = time.perf_counter()
             df = pd.DataFrame.from_records(
                 proc_obs,
