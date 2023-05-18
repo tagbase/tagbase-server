@@ -139,7 +139,7 @@ def detect_duplicate(cursor, hash_sha256):
     :param cursor: A database cursor
     :type cursor: cursor connection
     """
-    logger.info("Detecting duplicate...")
+    logger.debug("Detecting duplicate...")
     cursor.execute(
         "SELECT hash_sha256 FROM submission WHERE hash_sha256 = %s",
         (hash_sha256,),

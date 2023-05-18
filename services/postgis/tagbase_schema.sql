@@ -739,7 +739,7 @@ CREATE TABLE submission (
     filename text NOT NULL,
     version character varying(50),
     notes text,
-    hash_sha256 character varying(64)
+    hash_sha256 character varying(64) NOT NULL
 );
 
 
@@ -1225,9 +1225,23 @@ ALTER TABLE ONLY proc_observations
     ADD CONSTRAINT proc_observations_variable_id_fkey FOREIGN KEY (variable_id) REFERENCES observation_types(variable_id);
 
 
---
--- PostgreSQL database dump complete
---
+CREATE PROCEDURE sp_delete_submission(tag_id_param integer, submission_id_param integer)
+LANGUAGE SQL
+AS $$
+DELETE FROM submission WHERE tag_id = tag_id_param AND submission_id = submission_id_param
+$$;
+
+CREATE PROCEDURE sp_delete_tag(tag_id_param integer)
+LANGUAGE SQL
+AS $$
+DELETE FROM submission WHERE tag_id = tag_id_param
+$$;
+
+CREATE PROCEDURE sp_delete_all_tags()
+LANGUAGE SQL
+AS $$
+TRUNCATE submission CASCADE
+$$;
 
 --
 -- The following TRIGGER ensures that upon ingestion of an eTUFF file into tagbase-server,
