@@ -739,7 +739,8 @@ CREATE TABLE submission (
     filename text NOT NULL,
     version character varying(50),
     notes text,
-    hash_sha256 character varying(64) NOT NULL
+    hash_sha256 character varying(64) NOT NULL,
+    dataset_id bigint NOT NULL
 );
 
 
@@ -799,6 +800,13 @@ COMMENT ON COLUMN submission.notes IS 'Free-form text field where details of sub
 --
 
 COMMENT ON COLUMN submission.hash_sha256 IS 'SHA256 hash representing the contents of the submission eTUFF file.';
+
+
+--
+-- Name: COLUMN submission.dataset_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN submission.dataset_id IS 'A concatenation of global attribute values in the order instrument_name (unique name, made clear to the user that this is the primary identifier), serial_number (device internal ID), ptt (satellite platform ID) and platform (species code/ common name that the device was deployed on) e.g. iccat_gbyp0008_18P0201_62342_thunnus_thynnus';
 
 
 --

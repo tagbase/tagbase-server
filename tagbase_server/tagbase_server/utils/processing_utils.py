@@ -85,9 +85,9 @@ def process_global_attributes(lines, cur, submission_id, metadata, submission_fi
     return processed_lines - 1 if processed_lines > 0 else 0
 
 
-def get_tag_id(cur, submission_filename):
-    sql_query = "SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) FROM submission WHERE filename = '{}'".format(
-        submission_filename
+def get_tag_id(cur, dataset_id):
+    sql_query = "SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) FROM submission WHERE dataset_id = '{}'".format(
+        dataset_id
     )
     logger.debug("Executing: %s", sql_query)
     cur.execute(sql_query)
@@ -97,10 +97,10 @@ def get_tag_id(cur, submission_filename):
 
 
 def insert_new_submission(
-    cur, tag_id, submission_filename, notes, version, hash_sha256
+    cur, tag_id, submission_filename, notes, version, hash_sha256, dataset_id
 ):
     cur.execute(
-        "INSERT INTO submission (tag_id, filename, date_time, notes, version, hash_sha256) VALUES (%s, %s, %s, %s, %s, %s)",
+        "INSERT INTO submission (tag_id, filename, date_time, notes, version, hash_sha256, dataset_id) VALUES (%s, %s, %s, %s, %s, %s, %s)",
         (
             tag_id,
             submission_filename,
@@ -108,6 +108,7 @@ def insert_new_submission(
             notes,
             version,
             hash_sha256,
+            dataset_id,
         ),
     )
     logger.info(
@@ -154,6 +155,42 @@ def detect_duplicate(cursor, hash_sha256):
         return False
 
 
+def get_dataset_elements(submission_filename):
+    """
+    Extract 'instrument_name', 'serial_number', 'ptt', 'platform',
+    'referencetrack_included' and 'othertracks_numof' values from
+    global attributes.
+
+    :param submission_filename: The file from which we wish to extract certain global attributes
+    :type submission_filename: str
+    """
+    logger.info("Getting dataset elements...")
+    raw_global_attributes = []
+    with open(submission_filename) as data:
+            for line in iter(lambda: data.readline().rstrip(), "// data:"):
+                logger.info(line)
+                raw_global_attributes.append(line.decode("utf-8", "ignore"))
+    logger.info(raw_global_attributes)
+    for line in raw_global_attributes:
+        line.strip()
+        if line.startswith("//"):
+            continue
+        elif line.startswith(":instrument_name"):
+            instrument_name = line[1:].split(" = ")[1]
+        elif line.startswith(":serial_number"):
+            serial_number = line[1:].split(" = ")[1]
+        elif line.startswith(":ptt"):
+            ptt = line[1:].split(" = ")[1]
+        elif line.startswith(":platform"):
+            platform = line[1:].split(" = ")[1]
+    return (
+        instrument_name,
+        serial_number,
+        ptt,
+        platform,
+    )
+
+
 def process_etuff_file(file, version=None, notes=None):
     start = time.perf_counter()
     submission_filename = file  # full path name is now preferred rather than - file[file.rindex("/") + 1 :]
@@ -176,10 +213,35 @@ def process_etuff_file(file, version=None, notes=None):
                 )
                 return 1
 
-            tag_id = get_tag_id(cur, submission_filename)
+            (
+                instrument_name,
+                serial_number,
+                ptt,
+                platform,
+            ) = get_dataset_elements(submission_filename)
+
+            dataset_id = (
+                instrument_name
+                + "_"
+                + serial_number
+                + "_"
+                + ptt
+                + "_"
+                + platform.lower().replace(" ", "_")
+            )
+
+            logger.info(dataset_id)
+            
+            tag_id = get_tag_id(cur, dataset_id)
 
             submission_id = insert_new_submission(
-                cur, tag_id, submission_filename, notes, version, hash_sha256
+                cur,
+                tag_id,
+                submission_filename,
+                notes,
+                version,
+                hash_sha256,
+                dataset_id,
             )
             logger.info(
                 "Successful INSERT of '%s' into 'submission' table.",
