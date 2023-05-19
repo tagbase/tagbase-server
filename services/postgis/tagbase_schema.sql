@@ -727,6 +727,50 @@ COMMENT ON COLUMN proc_observations.submission_id IS 'Unique numeric ID assigned
 
 COMMENT ON COLUMN proc_observations.tag_id IS 'Unique numeric Tag ID associated with the ingested tag data file';
 
+CREATE TABLE dataset (
+    dataset_id bigint NOT NULL,
+    instrument_name character varying(50),
+    serial_number character varying(50),
+    satellite_platform_id character varying(50),
+    platform character varying(50),
+);
+
+ALTER TABLE dataset OWNER TO postgres;
+
+
+COMMENT ON COLUMN dataset.dataset_id IS 'Unique numeric ID assigned upon insertion of the other unique attributes belonging to this entity';
+COMMENT ON COLUMN dataset.instrument_name IS 'A unique instrument name, made clear to the end user that it is the primary identifier, e.g., iccat_gbyp0008';
+COMMENT ON COLUMN dataset.serial_number IS 'A the device internal ID, e.g., 18P0201';
+COMMENT ON COLUMN dataset.ptt IS 'A satellite platform ID, e.g., 62342';
+COMMENT ON COLUMN dataset.platform IS 'The species code/common name on which the device was deployed, e.g., thunnus_thynnus';
+
+--
+-- Name: TABLE dataset; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE dataset IS 'Contains the attributes for defining a dataset';
+
+--
+-- Name: submission_submission_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE dataset_dataset_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE dataset_dataset_id_seq OWNER TO postgres;
+
+--
+-- Name: dataset_dataset_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE dataset_dataset_id_seq OWNED BY dataset.dataset_id;
+
+ALTER TABLE ONLY dataset ALTER COLUMN dataset_id SET DEFAULT nextval('dataset_dataset_id_seq'::regclass);
 
 --
 -- Name: submission; Type: TABLE; Schema: public; Owner: postgres
@@ -806,7 +850,7 @@ COMMENT ON COLUMN submission.hash_sha256 IS 'SHA256 hash representing the conten
 -- Name: COLUMN submission.dataset_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN submission.dataset_id IS 'A concatenation of global attribute values in the order instrument_name (unique name, made clear to the user that this is the primary identifier), serial_number (device internal ID), ptt (satellite platform ID) and platform (species code/ common name that the device was deployed on) e.g. iccat_gbyp0008_18P0201_62342_thunnus_thynnus';
+COMMENT ON COLUMN submission.dataset_id IS 'The primary key from the Dataset relation';
 
 
 --
@@ -1056,6 +1100,20 @@ ALTER TABLE ONLY proc_observations
 ALTER TABLE ONLY submission
     ADD CONSTRAINT submission_pkey PRIMARY KEY (submission_id);
 
+
+--
+-- Name: submission dataset_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY dataset 
+    ADD CONSTRAINT dataset_pkey PRIMARY KEY (dataset_id);
+
+--
+-- Name: data_histogram_bin_data data_histogram_bin_data_submission_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY submission
+    ADD CONSTRAINT submission_dataset_id_fkey FOREIGN KEY (dataset_id) REFERENCES dataset(dataset_id) ON DELETE CASCADE;
 
 --
 -- Name: data_histogram_bin_data_date_time_index; Type: INDEX; Schema: public; Owner: postgres
