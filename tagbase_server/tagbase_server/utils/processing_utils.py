@@ -167,9 +167,9 @@ def get_dataset_elements(submission_filename):
     logger.info("Getting dataset elements...")
     raw_global_attributes = []
     with open(submission_filename) as data:
-            for line in iter(lambda: data.readline().rstrip(), "// data:"):
-                logger.info(line)
-                raw_global_attributes.append(line.decode("utf-8", "ignore"))
+        for line in iter(lambda: data.readline().rstrip(), "// data:"):
+            logger.info(line)
+            raw_global_attributes.append(line.decode("utf-8", "ignore"))
     logger.info(raw_global_attributes)
     for line in raw_global_attributes:
         line.strip()
@@ -231,7 +231,7 @@ def process_etuff_file(file, version=None, notes=None):
             )
 
             logger.info(dataset_id)
-            
+
             tag_id = get_tag_id(cur, dataset_id)
 
             submission_id = insert_new_submission(
