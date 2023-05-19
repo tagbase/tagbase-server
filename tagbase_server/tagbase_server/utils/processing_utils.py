@@ -167,7 +167,9 @@ def get_dataset_elements(submission_filename):
     logger.info("Getting dataset elements...")
     raw_global_attributes = []
     with open(submission_filename, "rb") as data:
-        for line in iter(lambda: data.readline().decode("utf-8", "ignore").rstrip(), "// data:"):
+        for line in iter(
+            lambda: data.readline().decode("utf-8", "ignore").rstrip(), "// data:"
+        ):
             raw_global_attributes.append(line)
     logger.info(raw_global_attributes)
     for line in raw_global_attributes:
