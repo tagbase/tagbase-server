@@ -86,11 +86,62 @@ def process_global_attributes(lines, cur, submission_id, metadata, submission_fi
 
 
 def get_tag_id(cur, dataset_id):
+    """
+    Retreive a 'tag_id' for a submission by performing a lookup on the 'dataset_id'.
+    If an entry exists for the dataset then grab the existing associated tag_id. If not,
+    create a new tag_id.
+
+    :param cursor: A database cursor
+    :type cursor: cursor connection
+
+    :param dataset_id: Dataset ID as described above.
+    :type dataset_id: str
+    """
     sql_query = "SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) FROM submission WHERE dataset_id = '{}'".format(
         dataset_id
     )
     logger.debug("Executing: %s", sql_query)
     cur.execute(sql_query)
+    result = cur.fetchone()[0]
+    logger.debug("Result: %s", result)
+    return result
+
+
+def get_dataset_id(cur, instrument_name, serial_number, ptt, platform):
+    """
+    Retreive or create a dataset entry for a submission. If a dataset entry exists then grab the existing
+    id, if not, create a new one.
+
+    :param cursor: A database cursor
+    :type cursor: cursor connection
+
+    :param instrument_name: A unique instrument name, made clear to the end user that it is the primary identifier, e.g., iccat_gbyp0008
+    :type instrument_name: str
+
+    :param serial_number: A the device internal ID, e.g., 18P0201
+    :type serial_number: str
+
+    :param ptt: A satellite platform ID, e.g., 62342
+    :type ptt: str
+
+    :param platform: The species code/common name on which the device was deployed, e.g., Thunnus thynnus
+    :type platform: str
+    """
+    dataset_query =     (
+        "SELECT COALESCE(MAX(dataset_id), NEXTVAL('dataset_dataset_id_seq')) FROM dataset WHERE instrument_name = '{}' AND serial_number = '{}' AND ptt = '{}' AND platform = '{}'".format(
+            instrument_name, serial_number, ptt, platform
+        ),
+    )
+    logger.info("Dataset query: %s", dataset_query)
+    cur.execute(dataset_query)
+    dataset_id = cur.fetchone()[0]
+    logger.debug("Result: %s", result)
+    insert_query = (
+        "INSERT INTO dataset (dataset_id, instrument_name, serial_number, ptt, platform) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+        (dataset_id, instrument_name, serial_number, ptt, platform),
+    )
+    logger.info("Executing INSERT: %s", insert_query)
+    cur.execute(insert_query)
     result = cur.fetchone()[0]
     logger.debug("Result: %s", result)
     return result
@@ -164,26 +215,24 @@ def get_dataset_elements(submission_filename):
     :param submission_filename: The file from which we wish to extract certain global attributes
     :type submission_filename: str
     """
-    logger.info("Getting dataset elements...")
     raw_global_attributes = []
     with open(submission_filename, "rb") as data:
         for line in iter(
             lambda: data.readline().decode("utf-8", "ignore").rstrip(), "// data:"
         ):
             raw_global_attributes.append(line)
-    logger.info(raw_global_attributes)
     for line in raw_global_attributes:
-        line.strip()
-        if line.startswith("//"):
+        strp_line = line.strip()
+        if strp_line.startswith("//"):
             continue
-        elif line.startswith(":instrument_name"):
-            instrument_name = line[1:].split(" = ")[1]
-        elif line.startswith(":serial_number"):
-            serial_number = line[1:].split(" = ")[1]
-        elif line.startswith(":ptt"):
-            ptt = line[1:].split(" = ")[1]
-        elif line.startswith(":platform"):
-            platform = line[1:].split(" = ")[1]
+        elif strp_line.startswith(":instrument_name"):
+            instrument_name = strp_line[1:].split(" = ")[1].replace("\"", "")
+        elif strp_line.startswith(":serial_number"):
+            serial_number = strp_line[1:].split(" = ")[1].replace("\"", "")
+        elif strp_line.startswith(":ptt"):
+            ptt = strp_line[1:].split(" = ")[1].replace("\"", "")
+        elif strp_line.startswith(":platform"):
+            platform = strp_line[1:].split(" = ")[1].replace("\"", "")
     return (
         instrument_name,
         serial_number,
@@ -221,17 +270,9 @@ def process_etuff_file(file, version=None, notes=None):
                 platform,
             ) = get_dataset_elements(submission_filename)
 
-            dataset_id = (
-                instrument_name
-                + "_"
-                + serial_number
-                + "_"
-                + ptt
-                + "_"
-                + platform.lower().replace(" ", "_")
+            dataset_id = get_dataset_id(
+                cur, instrument_name, serial_number, ptt, platform
             )
-
-            logger.info(dataset_id)
 
             tag_id = get_tag_id(cur, dataset_id)
 

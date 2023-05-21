@@ -448,63 +448,6 @@ COMMENT ON COLUMN metadata.tag_id IS 'Unique numeric Tag ID associated with the 
 
 
 --
--- Name: metadata_position; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE metadata_position (
-    submission_id bigint NOT NULL,
-    attribute_id bigint NOT NULL,
-    attribute_value text NOT NULL,
-    tag_id bigint NOT NULL,
-    solution_id integer NOT NULL DEFAULT 1
-);
-
-
-ALTER TABLE metadata_position OWNER TO postgres;
-
---
--- Name: TABLE metadata_position; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON TABLE metadata_position IS 'Contains the ingested tag metadata consistent with the eTUFF specification';
-
-
---
--- Name: COLUMN metadata_position.submission_id; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN metadata_position.submission_id IS 'Unique numeric ID assigned upon submission of a tag eTUFF data file for ingest/importation into Tagbase';
-
-
---
--- Name: COLUMN metadata_position.attribute_id; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN metadata_position.attribute_id IS 'Unique numeric metadata attribute ID based on the eTUFF metadata specification';
-
-
---
--- Name: COLUMN metadata_position.attribute_value; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN metadata_position.attribute_value IS 'Value associated with the given eTUFF metadata attribute';
-
-
---
--- Name: COLUMN metadata_position.tag_id; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN metadata_position.tag_id IS 'Unique numeric Tag ID associated with the ingested tag data file';
-
-
---
--- Name: COLUMN metadata_position.solution_id; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN metadata_position.solution_id IS 'Unique numeric identifier for a given tag geolocation dataset solution. solution_id=1 is assigned to the primary or approved solution. Incremented solution_id''s assigned to other positional dataset solutions for a given tag_id and submission_id';
-
-
---
 -- Name: metadata_types; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -731,8 +674,8 @@ CREATE TABLE dataset (
     dataset_id bigint NOT NULL,
     instrument_name character varying(50),
     serial_number character varying(50),
-    satellite_platform_id character varying(50),
-    platform character varying(50),
+    ptt character varying(50),
+    platform character varying(50)
 );
 
 ALTER TABLE dataset OWNER TO postgres;
@@ -742,7 +685,7 @@ COMMENT ON COLUMN dataset.dataset_id IS 'Unique numeric ID assigned upon inserti
 COMMENT ON COLUMN dataset.instrument_name IS 'A unique instrument name, made clear to the end user that it is the primary identifier, e.g., iccat_gbyp0008';
 COMMENT ON COLUMN dataset.serial_number IS 'A the device internal ID, e.g., 18P0201';
 COMMENT ON COLUMN dataset.ptt IS 'A satellite platform ID, e.g., 62342';
-COMMENT ON COLUMN dataset.platform IS 'The species code/common name on which the device was deployed, e.g., thunnus_thynnus';
+COMMENT ON COLUMN dataset.platform IS 'The species code/common name on which the device was deployed, e.g., Thunnus thynnus';
 
 --
 -- Name: TABLE dataset; Type: COMMENT; Schema: public; Owner: postgres
@@ -751,7 +694,7 @@ COMMENT ON COLUMN dataset.platform IS 'The species code/common name on which the
 COMMENT ON TABLE dataset IS 'Contains the attributes for defining a dataset';
 
 --
--- Name: submission_submission_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: dataset_dataset_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
 CREATE SEQUENCE dataset_dataset_id_seq
@@ -905,78 +848,6 @@ ALTER TABLE ONLY submission ALTER COLUMN submission_id SET DEFAULT nextval('subm
 
 
 --
--- Data for Name: data_histogram_bin_data; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY data_histogram_bin_data (submission_id, tag_id, bin_id, bin_class, date_time, variable_value, position_date_time, variable_id) FROM stdin;
-\.
-
-
---
--- Data for Name: data_histogram_bin_info; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY data_histogram_bin_info (bin_id, bin_class, min_value, max_value, variable_id) FROM stdin;
-\.
-
-
---
--- Data for Name: data_position; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY data_position (date_time, lat, lon, lat_err, lon_err, submission_id, tag_id, argos_location_class, solution_id) FROM stdin;
-\.
-
-
---
--- Data for Name: data_profile; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY data_profile (submission_id, tag_id, variable_id, date_time, depth, variable_value, position_date_time) FROM stdin;
-\.
-
-
---
--- Data for Name: data_time_series; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY data_time_series (date_time, variable_id, variable_value, submission_id, tag_id, position_date_time) FROM stdin;
-\.
-
-
---
--- Data for Name: metadata; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY metadata (submission_id, attribute_id, attribute_value, tag_id) FROM stdin;
-\.
-
-
---
--- Data for Name: metadata_position; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY metadata_position (submission_id, attribute_id, attribute_value, tag_id, solution_id) FROM stdin;
-\.
-
-
---
--- Data for Name: proc_observations; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY proc_observations (date_time, variable_id, variable_value, submission_id, tag_id) FROM stdin;
-\.
-
-
---
--- Data for Name: submission; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY submission (submission_id, tag_id, date_time, filename, version, notes) FROM stdin;
-\.
-
-
---
 -- Name: observation_types_variable_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -1051,14 +922,6 @@ ALTER TABLE ONLY data_time_series
 
 ALTER TABLE ONLY metadata
     ADD CONSTRAINT metadata_pkey PRIMARY KEY (submission_id, attribute_id);
-
-
---
--- Name: metadata_position metadata_pkey01; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY metadata_position
-    ADD CONSTRAINT metadata_pkey01 PRIMARY KEY (submission_id, attribute_id, tag_id, solution_id) WITH (fillfactor='100');
 
 
 --
@@ -1252,26 +1115,10 @@ ALTER TABLE ONLY metadata
 
 
 --
--- Name: metadata_position metadata_attribute_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY metadata_position
-    ADD CONSTRAINT metadata_attribute_id_fkey FOREIGN KEY (attribute_id) REFERENCES metadata_types(attribute_id);
-
-
---
 -- Name: metadata metadata_submission_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY metadata
-    ADD CONSTRAINT metadata_submission_id_fkey FOREIGN KEY (submission_id) REFERENCES submission(submission_id) ON DELETE CASCADE;
-
-
---
--- Name: metadata_position metadata_submission_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY metadata_position
     ADD CONSTRAINT metadata_submission_id_fkey FOREIGN KEY (submission_id) REFERENCES submission(submission_id) ON DELETE CASCADE;
 
 
