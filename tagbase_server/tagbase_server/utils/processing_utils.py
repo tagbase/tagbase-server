@@ -87,12 +87,12 @@ def process_global_attributes(lines, cur, submission_id, metadata, submission_fi
 
 def get_tag_id(cur, dataset_id):
     """
-    Retreive a 'tag_id' for a submission by performing a lookup on the 'dataset_id'.
+    Retrieve a 'tag_id' for a submission by performing a lookup on the 'dataset_id'.
     If an entry exists for the dataset then grab the existing associated tag_id. If not,
     create a new tag_id.
 
-    :param cursor: A database cursor
-    :type cursor: cursor connection
+    :param cur: A database cursor
+    :type cur: cursor connection
 
     :param dataset_id: Dataset ID as described above.
     :type dataset_id: str
@@ -112,8 +112,8 @@ def get_dataset_id(cur, instrument_name, serial_number, ptt, platform):
     Retreive or create a dataset entry for a submission. If a dataset entry exists then grab the existing
     id, if not, create a new one.
 
-    :param cursor: A database cursor
-    :type cursor: cursor connection
+    :param cur: A database cursor
+    :type cur: cursor connection
 
     :param instrument_name: A unique instrument name, made clear to the end user that it is the primary identifier, e.g., iccat_gbyp0008
     :type instrument_name: str
@@ -127,24 +127,23 @@ def get_dataset_id(cur, instrument_name, serial_number, ptt, platform):
     :param platform: The species code/common name on which the device was deployed, e.g., Thunnus thynnus
     :type platform: str
     """
-    dataset_query =     (
+    cur.execute(
         "SELECT COALESCE(MAX(dataset_id), NEXTVAL('dataset_dataset_id_seq')) FROM dataset WHERE instrument_name = '{}' AND serial_number = '{}' AND ptt = '{}' AND platform = '{}'".format(
             instrument_name, serial_number, ptt, platform
-        ),
+        )
     )
-    logger.info("Dataset query: %s", dataset_query)
-    cur.execute(dataset_query)
     dataset_id = cur.fetchone()[0]
-    logger.debug("Result: %s", result)
-    insert_query = (
-        "INSERT INTO dataset (dataset_id, instrument_name, serial_number, ptt, platform) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
-        (dataset_id, instrument_name, serial_number, ptt, platform),
+    logger.debug("Result: %s", dataset_id)
+    cur.execute(
+        "INSERT INTO dataset (dataset_id, instrument_name, serial_number, ptt, platform) VALUES ('{}', '{}', '{}', '{}', '{}') ON CONFLICT DO NOTHING".format(
+            dataset_id, instrument_name, serial_number, ptt, platform
+        )
     )
-    logger.info("Executing INSERT: %s", insert_query)
-    cur.execute(insert_query)
-    result = cur.fetchone()[0]
-    logger.debug("Result: %s", result)
-    return result
+    logger.debug(
+        "Successful INSERT of '%s' into 'dataset' table.",
+        dataset_id,
+    )
+    return dataset_id
 
 
 def insert_new_submission(
@@ -209,7 +208,7 @@ def detect_duplicate(cursor, hash_sha256):
 def get_dataset_elements(submission_filename):
     """
     Extract 'instrument_name', 'serial_number', 'ptt', 'platform',
-    'referencetrack_included' and 'othertracks_numof' values from
+    'referencetrack_included' and values from
     global attributes.
 
     :param submission_filename: The file from which we wish to extract certain global attributes
@@ -226,18 +225,21 @@ def get_dataset_elements(submission_filename):
         if strp_line.startswith("//"):
             continue
         elif strp_line.startswith(":instrument_name"):
-            instrument_name = strp_line[1:].split(" = ")[1].replace("\"", "")
+            instrument_name = strp_line[1:].split(" = ")[1].replace('"', "")
         elif strp_line.startswith(":serial_number"):
-            serial_number = strp_line[1:].split(" = ")[1].replace("\"", "")
+            serial_number = strp_line[1:].split(" = ")[1].replace('"', "")
         elif strp_line.startswith(":ptt"):
-            ptt = strp_line[1:].split(" = ")[1].replace("\"", "")
+            ptt = strp_line[1:].split(" = ")[1].replace('"', "")
         elif strp_line.startswith(":platform"):
-            platform = strp_line[1:].split(" = ")[1].replace("\"", "")
+            platform = strp_line[1:].split(" = ")[1].replace('"', "")
+        elif strp_line.startswith(":referencetrack_included"):
+            referencetrack_included = strp_line[1:].split(" = ")[1].replace('"', "")
     return (
         instrument_name,
         serial_number,
         ptt,
         platform,
+        referencetrack_included,
     )
 
 
@@ -268,10 +270,16 @@ def process_etuff_file(file, version=None, notes=None):
                 serial_number,
                 ptt,
                 platform,
+                referencetrack_included,
             ) = get_dataset_elements(submission_filename)
 
             dataset_id = get_dataset_id(
                 cur, instrument_name, serial_number, ptt, platform
+            )
+            logger.info(
+                "Successfully reserved dataset_id: '%s' for '%s'.",
+                dataset_id,
+                submission_filename,
             )
 
             tag_id = get_tag_id(cur, dataset_id)

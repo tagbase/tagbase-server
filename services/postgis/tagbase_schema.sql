@@ -175,8 +175,7 @@ CREATE TABLE data_position (
     submission_id bigint NOT NULL,
     tag_id bigint NOT NULL,
     argos_location_class character varying(1),
-    solution_id integer NOT NULL DEFAULT 1,
-    flag_as_reference integer NOT NULL DEFAULT 0
+    flag_as_reference boolean NOT NULL DEFAULT False
 );
 
 
@@ -228,7 +227,7 @@ COMMENT ON COLUMN data_position.lon_err IS 'Error associated with the tag record
 -- Name: COLUMN data_position.submission_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_position.submission_id IS 'Unique numeric ID assigned upon submission of a tag eTUFF data file for ingest/importation into Tagbase';
+COMMENT ON COLUMN data_position.submission_id IS 'PROXY FOR SUBMISSION - Unique numeric ID assigned upon submission of a tag eTUFF data file for ingest/importation into Tagbase';
 
 
 --
@@ -248,17 +247,10 @@ https://www.argos-system.org/wp-content/uploads/2016/08/r363_9_argos_users_manua
 
 
 --
--- Name: COLUMN data_position.solution_id; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN data_position.solution_id IS 'Unique numeric identifier for a given tag geolocation dataset solution. solution_id=1 is assigned to the primary or approved solution. Incremented solution_id''s assigned to other positional dataset solutions for a given tag_id and submission_id';
-
-
---
 -- Name: COLUMN data_position.flag_as_reference; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_position.flag_as_reference IS 'Integer (representing psudo boolean value) flag field which identifies whether positional data associated with a given Tag and Track solution are considered to be coordinates of the "Reference" track (ie. best solution currently). Coordinate record takes 1 if it is part of the Reference track or 0 if it is not.';
+COMMENT ON COLUMN data_position.flag_as_reference IS 'Identifies whether positional data associated with a given Tag and Track solution are considered to be coordinates of the "Reference" track (ie. best solution currently). The coordinate record makes used of pseudo-boolean values of 1 if it is part of the Reference track or 0 if it is not.';
 
 --
 -- Name: data_profile; Type: TABLE; Schema: public; Owner: postgres
@@ -897,7 +889,7 @@ ALTER TABLE ONLY data_histogram_bin_info
 --
 
 ALTER TABLE ONLY data_position
-    ADD CONSTRAINT data_position_pkey PRIMARY KEY (submission_id, tag_id, solution_id, date_time) WITH (fillfactor='100');
+    ADD CONSTRAINT data_position_pkey PRIMARY KEY (submission_id, tag_id, date_time) WITH (fillfactor='100');
 
 
 --
@@ -1003,7 +995,7 @@ CREATE INDEX data_position_date_time ON data_position USING btree (date_time);
 -- Name: data_position_latlontime_index; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX data_position_latlontime_index ON data_position USING btree (submission_id, tag_id, solution_id, date_time, lat, lon, argos_location_class) WITH (fillfactor='100');
+CREATE INDEX data_position_latlontime_index ON data_position USING btree (submission_id, tag_id, date_time, lat, lon, argos_location_class) WITH (fillfactor='100');
 
 
 --
