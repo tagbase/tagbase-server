@@ -161,10 +161,6 @@ def insert_new_submission(
             dataset_id,
         ),
     )
-    logger.info(
-        "Successful INSERT of '%s' into 'submission' table.",
-        submission_filename,
-    )
 
     cur.execute("SELECT currval('submission_submission_id_seq')")
     submission_id = cur.fetchone()[0]

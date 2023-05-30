@@ -93,6 +93,8 @@ def get_tag(tag_id):  # noqa: E501
                         "filename": row[3],
                         "version": row[4],
                         "notes": row[5],
+                        "hash_sha256": row[6],
+                        "dataset_id": row[7],
                         "metadata": meta_dict,
                     }
                 )
