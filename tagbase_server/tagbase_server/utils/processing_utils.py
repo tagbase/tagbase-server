@@ -447,6 +447,9 @@ def process_etuff_file(file, version=None, notes=None):
             )
             try:
                 cur.copy_from(buffer, "proc_observations", sep=",")
+                cur.execute(
+                    "CALL sp_execute_data_migration(%s, %s);", (int(submission_id), int(referencetrack_included))
+                )
             except (Exception, psycopg2.DatabaseError) as error:
                 logger.error("Error: %s", error)
                 conn.rollback()
