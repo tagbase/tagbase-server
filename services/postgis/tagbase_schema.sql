@@ -1384,7 +1384,6 @@ $$;
  CREATE PROCEDURE sp_execute_data_migration(submission_id_param integer, is_reference_track_param integer)
  LANGUAGE SQL
  AS $BODY$
-   BEGIN
      --\connect tagbase
      -- data_time_series
      WITH moved_rows AS
@@ -1615,6 +1614,5 @@ $$;
         ORDER BY data_position.date_time DESC
         LIMIT 1)
      WHERE position_date_time IS NULL;
-   END;
  $BODY$;
 

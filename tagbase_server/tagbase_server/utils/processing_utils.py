@@ -216,20 +216,26 @@ def get_dataset_elements(submission_filename):
             lambda: data.readline().decode("utf-8", "ignore").rstrip(), "// data:"
         ):
             raw_global_attributes.append(line)
+    instrument_name = "unknown"
+    serial_number = "unknown"
+    ppt = "unknown"
+    platform = "unknown"
+    referencetrack_included = "0"
     for line in raw_global_attributes:
         strp_line = line.strip()
         if strp_line.startswith("//"):
             continue
-        elif strp_line.startswith(":instrument_name"):
-            instrument_name = strp_line[1:].split(" = ")[1].replace('"', "")
+        value = strp_line[1:].split(" = ")[1].replace('"', "")
+        if strp_line.startswith(":instrument_name"):
+            instrument_name = value
         elif strp_line.startswith(":serial_number"):
-            serial_number = strp_line[1:].split(" = ")[1].replace('"', "")
+            serial_number = value
         elif strp_line.startswith(":ptt"):
-            ptt = strp_line[1:].split(" = ")[1].replace('"', "")
+            ptt = value
         elif strp_line.startswith(":platform"):
-            platform = strp_line[1:].split(" = ")[1].replace('"', "")
+            platform = value
         elif strp_line.startswith(":referencetrack_included"):
-            referencetrack_included = strp_line[1:].split(" = ")[1].replace('"', "")
+            referencetrack_included = value
     return (
         instrument_name,
         serial_number,
@@ -447,6 +453,7 @@ def process_etuff_file(file, version=None, notes=None):
             )
             try:
                 cur.copy_from(buffer, "proc_observations", sep=",")
+                logger.debug("Executing sp_execute_data_migration(%d, %d);", int(submission_id), int(referencetrack_included))
                 cur.execute(
                     "CALL sp_execute_data_migration(%s, %s);", (int(submission_id), int(referencetrack_included))
                 )
