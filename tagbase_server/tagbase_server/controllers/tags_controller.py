@@ -41,7 +41,7 @@ def delete_tag(tag_id):  # noqa: E501
     conn = connect()
     with conn:
         with conn.cursor() as cur:
-            cur.execute("CALL sp_delete_tag(%s);", (int(tag_id)))
+            cur.execute("CALL sp_delete_tag(%s);", (tag_id,))
 
 
 def delete_tags():  # noqa: E501
@@ -75,17 +75,19 @@ def get_tag(tag_id):  # noqa: E501
                 "SELECT * FROM submission WHERE tag_id = %s ORDER BY submission_id",
                 (tag_id,),
             )
-            results = cur.fetchall()
-            tags = []
-            for row in results:
+            subs_results = cur.fetchall()
+            subs = []
+            for row in subs_results:
                 cur.execute(
                     "SELECT mt.attribute_name, md.attribute_value FROM metadata_types mt, metadata md "
                     "WHERE md.attribute_id = mt.attribute_id;"
                 )
                 meta_dict = {}
-                for md_row in cur.fetchall():
-                    meta_dict[md_row[0]] = md_row[1].strip('"')
-                tags.append(
+                md_results = cur.fetchall()
+                logger.info(md_results)
+                for md_row in md_results:
+                    meta_dict[md_row[0]] = md_row[1]
+                subs.append(
                     {
                         "submission_id": row[0],
                         "tag_id": row[1],
@@ -98,7 +100,7 @@ def get_tag(tag_id):  # noqa: E501
                         "metadata": meta_dict,
                     }
                 )
-            return Tag200.from_dict({"tag": tags})
+            return Tag200.from_dict({"tag": subs})
 
 
 def list_tags():  # noqa: E501

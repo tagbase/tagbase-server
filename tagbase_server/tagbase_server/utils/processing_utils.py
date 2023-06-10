@@ -235,7 +235,7 @@ def get_dataset_elements(submission_filename):
         elif strp_line.startswith(":platform"):
             platform = value
         elif strp_line.startswith(":referencetrack_included"):
-            referencetrack_included = value
+            referencetrack_included = int(value)
     return (
         instrument_name,
         serial_number,
@@ -405,7 +405,7 @@ def process_etuff_file(file, version=None, notes=None):
                 a = x[0]
                 b = x[1]
                 c = x[2]
-                mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, str(c), tag_id))
+                mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, str(c).strip('"'), tag_id))
                 cur.execute(
                     "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES "
                     + mog.decode("utf-8")
@@ -449,13 +449,18 @@ def process_etuff_file(file, version=None, notes=None):
             # copy buffer to db
             s_time = time.perf_counter()
             logger.info(
-                "Copying memory buffer to 'proc_observations' and executing 'data_migration' TRIGGER."
+                "Copying memory buffer to 'proc_observations' and executing data migration."
             )
             try:
                 cur.copy_from(buffer, "proc_observations", sep=",")
-                logger.debug("Executing sp_execute_data_migration(%d, %d);", int(submission_id), int(referencetrack_included))
+                ref = bool(referencetrack_included)
+                logger.debug(
+                    "Executing sp_execute_data_migration(%s, %s);",
+                    int(submission_id),
+                    ref,
+                )
                 cur.execute(
-                    "CALL sp_execute_data_migration(%s, %s);", (int(submission_id), int(referencetrack_included))
+                    "CALL sp_execute_data_migration(%s, %s);", (int(submission_id), ref)
                 )
             except (Exception, psycopg2.DatabaseError) as error:
                 logger.error("Error: %s", error)
