@@ -6,7 +6,7 @@ import sys
 from setuptools import setup, find_packages
 
 NAME = "tagbase_server"
-VERSION = "v0.12.0"
+VERSION = "v0.13.0"
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
