@@ -80,11 +80,11 @@ def get_tag(tag_id):  # noqa: E501
             for row in subs_results:
                 cur.execute(
                     "SELECT mt.attribute_name, md.attribute_value FROM metadata_types mt, metadata md "
-                    "WHERE md.attribute_id = mt.attribute_id;"
+                    "WHERE md.attribute_id = mt.attribute_id AND md.submission_id = %s;",
+                    (row[0],),
                 )
                 meta_dict = {}
                 md_results = cur.fetchall()
-                logger.info(md_results)
                 for md_row in md_results:
                     meta_dict[md_row[0]] = md_row[1]
                 subs.append(
