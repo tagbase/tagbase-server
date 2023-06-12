@@ -85,9 +85,20 @@ def process_global_attributes(lines, cur, submission_id, metadata, submission_fi
     return processed_lines - 1 if processed_lines > 0 else 0
 
 
-def get_tag_id(cur, submission_filename):
-    sql_query = "SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) FROM submission WHERE filename = '{}'".format(
-        submission_filename
+def get_tag_id(cur, dataset_id):
+    """
+    Retrieve a 'tag_id' for a submission by performing a lookup on the 'dataset_id'.
+    If an entry exists for the dataset then grab the existing associated tag_id. If not,
+    create a new tag_id.
+
+    :param cur: A database cursor
+    :type cur: cursor connection
+
+    :param dataset_id: Dataset ID as described above.
+    :type dataset_id: str
+    """
+    sql_query = "SELECT COALESCE(MAX(tag_id), NEXTVAL('submission_tag_id_seq')) FROM submission WHERE dataset_id = '{}'".format(
+        dataset_id
     )
     logger.debug("Executing: %s", sql_query)
     cur.execute(sql_query)
@@ -96,11 +107,50 @@ def get_tag_id(cur, submission_filename):
     return result
 
 
+def get_dataset_id(cur, instrument_name, serial_number, ptt, platform):
+    """
+    Retreive or create a dataset entry for a submission. If a dataset entry exists then grab the existing
+    id, if not, create a new one.
+
+    :param cur: A database cursor
+    :type cur: cursor connection
+
+    :param instrument_name: A unique instrument name, made clear to the end user that it is the primary identifier, e.g., iccat_gbyp0008
+    :type instrument_name: str
+
+    :param serial_number: A the device internal ID, e.g., 18P0201
+    :type serial_number: str
+
+    :param ptt: A satellite platform ID, e.g., 62342
+    :type ptt: str
+
+    :param platform: The species code/common name on which the device was deployed, e.g., Thunnus thynnus
+    :type platform: str
+    """
+    cur.execute(
+        "SELECT COALESCE(MAX(dataset_id), NEXTVAL('dataset_dataset_id_seq')) FROM dataset WHERE instrument_name = '{}' AND serial_number = '{}' AND ptt = '{}' AND platform = '{}'".format(
+            instrument_name, serial_number, ptt, platform
+        )
+    )
+    dataset_id = cur.fetchone()[0]
+    logger.debug("Result: %s", dataset_id)
+    cur.execute(
+        "INSERT INTO dataset (dataset_id, instrument_name, serial_number, ptt, platform) VALUES ('{}', '{}', '{}', '{}', '{}') ON CONFLICT DO NOTHING".format(
+            dataset_id, instrument_name, serial_number, ptt, platform
+        )
+    )
+    logger.debug(
+        "Successful INSERT of '%s' into 'dataset' table.",
+        dataset_id,
+    )
+    return dataset_id
+
+
 def insert_new_submission(
-    cur, tag_id, submission_filename, notes, version, hash_sha256
+    cur, tag_id, submission_filename, notes, version, hash_sha256, dataset_id
 ):
     cur.execute(
-        "INSERT INTO submission (tag_id, filename, date_time, notes, version, hash_sha256) VALUES (%s, %s, %s, %s, %s, %s)",
+        "INSERT INTO submission (tag_id, filename, date_time, notes, version, hash_sha256, dataset_id) VALUES (%s, %s, %s, %s, %s, %s, %s)",
         (
             tag_id,
             submission_filename,
@@ -108,11 +158,8 @@ def insert_new_submission(
             notes,
             version,
             hash_sha256,
+            dataset_id,
         ),
-    )
-    logger.info(
-        "Successful INSERT of '%s' into 'submission' table.",
-        submission_filename,
     )
 
     cur.execute("SELECT currval('submission_submission_id_seq')")
@@ -154,6 +201,50 @@ def detect_duplicate(cursor, hash_sha256):
         return False
 
 
+def get_dataset_elements(submission_filename):
+    """
+    Extract 'instrument_name', 'serial_number', 'ptt', 'platform',
+    'referencetrack_included' and values from
+    global attributes.
+
+    :param submission_filename: The file from which we wish to extract certain global attributes
+    :type submission_filename: str
+    """
+    raw_global_attributes = []
+    with open(submission_filename, "rb") as data:
+        for line in iter(
+            lambda: data.readline().decode("utf-8", "ignore").rstrip(), "// data:"
+        ):
+            raw_global_attributes.append(line)
+    instrument_name = "unknown"
+    serial_number = "unknown"
+    ppt = "unknown"
+    platform = "unknown"
+    referencetrack_included = "0"
+    for line in raw_global_attributes:
+        strp_line = line.strip()
+        if strp_line.startswith("//"):
+            continue
+        value = strp_line[1:].split(" = ")[1].replace('"', "")
+        if strp_line.startswith(":instrument_name"):
+            instrument_name = value
+        elif strp_line.startswith(":serial_number"):
+            serial_number = value
+        elif strp_line.startswith(":ptt"):
+            ptt = value
+        elif strp_line.startswith(":platform"):
+            platform = value
+        elif strp_line.startswith(":referencetrack_included"):
+            referencetrack_included = int(value)
+    return (
+        instrument_name,
+        serial_number,
+        ptt,
+        platform,
+        referencetrack_included,
+    )
+
+
 def process_etuff_file(file, version=None, notes=None):
     start = time.perf_counter()
     submission_filename = file  # full path name is now preferred rather than - file[file.rindex("/") + 1 :]
@@ -176,10 +267,33 @@ def process_etuff_file(file, version=None, notes=None):
                 )
                 return 1
 
-            tag_id = get_tag_id(cur, submission_filename)
+            (
+                instrument_name,
+                serial_number,
+                ptt,
+                platform,
+                referencetrack_included,
+            ) = get_dataset_elements(submission_filename)
+
+            dataset_id = get_dataset_id(
+                cur, instrument_name, serial_number, ptt, platform
+            )
+            logger.info(
+                "Successfully reserved dataset_id: '%s' for '%s'.",
+                dataset_id,
+                submission_filename,
+            )
+
+            tag_id = get_tag_id(cur, dataset_id)
 
             submission_id = insert_new_submission(
-                cur, tag_id, submission_filename, notes, version, hash_sha256
+                cur,
+                tag_id,
+                submission_filename,
+                notes,
+                version,
+                hash_sha256,
+                dataset_id,
             )
             logger.info(
                 "Successful INSERT of '%s' into 'submission' table.",
@@ -291,7 +405,7 @@ def process_etuff_file(file, version=None, notes=None):
                 a = x[0]
                 b = x[1]
                 c = x[2]
-                mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, str(c), tag_id))
+                mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, str(c).strip('"'), tag_id))
                 cur.execute(
                     "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES "
                     + mog.decode("utf-8")
@@ -335,10 +449,19 @@ def process_etuff_file(file, version=None, notes=None):
             # copy buffer to db
             s_time = time.perf_counter()
             logger.info(
-                "Copying memory buffer to 'proc_observations' and executing 'data_migration' TRIGGER."
+                "Copying memory buffer to 'proc_observations' and executing data migration."
             )
             try:
                 cur.copy_from(buffer, "proc_observations", sep=",")
+                ref = bool(referencetrack_included)
+                logger.debug(
+                    "Executing sp_execute_data_migration(%s, %s);",
+                    int(submission_id),
+                    ref,
+                )
+                cur.execute(
+                    "CALL sp_execute_data_migration(%s, %s);", (int(submission_id), ref)
+                )
             except (Exception, psycopg2.DatabaseError) as error:
                 logger.error("Error: %s", error)
                 conn.rollback()

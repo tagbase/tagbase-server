@@ -17,8 +17,10 @@ class TagSubmission(Model):
 
     def __init__(
         self,
+        dataset_id=None,
         date_time=None,
         filename=None,
+        hash_sha256=None,
         metadata=None,
         notes=None,
         submission_id=None,
@@ -27,10 +29,14 @@ class TagSubmission(Model):
     ):  # noqa: E501
         """TagSubmission - a model defined in OpenAPI
 
+        :param dataset_id: The dataset_id of this TagSubmission.  # noqa: E501
+        :type dataset_id: int
         :param date_time: The date_time of this TagSubmission.  # noqa: E501
         :type date_time: str
         :param filename: The filename of this TagSubmission.  # noqa: E501
         :type filename: str
+        :param hash_sha256: The hash_sha256 of this TagSubmission.  # noqa: E501
+        :type hash_sha256: str
         :param metadata: The metadata of this TagSubmission.  # noqa: E501
         :type metadata: Dict[str, str]
         :param notes: The notes of this TagSubmission.  # noqa: E501
@@ -43,8 +49,10 @@ class TagSubmission(Model):
         :type version: str
         """
         self.openapi_types = {
+            "dataset_id": int,
             "date_time": str,
             "filename": str,
+            "hash_sha256": str,
             "metadata": Dict[str, str],
             "notes": str,
             "submission_id": int,
@@ -53,8 +61,10 @@ class TagSubmission(Model):
         }
 
         self.attribute_map = {
+            "dataset_id": "dataset_id",
             "date_time": "date_time",
             "filename": "filename",
+            "hash_sha256": "hash_sha256",
             "metadata": "metadata",
             "notes": "notes",
             "submission_id": "submission_id",
@@ -62,8 +72,10 @@ class TagSubmission(Model):
             "version": "version",
         }
 
+        self._dataset_id = dataset_id
         self._date_time = date_time
         self._filename = filename
+        self._hash_sha256 = hash_sha256
         self._metadata = metadata
         self._notes = notes
         self._submission_id = submission_id
@@ -80,6 +92,29 @@ class TagSubmission(Model):
         :rtype: TagSubmission
         """
         return util.deserialize_model(dikt, cls)
+
+    @property
+    def dataset_id(self):
+        """Gets the dataset_id of this TagSubmission.
+
+        The primary key from the Dataset relation  # noqa: E501
+
+        :return: The dataset_id of this TagSubmission.
+        :rtype: int
+        """
+        return self._dataset_id
+
+    @dataset_id.setter
+    def dataset_id(self, dataset_id):
+        """Sets the dataset_id of this TagSubmission.
+
+        The primary key from the Dataset relation  # noqa: E501
+
+        :param dataset_id: The dataset_id of this TagSubmission.
+        :type dataset_id: int
+        """
+
+        self._dataset_id = dataset_id
 
     @property
     def date_time(self):
@@ -126,6 +161,29 @@ class TagSubmission(Model):
         """
 
         self._filename = filename
+
+    @property
+    def hash_sha256(self):
+        """Gets the hash_sha256 of this TagSubmission.
+
+        SHA256 hash representing the contents of the submission eTUFF file  # noqa: E501
+
+        :return: The hash_sha256 of this TagSubmission.
+        :rtype: str
+        """
+        return self._hash_sha256
+
+    @hash_sha256.setter
+    def hash_sha256(self, hash_sha256):
+        """Sets the hash_sha256 of this TagSubmission.
+
+        SHA256 hash representing the contents of the submission eTUFF file  # noqa: E501
+
+        :param hash_sha256: The hash_sha256 of this TagSubmission.
+        :type hash_sha256: str
+        """
+
+        self._hash_sha256 = hash_sha256
 
     @property
     def metadata(self):
