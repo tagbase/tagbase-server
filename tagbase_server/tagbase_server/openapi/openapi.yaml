@@ -538,8 +538,10 @@ components:
       description: Information for a given tag
       example:
         tag:
-        - date_time: 2022-04-01T04:58:21.319061+00:00
+        - dataset_id: 1
+          date_time: 2022-04-01T04:58:21.319061+00:00
           filename: eTUFF-sailfish-117259_2.txt
+          hash_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b977
           metadata:
             person_owner: John Do
             owner_contect: john@do.net
@@ -550,8 +552,10 @@ components:
           submission_id: 5
           tag_id: 3
           version: "1"
-        - date_time: 2022-06-01T05:39:46.896088+00:00
+        - dataset_id: 1
+          date_time: 2022-06-01T05:39:46.896088+00:00
           filename: eTUFF-sailfish-117259_2.txt
+          hash_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
           metadata:
             person_owner: Jane Do
             owner_contect: jane@do.net
@@ -611,6 +615,11 @@ components:
       type: object
     TagSubmission:
       properties:
+        dataset_id:
+          description: The primary key from the Dataset relation
+          example: 1
+          title: dataset_id
+          type: integer
         date_time:
           description: Local datetime stamp at the time of eTUFF tag data file ingestion
           example: 2022-04-01T04:58:21.319061+00:00
@@ -620,6 +629,12 @@ components:
           description: Full name and extension of the ingested eTUFF tag data file
           example: eTUFF-sailfish-117259_2.txt
           title: filename
+          type: string
+        hash_sha256:
+          description: SHA256 hash representing the contents of the submission eTUFF
+            file
+          example: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+          title: hash_sha256
           type: string
         metadata:
           additionalProperties:

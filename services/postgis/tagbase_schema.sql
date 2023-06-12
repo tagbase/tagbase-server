@@ -175,8 +175,7 @@ CREATE TABLE data_position (
     submission_id bigint NOT NULL,
     tag_id bigint NOT NULL,
     argos_location_class character varying(1),
-    solution_id integer NOT NULL DEFAULT 1,
-    flag_as_reference integer NOT NULL DEFAULT 0
+    flag_as_reference boolean NOT NULL DEFAULT False
 );
 
 
@@ -228,7 +227,7 @@ COMMENT ON COLUMN data_position.lon_err IS 'Error associated with the tag record
 -- Name: COLUMN data_position.submission_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_position.submission_id IS 'Unique numeric ID assigned upon submission of a tag eTUFF data file for ingest/importation into Tagbase';
+COMMENT ON COLUMN data_position.submission_id IS 'PROXY FOR SUBMISSION - Unique numeric ID assigned upon submission of a tag eTUFF data file for ingest/importation into Tagbase';
 
 
 --
@@ -248,17 +247,10 @@ https://www.argos-system.org/wp-content/uploads/2016/08/r363_9_argos_users_manua
 
 
 --
--- Name: COLUMN data_position.solution_id; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN data_position.solution_id IS 'Unique numeric identifier for a given tag geolocation dataset solution. solution_id=1 is assigned to the primary or approved solution. Incremented solution_id''s assigned to other positional dataset solutions for a given tag_id and submission_id';
-
-
---
 -- Name: COLUMN data_position.flag_as_reference; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN data_position.flag_as_reference IS 'Integer (representing psudo boolean value) flag field which identifies whether positional data associated with a given Tag and Track solution are considered to be coordinates of the "Reference" track (ie. best solution currently). Coordinate record takes 1 if it is part of the Reference track or 0 if it is not.';
+COMMENT ON COLUMN data_position.flag_as_reference IS 'Identifies whether positional data associated with a given Tag and Track solution are considered to be coordinates of the "Reference" track (ie. best solution currently). The coordinate record makes used of pseudo-boolean values of 1 if it is part of the Reference track or 0 if it is not.';
 
 --
 -- Name: data_profile; Type: TABLE; Schema: public; Owner: postgres
@@ -445,63 +437,6 @@ COMMENT ON COLUMN metadata.attribute_value IS 'Value associated with the given e
 --
 
 COMMENT ON COLUMN metadata.tag_id IS 'Unique numeric Tag ID associated with the ingested tag data file';
-
-
---
--- Name: metadata_position; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE metadata_position (
-    submission_id bigint NOT NULL,
-    attribute_id bigint NOT NULL,
-    attribute_value text NOT NULL,
-    tag_id bigint NOT NULL,
-    solution_id integer NOT NULL DEFAULT 1
-);
-
-
-ALTER TABLE metadata_position OWNER TO postgres;
-
---
--- Name: TABLE metadata_position; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON TABLE metadata_position IS 'Contains the ingested tag metadata consistent with the eTUFF specification';
-
-
---
--- Name: COLUMN metadata_position.submission_id; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN metadata_position.submission_id IS 'Unique numeric ID assigned upon submission of a tag eTUFF data file for ingest/importation into Tagbase';
-
-
---
--- Name: COLUMN metadata_position.attribute_id; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN metadata_position.attribute_id IS 'Unique numeric metadata attribute ID based on the eTUFF metadata specification';
-
-
---
--- Name: COLUMN metadata_position.attribute_value; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN metadata_position.attribute_value IS 'Value associated with the given eTUFF metadata attribute';
-
-
---
--- Name: COLUMN metadata_position.tag_id; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN metadata_position.tag_id IS 'Unique numeric Tag ID associated with the ingested tag data file';
-
-
---
--- Name: COLUMN metadata_position.solution_id; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN metadata_position.solution_id IS 'Unique numeric identifier for a given tag geolocation dataset solution. solution_id=1 is assigned to the primary or approved solution. Incremented solution_id''s assigned to other positional dataset solutions for a given tag_id and submission_id';
 
 
 --
@@ -727,6 +662,50 @@ COMMENT ON COLUMN proc_observations.submission_id IS 'Unique numeric ID assigned
 
 COMMENT ON COLUMN proc_observations.tag_id IS 'Unique numeric Tag ID associated with the ingested tag data file';
 
+CREATE TABLE dataset (
+    dataset_id bigint NOT NULL,
+    instrument_name character varying(50),
+    serial_number character varying(50),
+    ptt character varying(50),
+    platform character varying(50)
+);
+
+ALTER TABLE dataset OWNER TO postgres;
+
+
+COMMENT ON COLUMN dataset.dataset_id IS 'Unique numeric ID assigned upon insertion of the other unique attributes belonging to this entity';
+COMMENT ON COLUMN dataset.instrument_name IS 'A unique instrument name, made clear to the end user that it is the primary identifier, e.g., iccat_gbyp0008';
+COMMENT ON COLUMN dataset.serial_number IS 'A the device internal ID, e.g., 18P0201';
+COMMENT ON COLUMN dataset.ptt IS 'A satellite platform ID, e.g., 62342';
+COMMENT ON COLUMN dataset.platform IS 'The species code/common name on which the device was deployed, e.g., Thunnus thynnus';
+
+--
+-- Name: TABLE dataset; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE dataset IS 'Contains the attributes for defining a dataset';
+
+--
+-- Name: dataset_dataset_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE dataset_dataset_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE dataset_dataset_id_seq OWNER TO postgres;
+
+--
+-- Name: dataset_dataset_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE dataset_dataset_id_seq OWNED BY dataset.dataset_id;
+
+ALTER TABLE ONLY dataset ALTER COLUMN dataset_id SET DEFAULT nextval('dataset_dataset_id_seq'::regclass);
 
 --
 -- Name: submission; Type: TABLE; Schema: public; Owner: postgres
@@ -739,7 +718,8 @@ CREATE TABLE submission (
     filename text NOT NULL,
     version character varying(50),
     notes text,
-    hash_sha256 character varying(64) NOT NULL
+    hash_sha256 character varying(64) NOT NULL,
+    dataset_id bigint NOT NULL
 );
 
 
@@ -802,6 +782,13 @@ COMMENT ON COLUMN submission.hash_sha256 IS 'SHA256 hash representing the conten
 
 
 --
+-- Name: COLUMN submission.dataset_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN submission.dataset_id IS 'The primary key from the Dataset relation';
+
+
+--
 -- Name: submission_submission_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -850,78 +837,6 @@ ALTER TABLE ONLY observation_types ALTER COLUMN variable_id SET DEFAULT nextval(
 --
 
 ALTER TABLE ONLY submission ALTER COLUMN submission_id SET DEFAULT nextval('submission_submission_id_seq'::regclass);
-
-
---
--- Data for Name: data_histogram_bin_data; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY data_histogram_bin_data (submission_id, tag_id, bin_id, bin_class, date_time, variable_value, position_date_time, variable_id) FROM stdin;
-\.
-
-
---
--- Data for Name: data_histogram_bin_info; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY data_histogram_bin_info (bin_id, bin_class, min_value, max_value, variable_id) FROM stdin;
-\.
-
-
---
--- Data for Name: data_position; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY data_position (date_time, lat, lon, lat_err, lon_err, submission_id, tag_id, argos_location_class, solution_id) FROM stdin;
-\.
-
-
---
--- Data for Name: data_profile; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY data_profile (submission_id, tag_id, variable_id, date_time, depth, variable_value, position_date_time) FROM stdin;
-\.
-
-
---
--- Data for Name: data_time_series; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY data_time_series (date_time, variable_id, variable_value, submission_id, tag_id, position_date_time) FROM stdin;
-\.
-
-
---
--- Data for Name: metadata; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY metadata (submission_id, attribute_id, attribute_value, tag_id) FROM stdin;
-\.
-
-
---
--- Data for Name: metadata_position; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY metadata_position (submission_id, attribute_id, attribute_value, tag_id, solution_id) FROM stdin;
-\.
-
-
---
--- Data for Name: proc_observations; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY proc_observations (date_time, variable_id, variable_value, submission_id, tag_id) FROM stdin;
-\.
-
-
---
--- Data for Name: submission; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY submission (submission_id, tag_id, date_time, filename, version, notes) FROM stdin;
-\.
 
 
 --
@@ -974,7 +889,7 @@ ALTER TABLE ONLY data_histogram_bin_info
 --
 
 ALTER TABLE ONLY data_position
-    ADD CONSTRAINT data_position_pkey PRIMARY KEY (submission_id, tag_id, solution_id, date_time) WITH (fillfactor='100');
+    ADD CONSTRAINT data_position_pkey PRIMARY KEY (submission_id, tag_id, date_time) WITH (fillfactor='100');
 
 
 --
@@ -999,14 +914,6 @@ ALTER TABLE ONLY data_time_series
 
 ALTER TABLE ONLY metadata
     ADD CONSTRAINT metadata_pkey PRIMARY KEY (submission_id, attribute_id);
-
-
---
--- Name: metadata_position metadata_pkey01; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY metadata_position
-    ADD CONSTRAINT metadata_pkey01 PRIMARY KEY (submission_id, attribute_id, tag_id, solution_id) WITH (fillfactor='100');
 
 
 --
@@ -1050,6 +957,20 @@ ALTER TABLE ONLY submission
 
 
 --
+-- Name: submission dataset_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY dataset 
+    ADD CONSTRAINT dataset_pkey PRIMARY KEY (dataset_id);
+
+--
+-- Name: data_histogram_bin_data data_histogram_bin_data_submission_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY submission
+    ADD CONSTRAINT submission_dataset_id_fkey FOREIGN KEY (dataset_id) REFERENCES dataset(dataset_id) ON DELETE CASCADE;
+
+--
 -- Name: data_histogram_bin_data_date_time_index; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1074,7 +995,7 @@ CREATE INDEX data_position_date_time ON data_position USING btree (date_time);
 -- Name: data_position_latlontime_index; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX data_position_latlontime_index ON data_position USING btree (submission_id, tag_id, solution_id, date_time, lat, lon, argos_location_class) WITH (fillfactor='100');
+CREATE INDEX data_position_latlontime_index ON data_position USING btree (submission_id, tag_id, date_time, lat, lon, argos_location_class) WITH (fillfactor='100');
 
 
 --
@@ -1186,26 +1107,10 @@ ALTER TABLE ONLY metadata
 
 
 --
--- Name: metadata_position metadata_attribute_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY metadata_position
-    ADD CONSTRAINT metadata_attribute_id_fkey FOREIGN KEY (attribute_id) REFERENCES metadata_types(attribute_id);
-
-
---
 -- Name: metadata metadata_submission_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY metadata
-    ADD CONSTRAINT metadata_submission_id_fkey FOREIGN KEY (submission_id) REFERENCES submission(submission_id) ON DELETE CASCADE;
-
-
---
--- Name: metadata_position metadata_submission_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY metadata_position
     ADD CONSTRAINT metadata_submission_id_fkey FOREIGN KEY (submission_id) REFERENCES submission(submission_id) ON DELETE CASCADE;
 
 
@@ -1244,233 +1149,242 @@ TRUNCATE submission CASCADE
 $$;
 
 --
--- The following TRIGGER ensures that upon ingestion of an eTUFF file into tagbase-server,
--- the data migration procedure is executed. The only remaining manual database administration
--- involves the creation of the materialized views. This can simply be done by executing
--- 'tagbase-materialized-view.sql' in the pgAdmin4 Web application Query Tool.
- CREATE OR REPLACE FUNCTION execute_data_migration() RETURNS trigger AS $BODY$
-   BEGIN
-     --\connect tagbase
-     -- data_time_series
-     WITH moved_rows AS
-       ( DELETE
-        FROM proc_observations a USING submission b,
-                                       observation_types c
-        WHERE c.variable_name IN ('datetime',
-                                  'depth',
-                                  'temperature',
-                                  'light',
-                                  'internal temperature')
-          AND a.submission_id = b.submission_id
-          AND a.variable_id = c.variable_id RETURNING a.date_time,
+-- The following PROCEDURE ensures that data migration (from the proc_observation's
+-- table to other target tables) is executed. f
+CREATE PROCEDURE sp_execute_data_migration(submission_id_param integer, is_reference_track_param boolean)
+LANGUAGE SQL
+AS $BODY$
+ --\connect tagbase
+ -- data_time_series
+ WITH moved_rows AS
+   ( DELETE
+    FROM proc_observations a USING submission b,
+                                   observation_types c
+    WHERE c.variable_name IN ('datetime',
+                              'depth',
+                              'temperature',
+                              'light',
+                              'internal temperature')
+      AND a.submission_id = b.submission_id
+      AND b.submission_id = submission_id_param
+      AND a.variable_id = c.variable_id RETURNING a.date_time,
+                                                  a.variable_id,
+                                                  a.variable_value,
+                                                  a.submission_id,
+                                                  b.tag_id)
+ INSERT INTO data_time_series
+ SELECT *
+ FROM moved_rows;
+ -- -- data_position
+ WITH moved_rows AS
+   ( DELETE
+    FROM proc_observations a USING submission b,
+                                   observation_types c
+    WHERE c.variable_name = 'longitude'
+      AND a.submission_id = b.submission_id
+      AND b.submission_id = submission_id_param
+      AND a.variable_id = c.variable_id RETURNING a.date_time,
+                                                  a.variable_id,
+                                                  a.variable_value,
+                                                  a.submission_id,
+                                                  b.tag_id,
+                                                  cast(('0.0') AS double precision) AS initial_lat,
+                                                  is_reference_track_param)
+ INSERT INTO data_position (date_time, lat, lon, submission_id, tag_id, flag_as_reference)
+ SELECT date_time,
+        initial_lat,
+        variable_value,
+        submission_id,
+        tag_id,
+        is_reference_track_param
+ FROM moved_rows;
+ WITH moved_rows AS
+   ( DELETE
+    FROM proc_observations a USING data_position b,
+                                   observation_types c
+    WHERE a.submission_id = b.submission_id
+      AND b.submission_id = submission_id_param
+      AND a.date_time = b.date_time
+      AND a.variable_id = c.variable_id
+      AND c.variable_name = 'latitude' RETURNING a.date_time,
+                                                 a.variable_id,
+                                                 a.variable_value,
+                                                 a.submission_id)
+ UPDATE data_position
+ SET lat = moved_rows.variable_value
+ FROM moved_rows
+ WHERE data_position.date_time = moved_rows.date_time
+   AND data_position.submission_id = moved_rows.submission_id;
+ WITH moved_rows AS
+   ( DELETE
+    FROM proc_observations a USING data_position b,
+                                   observation_types c
+    WHERE a.submission_id = b.submission_id
+      AND b.submission_id = submission_id_param
+      AND a.date_time = b.date_time
+      AND a.variable_id = c.variable_id
+      AND c.variable_name = 'longitudeError' RETURNING a.date_time,
+                                                 a.variable_id,
+                                                 a.variable_value,
+                                                 a.submission_id)
+ UPDATE data_position
+ SET lon_err = moved_rows.variable_value
+ FROM moved_rows
+ WHERE data_position.date_time = moved_rows.date_time
+   AND data_position.submission_id = moved_rows.submission_id;
+ WITH moved_rows AS
+   ( DELETE
+    FROM proc_observations a USING data_position b,
+                                   observation_types c
+    WHERE a.submission_id = b.submission_id
+      AND b.submission_id = submission_id_param
+      AND a.date_time = b.date_time
+      AND a.variable_id = c.variable_id
+      AND c.variable_name = 'latitudeError' RETURNING a.date_time,
+                                                 a.variable_id,
+                                                 a.variable_value,
+                                                 a.submission_id)
+ UPDATE data_position
+ SET lat_err = moved_rows.variable_value
+ FROM moved_rows
+ WHERE data_position.date_time = moved_rows.date_time
+   AND data_position.submission_id = moved_rows.submission_id;
+ -- -- data_histogram_bin_info
+ WITH moved_rows AS
+   ( DELETE
+    FROM proc_observations a USING observation_types b,
+                                   submission c
+    WHERE a.variable_id = b.variable_id
+      AND b.variable_name LIKE 'HistDepthBinMin%'
+      AND c.submission_id = submission_id_param
+      AND a.submission_id = c.submission_id RETURNING a.submission_id AS bin_id,
+                                               cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
+                                               a.variable_value AS min_value,
+                                               '',
+                                               a.variable_id AS variable_value)
+ INSERT INTO data_histogram_bin_info
+ SELECT *
+ FROM moved_rows ON CONFLICT DO NOTHING;
+ WITH moved_rows AS
+   ( DELETE
+    FROM proc_observations a USING observation_types b,
+                                   submission c
+    WHERE a.variable_id = b.variable_id
+      AND b.variable_name LIKE 'HistDepthBinMax%'
+      AND c.submission_id = submission_id_param
+      AND a.submission_id = c.submission_id RETURNING a.submission_id AS bin_id,
+                                               cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
+                                               a.variable_value AS max_value)
+ UPDATE data_histogram_bin_info
+ SET max_value = moved_rows.max_value
+ FROM moved_rows
+ WHERE data_histogram_bin_info.bin_id = moved_rows.bin_id
+   AND data_histogram_bin_info.bin_class = moved_rows.bin_class;
+ -- data_histogram_bin_data
+ WITH moved_rows AS
+   ( DELETE
+    FROM proc_observations a USING observation_types b,
+                                   submission c,
+                                   data_time_series d
+    WHERE a.variable_id = b.variable_id
+      AND b.variable_name LIKE 'TimeAt%'
+      AND c.submission_id = submission_id_param
+      AND a.submission_id = c.submission_id RETURNING a.submission_id,
+                                                       c.tag_id,
+                                                       a.submission_id AS bin_id,
+                                                       cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
+                                                       a.date_time,
+                                                       a.variable_value,
+                                                       d.position_date_time,
+                                                       a.variable_id)
+ INSERT INTO data_histogram_bin_data
+ SELECT *
+ FROM moved_rows;
+ -- data_profile
+ WITH moved_rows AS
+   ( DELETE
+    FROM proc_observations a USING observation_types b,
+                                   submission c
+    WHERE a.variable_id = b.variable_id
+      AND b.variable_name LIKE 'PdtDepth%'
+      AND c.submission_id = submission_id_param
+      AND a.submission_id = c.submission_id RETURNING a.submission_id,
+                                                      c.tag_id,
+                                                      a.variable_id,
+                                                      a.date_time,
+                                                      a.variable_value)
+ INSERT INTO data_profile (submission_id, tag_id, variable_id, date_time, depth)
+ SELECT submission_id,
+        tag_id,
+        variable_id,
+        date_time,
+        variable_value
+ FROM moved_rows;
+ WITH moved_rows AS
+   ( DELETE
+    FROM proc_observations a USING observation_types b,
+                                   data_profile c,
+                                   submission e
+    WHERE a.variable_id = b.variable_id
+      AND b.variable_name LIKE 'PdtTempMin%'
+      AND a.submission_id = c.submission_id
+      AND a.date_time = c.date_time
+      AND e.submission_id = submission_id_param
+      AND e.submission_id = a.submission_id RETURNING a.date_time,
+                                                      a.variable_id,
+                                                      a.variable_value AS variable_value,
+                                                      a.submission_id)
+ UPDATE data_profile
+ SET variable_value = moved_rows.variable_value
+ FROM moved_rows
+ WHERE data_profile.date_time = moved_rows.date_time
+   AND data_profile.submission_id = moved_rows.submission_id;
+ WITH moved_rows AS
+   ( DELETE
+    FROM proc_observations a USING observation_types b,
+                                   data_profile c,
+                                   submission e
+    WHERE a.variable_id = b.variable_id
+      AND b.variable_name LIKE 'PdtTempMax%'
+      AND a.submission_id = c.submission_id
+      AND a.date_time = c.date_time
+      AND e.submission_id = submission_id_param
+      AND e.submission_id = a.submission_id RETURNING a.date_time,
                                                       a.variable_id,
                                                       a.variable_value,
-                                                      a.submission_id,
-                                                      b.tag_id)
-     INSERT INTO data_time_series
-     SELECT *
-     FROM moved_rows;
-     -- -- data_position
-     WITH moved_rows AS
-       ( DELETE
-        FROM proc_observations a USING submission b,
-                                       observation_types c
-        WHERE c.variable_name = 'longitude'
-          AND a.submission_id = b.submission_id
-          AND a.variable_id = c.variable_id RETURNING a.date_time,
-                                                      a.variable_id,
-                                                      a.variable_value,
-                                                      a.submission_id,
-                                                      b.tag_id,
-                                                      cast(('0.0') AS double precision) AS initial_lat)
-     INSERT INTO data_position (date_time, lat, lon, submission_id, tag_id)
-     SELECT date_time,
-            initial_lat,
-            variable_value,
-            submission_id,
-            tag_id
-     FROM moved_rows;
-     WITH moved_rows AS
-       ( DELETE
-        FROM proc_observations a USING data_position b,
-                                       observation_types c
-        WHERE a.submission_id = b.submission_id
-          AND a.date_time = b.date_time
-          AND a.variable_id = c.variable_id
-          AND c.variable_name = 'latitude' RETURNING a.date_time,
-                                                     a.variable_id,
-                                                     a.variable_value,
-                                                     a.submission_id)
-     UPDATE data_position
-     SET lat = moved_rows.variable_value
-     FROM moved_rows
-     WHERE data_position.date_time = moved_rows.date_time
-       AND data_position.submission_id = moved_rows.submission_id;
-     WITH moved_rows AS
-       ( DELETE
-        FROM proc_observations a USING data_position b,
-                                       observation_types c
-        WHERE a.submission_id = b.submission_id
-          AND a.date_time = b.date_time
-          AND a.variable_id = c.variable_id
-          AND c.variable_name = 'longitudeError' RETURNING a.date_time,
-                                                     a.variable_id,
-                                                     a.variable_value,
-                                                     a.submission_id)
-     UPDATE data_position
-     SET lon_err = moved_rows.variable_value
-     FROM moved_rows
-     WHERE data_position.date_time = moved_rows.date_time
-       AND data_position.submission_id = moved_rows.submission_id;
-     WITH moved_rows AS
-       ( DELETE
-        FROM proc_observations a USING data_position b,
-                                       observation_types c
-        WHERE a.submission_id = b.submission_id
-          AND a.date_time = b.date_time
-          AND a.variable_id = c.variable_id
-          AND c.variable_name = 'latitudeError' RETURNING a.date_time,
-                                                     a.variable_id,
-                                                     a.variable_value,
-                                                     a.submission_id)
-     UPDATE data_position
-     SET lat_err = moved_rows.variable_value
-     FROM moved_rows
-     WHERE data_position.date_time = moved_rows.date_time
-       AND data_position.submission_id = moved_rows.submission_id;
-     -- -- data_histogram_bin_info
-     WITH moved_rows AS
-       ( DELETE
-        FROM proc_observations a USING observation_types b,
-                                       submission c
-        WHERE a.variable_id = b.variable_id
-          AND b.variable_name LIKE 'HistDepthBinMin%'
-          AND a.submission_id = c.submission_id RETURNING a.submission_id AS bin_id,
-                                                   cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
-                                                   a.variable_value AS min_value,
-                                                   '',
-                                                   a.variable_id AS variable_value)
-     INSERT INTO data_histogram_bin_info
-     SELECT *
-     FROM moved_rows ON CONFLICT DO NOTHING;
-     WITH moved_rows AS
-       ( DELETE
-        FROM proc_observations a USING observation_types b,
-                                       submission c
-        WHERE a.variable_id = b.variable_id
-          AND b.variable_name LIKE 'HistDepthBinMax%'
-          AND a.submission_id = c.submission_id RETURNING a.submission_id AS bin_id,
-                                                   cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
-                                                   a.variable_value AS max_value)
-     UPDATE data_histogram_bin_info
-     SET max_value = moved_rows.max_value
-     FROM moved_rows
-     WHERE data_histogram_bin_info.bin_id = moved_rows.bin_id
-       AND data_histogram_bin_info.bin_class = moved_rows.bin_class;
-     -- data_histogram_bin_data
-     WITH moved_rows AS
-       ( DELETE
-        FROM proc_observations a USING observation_types b,
-                                       submission c,
-                                       data_time_series d
-        WHERE a.variable_id = b.variable_id
-          AND b.variable_name LIKE 'TimeAt%'
-          AND a.submission_id = c.submission_id RETURNING a.submission_id,
-                                                           c.tag_id,
-                                                           a.submission_id AS bin_id,
-                                                           cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
-                                                           a.date_time,
-                                                           a.variable_value,
-                                                           d.position_date_time,
-                                                           a.variable_id)
-     INSERT INTO data_histogram_bin_data
-     SELECT *
-     FROM moved_rows;
-     -- data_profile
-     WITH moved_rows AS
-       ( DELETE
-        FROM proc_observations a USING observation_types b,
-                                       submission c
-        WHERE a.variable_id = b.variable_id
-          AND b.variable_name LIKE 'PdtDepth%'
-          AND a.submission_id = c.submission_id RETURNING a.submission_id,
-                                                          c.tag_id,
-                                                          a.variable_id,
-                                                          a.date_time,
-                                                          a.variable_value)
-     INSERT INTO data_profile (submission_id, tag_id, variable_id, date_time, depth)
-     SELECT submission_id,
-            tag_id,
-            variable_id,
-            date_time,
-            variable_value
-     FROM moved_rows;
-     WITH moved_rows AS
-       ( DELETE
-        FROM proc_observations a USING observation_types b,
-                                       data_profile c,
-                                       submission e
-        WHERE a.variable_id = b.variable_id
-          AND b.variable_name LIKE 'PdtTempMin%'
-          AND a.submission_id = c.submission_id
-          AND a.date_time = c.date_time
-          AND e.submission_id = a.submission_id RETURNING a.date_time,
-                                                          a.variable_id,
-                                                          a.variable_value AS variable_value,
-                                                          a.submission_id)
-     UPDATE data_profile
-     SET variable_value = moved_rows.variable_value
-     FROM moved_rows
-     WHERE data_profile.date_time = moved_rows.date_time
-       AND data_profile.submission_id = moved_rows.submission_id;
-     WITH moved_rows AS
-       ( DELETE
-        FROM proc_observations a USING observation_types b,
-                                       data_profile c,
-                                       submission e
-        WHERE a.variable_id = b.variable_id
-          AND b.variable_name LIKE 'PdtTempMax%'
-          AND a.submission_id = c.submission_id
-          AND a.date_time = c.date_time
-          AND e.submission_id = a.submission_id RETURNING a.date_time,
-                                                          a.variable_id,
-                                                          a.variable_value,
-                                                          a.submission_id)
-     UPDATE data_profile
-     SET variable_value = moved_rows.variable_value
-     FROM moved_rows
-     WHERE data_profile.date_time = moved_rows.date_time
-       AND data_profile.submission_id = moved_rows.submission_id;
-     -- SQL update statements to link measurement date time with position date time
-     UPDATE data_time_series
-     SET position_date_time =
-       (SELECT date_time
-        FROM data_position
-        WHERE data_time_series.submission_id = data_position.submission_id
-          AND data_time_series.date_time >= data_position.date_time
-        ORDER BY data_position.date_time DESC
-        LIMIT 1)
-     WHERE position_date_time IS NULL;
-     UPDATE data_histogram_bin_data
-     SET position_date_time =
-       (SELECT date_time
-        FROM data_position
-        WHERE data_histogram_bin_data.submission_id = data_position.submission_id
-          AND data_histogram_bin_data.date_time >= data_position.date_time
-        ORDER BY data_position.date_time DESC
-        LIMIT 1)
-     WHERE position_date_time IS NULL;
-     UPDATE data_profile
-     SET position_date_time =
-       (SELECT date_time
-        FROM data_position
-        WHERE data_profile.submission_id = data_position.submission_id
-          AND data_profile.date_time >= data_position.date_time
-        ORDER BY data_position.date_time DESC
-        LIMIT 1)
-     WHERE position_date_time IS NULL;
-     RETURN NULL;
-   END;
- $BODY$ LANGUAGE plpgsql;
- CREATE TRIGGER data_migration AFTER INSERT OR UPDATE ON proc_observations FOR EACH STATEMENT
-   EXECUTE PROCEDURE execute_data_migration();
+                                                      a.submission_id)
+ UPDATE data_profile
+ SET variable_value = moved_rows.variable_value
+ FROM moved_rows
+ WHERE data_profile.date_time = moved_rows.date_time
+   AND data_profile.submission_id = moved_rows.submission_id;
+ -- SQL update statements to link measurement date time with position date time
+ UPDATE data_time_series
+ SET position_date_time =
+   (SELECT date_time
+    FROM data_position
+    WHERE data_time_series.submission_id = data_position.submission_id
+      AND data_time_series.date_time >= data_position.date_time
+    ORDER BY data_position.date_time DESC
+    LIMIT 1)
+ WHERE position_date_time IS NULL;
+ UPDATE data_histogram_bin_data
+ SET position_date_time =
+   (SELECT date_time
+    FROM data_position
+    WHERE data_histogram_bin_data.submission_id = data_position.submission_id
+      AND data_histogram_bin_data.date_time >= data_position.date_time
+    ORDER BY data_position.date_time DESC
+    LIMIT 1)
+ WHERE position_date_time IS NULL;
+ UPDATE data_profile
+ SET position_date_time =
+   (SELECT date_time
+    FROM data_position
+    WHERE data_profile.submission_id = data_position.submission_id
+      AND data_profile.date_time >= data_position.date_time
+    ORDER BY data_position.date_time DESC
+    LIMIT 1)
+ WHERE position_date_time IS NULL;
+$BODY$;
+
