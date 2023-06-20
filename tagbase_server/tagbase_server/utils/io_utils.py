@@ -11,9 +11,9 @@ from urllib.request import urlopen
 logger = logging.getLogger(__name__)
 
 
-def compute_sha256(file_name):
+def compute_file_sha256(file_name):
     """
-    A memory optimised way of computing SHA256 hash
+    A memory optimised way of computing SHA256 hash for a file.
 
     :param file_name: The data file to compute a SHA256 hash for.
     :type file_name: str
@@ -23,6 +23,23 @@ def compute_sha256(file_name):
         for chunk in iter(lambda: f.read(4096), b""):
             hash_sha256.update(chunk)
     return hash_sha256.hexdigest()
+
+
+def compute_obj_sha256(py_obj):
+    """
+    A memory optimised way of computing SHA256 hash for a Python object.
+	An example is a Python List containing eTUFF metadata.
+
+    :param py_obj: The Python object to compute a SHA256 hash for.
+    :type py_obj: str
+    """
+    hash_sha256 = hashlib.sha256()
+	
+	# TODO calculate SHA256 from Python obj
+    # with open(file_name, "rb") as f:
+    #     for chunk in iter(lambda: f.read(4096), b""):
+    #         hash_sha256.update(chunk)
+	# 		return hash_sha256.hexdigest()
 
 
 def process_get_input_data(file):

@@ -9,7 +9,7 @@ import pytz
 from tzlocal import get_localzone
 
 from tagbase_server.utils.db_utils import connect
-from tagbase_server.utils.io_utils import compute_sha256
+from tagbase_server.utils.io_utils import compute_file_sha256, compute_obj_sha256
 from tagbase_server.utils.slack_utils import post_msg
 
 logger = logging.getLogger(__name__)
@@ -147,18 +147,20 @@ def get_dataset_id(cur, instrument_name, serial_number, ptt, platform):
 
 
 def insert_new_submission(
-    cur, tag_id, submission_filename, notes, version, hash_sha256, dataset_id
+    cur, tag_id, submission_filename, notes, version, file_sha256, dataset_id, md_sha256, data_sha256
 ):
     cur.execute(
-        "INSERT INTO submission (tag_id, filename, date_time, notes, version, hash_sha256, dataset_id) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+        "INSERT INTO submission (tag_id, filename, date_time, notes, version, file_sha256, dataset_id, md_sha256, data_sha256) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
         (
             tag_id,
             submission_filename,
             dt.now(tz=pytz.utc).astimezone(get_localzone()),
             notes,
             version,
-            hash_sha256,
+            file_sha256,
             dataset_id,
+			md_sha256,
+			data_sha256,
         ),
     )
 
@@ -168,21 +170,21 @@ def insert_new_submission(
     return submission_id
 
 
-def detect_duplicate(cursor, hash_sha256):
+def detect_duplicate(cursor, file_sha256):
     """
-    Detect a duplicate file by performing a lookup on submission SHA256 hash.
+    Detect a duplicate file by performing a lookup on submission.file_sha256.
     Returns True if duplicate.
 
-    :param hash_sha256: A SHA256 hash.
-    :type hash_sha256: str
+    :param file_sha256: A SHA256 hash of an entire eTUFF file.
+    :type file_sha256: str
 
     :param cursor: A database cursor
     :type cursor: cursor connection
     """
     logger.debug("Detecting duplicate...")
     cursor.execute(
-        "SELECT hash_sha256 FROM submission WHERE hash_sha256 = %s",
-        (hash_sha256,),
+        "SELECT file_hash_sha256 FROM submission WHERE file_hash_sha256 = %s",
+        (file_hash_sha256,),
     )
     db_results = cursor.fetchone()
 
@@ -192,7 +194,7 @@ def detect_duplicate(cursor, hash_sha256):
 
     logger.info(
         "Computed hash: %s Duplicate: %s",
-        hash_sha256,
+        file_sha256,
         duplicate,
     )
     if duplicate is not None:
@@ -203,9 +205,9 @@ def detect_duplicate(cursor, hash_sha256):
 
 def get_dataset_elements(submission_filename):
     """
-    Extract 'instrument_name', 'serial_number', 'ptt', 'platform',
-    'referencetrack_included' and values from
-    global attributes.
+    Extract 'instrument_name', 'serial_number', 'ptt', 'platform' and
+    'referencetrack_included' values from global attributesaa and calculate
+	an SHA256 signature for the global metadata.
 
     :param submission_filename: The file from which we wish to extract certain global attributes
     :type submission_filename: str
@@ -236,12 +238,16 @@ def get_dataset_elements(submission_filename):
             platform = value
         elif strp_line.startswith(":referencetrack_included"):
             referencetrack_included = int(value)
+	md_sha256 = compute_obj_sha256(raw_global_attributes)
+	data_sha256 = compute_obj_sha256(raw_observation_data)
     return (
         instrument_name,
         serial_number,
         ptt,
         platform,
         referencetrack_included,
+		md_sha256,
+		data_sha256,
     )
 
 
@@ -258,14 +264,17 @@ def process_etuff_file(file, version=None, notes=None):
 
     with conn:
         with conn.cursor() as cur:
-            hash_sha256 = compute_sha256(submission_filename)
-            if detect_duplicate(cur, hash_sha256):
+            file_sha256 = compute_file_sha256(submission_filename)
+            if detect_duplicate(cur, file_sha256):
                 logger.info(
-                    "Data file '%s' with SHA256 hash '%s' identified as duplicate. No ingestion performed.",
+                    "Data file '%s' with SHA256 hash '%s' identified as exact duplicate. No ingestion performed.",
                     submission_filename,
-                    hash_sha256,
+                    file_sha256,
                 )
                 return 1
+			
+			# TODO likely where we must compute SHA256 for metadata and data and determine
+			# the nature of the ingest task.w
 
             (
                 instrument_name,
@@ -273,6 +282,9 @@ def process_etuff_file(file, version=None, notes=None):
                 ptt,
                 platform,
                 referencetrack_included,
+				md_sha256,
+				data_sha256,
+				
             ) = get_dataset_elements(submission_filename)
 
             dataset_id = get_dataset_id(
@@ -292,8 +304,10 @@ def process_etuff_file(file, version=None, notes=None):
                 submission_filename,
                 notes,
                 version,
-                hash_sha256,
+                file_sha256,
                 dataset_id,
+				md_sha256,
+				data_sha256,
             )
             logger.info(
                 "Successful INSERT of '%s' into 'submission' table.",
