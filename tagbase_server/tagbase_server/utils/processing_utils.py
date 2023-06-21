@@ -213,11 +213,18 @@ def get_dataset_elements(submission_filename):
     :type submission_filename: str
     """
     raw_global_attributes = []
+	raw_data = []
     with open(submission_filename, "rb") as data:
         for line in iter(
             lambda: data.readline().decode("utf-8", "ignore").rstrip(), "// data:"
         ):
             raw_global_attributes.append(line)
+		for d_line in iter(
+            #lambda: data.readline().decode("utf-8", "ignore").rstrip(), "// data:"
+			# TODO must read after // data: to end of file
+        ):
+		raw_data.append(line)
+		
     instrument_name = "unknown"
     serial_number = "unknown"
     ppt = "unknown"
@@ -239,7 +246,7 @@ def get_dataset_elements(submission_filename):
         elif strp_line.startswith(":referencetrack_included"):
             referencetrack_included = int(value)
 	md_sha256 = compute_obj_sha256(raw_global_attributes)
-	data_sha256 = compute_obj_sha256(raw_observation_data)
+	data_sha256 = compute_obj_sha256(raw__data)
     return (
         instrument_name,
         serial_number,
