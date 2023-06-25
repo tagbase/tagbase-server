@@ -1,4 +1,4 @@
-import glob
+import base64
 import hashlib
 import logging
 import os
@@ -25,21 +25,23 @@ def compute_file_sha256(file_name):
     return hash_sha256.hexdigest()
 
 
-def compute_obj_sha256(py_obj):
-    """
-    A memory optimised way of computing SHA256 hash for a Python object.
-	An example is a Python List containing eTUFF metadata.
+def make_hash_sha256(o):
+    hasher = hashlib.sha256()
+    hasher.update(repr(make_hashable(o)).encode())
+    return base64.b64encode(hasher.digest()).decode()
 
-    :param py_obj: The Python object to compute a SHA256 hash for.
-    :type py_obj: str
-    """
-    hash_sha256 = hashlib.sha256()
-	
-	# TODO calculate SHA256 from Python obj
-    # with open(file_name, "rb") as f:
-    #     for chunk in iter(lambda: f.read(4096), b""):
-    #         hash_sha256.update(chunk)
-	# 		return hash_sha256.hexdigest()
+
+def make_hashable(o):
+    if isinstance(o, (tuple, list)):
+        return tuple((make_hashable(e) for e in o))
+
+    if isinstance(o, dict):
+        return tuple(sorted((k,make_hashable(v)) for k,v in o.items()))
+
+    if isinstance(o, (set, frozenset)):
+        return tuple(sorted(make_hashable(e) for e in o))
+
+    return o
 
 
 def process_get_input_data(file):

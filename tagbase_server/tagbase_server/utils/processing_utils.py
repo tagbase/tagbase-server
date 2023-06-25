@@ -9,7 +9,7 @@ import pytz
 from tzlocal import get_localzone
 
 from tagbase_server.utils.db_utils import connect
-from tagbase_server.utils.io_utils import compute_file_sha256, compute_obj_sha256
+from tagbase_server.utils.io_utils import compute_file_sha256, make_hash_sha256
 from tagbase_server.utils.slack_utils import post_msg
 
 logger = logging.getLogger(__name__)
@@ -150,7 +150,8 @@ def insert_new_submission(
     cur, tag_id, submission_filename, notes, version, file_sha256, dataset_id, md_sha256, data_sha256
 ):
     cur.execute(
-        "INSERT INTO submission (tag_id, filename, date_time, notes, version, file_sha256, dataset_id, md_sha256, data_sha256) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+        "INSERT INTO submission (tag_id, filename, date_time, notes, version, file_sha256, dataset_id, md_sha256, data_sha256) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
         (
             tag_id,
             submission_filename,
@@ -159,8 +160,8 @@ def insert_new_submission(
             version,
             file_sha256,
             dataset_id,
-			md_sha256,
-			data_sha256,
+            md_sha256,
+            data_sha256,
         ),
     )
 
@@ -184,7 +185,7 @@ def detect_duplicate(cursor, file_sha256):
     logger.debug("Detecting duplicate...")
     cursor.execute(
         "SELECT file_hash_sha256 FROM submission WHERE file_hash_sha256 = %s",
-        (file_hash_sha256,),
+        (file_sha256,),
     )
     db_results = cursor.fetchone()
 
@@ -203,58 +204,51 @@ def detect_duplicate(cursor, file_sha256):
         return False
 
 
-def get_dataset_elements(submission_filename):
+def get_dataset_properties(submission_filename):
     """
     Extract 'instrument_name', 'serial_number', 'ptt', 'platform' and
     'referencetrack_included' values from global attributesaa and calculate
-	an SHA256 signature for the global metadata.
+    an SHA256 signature for the global metadata.
 
     :param submission_filename: The file from which we wish to extract certain global attributes
     :type submission_filename: str
     """
-    raw_global_attributes = []
-	raw_data = []
-    with open(submission_filename, "rb") as data:
-        for line in iter(
-            lambda: data.readline().decode("utf-8", "ignore").rstrip(), "// data:"
-        ):
-            raw_global_attributes.append(line)
-		for d_line in iter(
-            #lambda: data.readline().decode("utf-8", "ignore").rstrip(), "// data:"
-			# TODO must read after // data: to end of file
-        ):
-		raw_data.append(line)
-		
-    instrument_name = "unknown"
-    serial_number = "unknown"
-    ppt = "unknown"
-    platform = "unknown"
-    referencetrack_included = "0"
-    for line in raw_global_attributes:
-        strp_line = line.strip()
-        if strp_line.startswith("//"):
-            continue
-        value = strp_line[1:].split(" = ")[1].replace('"', "")
-        if strp_line.startswith(":instrument_name"):
-            instrument_name = value
-        elif strp_line.startswith(":serial_number"):
-            serial_number = value
-        elif strp_line.startswith(":ptt"):
-            ptt = value
-        elif strp_line.startswith(":platform"):
-            platform = value
-        elif strp_line.startswith(":referencetrack_included"):
-            referencetrack_included = int(value)
-	md_sha256 = compute_obj_sha256(raw_global_attributes)
-	data_sha256 = compute_obj_sha256(raw__data)
+    global_attributes = {
+        'instrument_name': 'unknown',
+        'serial_number': 'unknown',
+        'ppt': 'unknown',
+        'platform': 'unknown',
+        'reference_track_included': '0'}
+
+    content = []
+    with open(submission_filename, "rb") as file:
+        for line in file:
+            line = line.decode("utf-8", "ignore").strip()
+            if line.startswith(":"):
+                value = line[1:].split(" = ")[1].replace('"', "")
+                if line.startswith(":instrument_name"):
+                    global_attributes['instrument_name'] = value
+                elif line.startswith(":serial_number"):
+                    global_attributes['serial_number'] = value
+                elif line.startswith(":ptt"):
+                    global_attributes['ppt'] = value
+                elif line.startswith(":platform"):
+                    global_attributes['platform'] = value
+                elif line.startswith(":referencetrack_included"):
+                    global_attributes['reference_track_included'] = int(value)
+            else:
+                content.append(line)
+
+    md_hash = make_hash_sha256(global_attributes)
+    content_hash = make_hash_sha256(content)
     return (
-        instrument_name,
-        serial_number,
-        ptt,
-        platform,
-        referencetrack_included,
-		md_sha256,
-		data_sha256,
+        global_attributes['instrument_name'],
+        global_attributes['serial_number'],
+        global_attributes['ppt'],
+        global_attributes['platform'],
+        global_attributes['reference_track_included'],
+        md_hash,
+        content_hash
     )
 
 
@@ -269,9 +263,20 @@ def process_etuff_file(file, version=None, notes=None):
     conn = connect()
     conn.autocommit = True
 
+    # TODO we should read the file once and return the hashes we need (metadata/content/entire-file)
+    (
+        instrument_name,
+        serial_number,
+        ptt,
+        platform,
+        referencetrack_included,
+        md_sha256,
+        data_sha256
+    ) = get_dataset_properties(submission_filename)
+    file_sha256 = compute_file_sha256(submission_filename)
+
     with conn:
         with conn.cursor() as cur:
-            file_sha256 = compute_file_sha256(submission_filename)
             if detect_duplicate(cur, file_sha256):
                 logger.info(
                     "Data file '%s' with SHA256 hash '%s' identified as exact duplicate. No ingestion performed.",
@@ -279,20 +284,6 @@ def process_etuff_file(file, version=None, notes=None):
                     file_sha256,
                 )
                 return 1
-			
-			# TODO likely where we must compute SHA256 for metadata and data and determine
-			# the nature of the ingest task.w
-
-            (
-                instrument_name,
-                serial_number,
-                ptt,
-                platform,
-                referencetrack_included,
-				md_sha256,
-				data_sha256,
-				
-            ) = get_dataset_elements(submission_filename)
 
             dataset_id = get_dataset_id(
                 cur, instrument_name, serial_number, ptt, platform
@@ -313,8 +304,8 @@ def process_etuff_file(file, version=None, notes=None):
                 version,
                 file_sha256,
                 dataset_id,
-				md_sha256,
-				data_sha256,
+                md_sha256,
+                data_sha256,
             )
             logger.info(
                 "Successful INSERT of '%s' into 'submission' table.",
