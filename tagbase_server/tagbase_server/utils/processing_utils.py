@@ -147,7 +147,15 @@ def get_dataset_id(cur, instrument_name, serial_number, ptt, platform):
 
 
 def insert_new_submission(
-    cur, tag_id, submission_filename, notes, version, file_sha256, dataset_id, md_sha256, data_sha256
+    cur,
+    tag_id,
+    submission_filename,
+    notes,
+    version,
+    file_sha256,
+    dataset_id,
+    md_sha256,
+    data_sha256,
 ):
     cur.execute(
         "INSERT INTO submission (tag_id, filename, date_time, notes, version, file_sha256, dataset_id, md_sha256, data_sha256) "
@@ -214,11 +222,12 @@ def get_dataset_properties(submission_filename):
     :type submission_filename: str
     """
     global_attributes = {
-        'instrument_name': 'unknown',
-        'serial_number': 'unknown',
-        'ppt': 'unknown',
-        'platform': 'unknown',
-        'reference_track_included': '0'}
+        "instrument_name": "unknown",
+        "serial_number": "unknown",
+        "ppt": "unknown",
+        "platform": "unknown",
+        "reference_track_included": "0",
+    }
 
     content = []
     with open(submission_filename, "rb") as file:
@@ -227,28 +236,28 @@ def get_dataset_properties(submission_filename):
             if line.startswith(":"):
                 value = line[1:].split(" = ")[1].replace('"', "")
                 if line.startswith(":instrument_name"):
-                    global_attributes['instrument_name'] = value
+                    global_attributes["instrument_name"] = value
                 elif line.startswith(":serial_number"):
-                    global_attributes['serial_number'] = value
+                    global_attributes["serial_number"] = value
                 elif line.startswith(":ptt"):
-                    global_attributes['ppt'] = value
+                    global_attributes["ppt"] = value
                 elif line.startswith(":platform"):
-                    global_attributes['platform'] = value
+                    global_attributes["platform"] = value
                 elif line.startswith(":referencetrack_included"):
-                    global_attributes['reference_track_included'] = int(value)
+                    global_attributes["reference_track_included"] = int(value)
             else:
                 content.append(line)
 
     md_hash = make_hash_sha256(global_attributes)
     content_hash = make_hash_sha256(content)
     return (
-        global_attributes['instrument_name'],
-        global_attributes['serial_number'],
-        global_attributes['ppt'],
-        global_attributes['platform'],
-        global_attributes['reference_track_included'],
+        global_attributes["instrument_name"],
+        global_attributes["serial_number"],
+        global_attributes["ppt"],
+        global_attributes["platform"],
+        global_attributes["reference_track_included"],
         md_hash,
-        content_hash
+        content_hash,
     )
 
 
@@ -271,7 +280,7 @@ def process_etuff_file(file, version=None, notes=None):
         platform,
         referencetrack_included,
         md_sha256,
-        data_sha256
+        data_sha256,
     ) = get_dataset_properties(submission_filename)
     file_sha256 = compute_file_sha256(submission_filename)
 
