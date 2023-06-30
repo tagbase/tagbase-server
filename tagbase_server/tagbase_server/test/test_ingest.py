@@ -29,14 +29,34 @@ class TestIngest(unittest.TestCase):
         with open(file_name, "w") as file_handler:
             file_handler.write("foo")
         file_sha256 = "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c"
-        file_sha256 = io_utils.compute_file_sha256(file_name)
-        assert file_sha256, file_sha256
+        computed_file_sha256 = io_utils.compute_file_sha256(file_name)
+        assert computed_file_sha256, file_sha256
 
     def test_make_python_object_sha256(self):
         some_dict = {"key": "value"}
         obj_sha256 = io_utils.make_hash_sha256(some_dict)
         expected_sha256 = "w+2rjvbC2Hy3LM9Azda0pif/ebnFey5joqfSwIpqwLM="
         assert obj_sha256, expected_sha256
+
+    @mock.patch("psycopg2.connect")
+    def test_get_dataset_id(self, mock_connect):
+        # result of psycopg2.connect(**connection_stuff)
+        mock_con = mock_connect.return_value
+        # result of con.cursor(cursor_factory=DictCursor)
+        mock_cur = mock_con.cursor.return_value
+        # return this when calling cur.fetchall()
+        mock_cur.fetchone.return_value = ["1"]
+
+        conn = psycopg2.connect(
+            dbname="test",
+            user="test",
+            host="localhost",
+            port="32780",
+            password="test",
+        )
+        cur = conn.cursor()
+        tag_id = pu.get_tag_id(cur, 1)
+        assert tag_id, "1"
 
     @mock.patch("psycopg2.connect")
     def test_processing_file_metadata_with_existing_attributes(self, mock_connect):
