@@ -5,6 +5,7 @@ from unittest import mock
 
 import psycopg2
 import tagbase_server.utils.processing_utils as pu
+import tagbase_server.utils.io_utils as io_utils
 
 
 class TestIngest(unittest.TestCase):
@@ -22,6 +23,20 @@ class TestIngest(unittest.TestCase):
 
     fake_submission_id = 1
     fake_submission_filename = "test_file"
+
+    def test_compute_file_sha256(self):
+        file_name = "/tmp/tmp_file.txt"
+        with open(file_name, "w") as file_handler:
+            file_handler.write("foo")
+        file_sha256 = "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c"
+        file_sha256 = io_utils.compute_file_sha256(file_name)
+        assert file_sha256, file_sha256
+
+    def test_make_python_object_sha256(self):
+        some_dict = {"key": "value"}
+        obj_sha256 = io_utils.make_hash_sha256(some_dict)
+        expected_sha256 = "w+2rjvbC2Hy3LM9Azda0pif/ebnFey5joqfSwIpqwLM="
+        assert obj_sha256, expected_sha256
 
     @mock.patch("psycopg2.connect")
     def test_processing_file_metadata_with_existing_attributes(self, mock_connect):
