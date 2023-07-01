@@ -24,6 +24,22 @@ class TestIngest(unittest.TestCase):
     fake_submission_id = 1
     fake_submission_filename = "test_file"
 
+    @mock.patch("builtins.open", create=True)
+    def test_get_dataset_properties(self, mock_open):
+        mock_open.side_effect = [
+            mock.mock_open(read_data=b':ptt = "117464"').return_value
+        ]
+        (
+            instrument_name,
+            serial_number,
+            ptt,
+            platform,
+            referencetrack_included,
+            md_sha256,
+            data_sha256,
+        ) = pu.get_dataset_properties("test_file")
+        assert ptt, 117464
+
     def test_compute_file_sha256(self):
         file_name = "/tmp/tmp_file.txt"
         with open(file_name, "w") as file_handler:
