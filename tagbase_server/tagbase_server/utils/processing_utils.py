@@ -128,15 +128,27 @@ def get_dataset_id(cur, instrument_name, serial_number, ptt, platform):
     :type platform: str
     """
     cur.execute(
-        "SELECT COALESCE(MAX(dataset_id), NEXTVAL('dataset_dataset_id_seq')) FROM dataset WHERE instrument_name = '{}' AND serial_number = '{}' AND ptt = '{}' AND platform = '{}'".format(
-            instrument_name, serial_number, ptt, platform
+        "SELECT COALESCE(MAX(dataset_id), NEXTVAL('dataset_dataset_id_seq')) FROM dataset"
+        " WHERE instrument_name = '{}' AND serial_number = '{}' AND ptt = '{}' AND platform = '{}'"
+        .format(
+            instrument_name,
+            serial_number,
+            ptt,
+            platform
         )
     )
     dataset_id = cur.fetchone()[0]
-    logger.debug("Result: %s", dataset_id)
+    logger.debug("Computed dataset_id: %s", dataset_id)
+
     cur.execute(
-        "INSERT INTO dataset (dataset_id, instrument_name, serial_number, ptt, platform) VALUES ('{}', '{}', '{}', '{}', '{}') ON CONFLICT DO NOTHING".format(
-            dataset_id, instrument_name, serial_number, ptt, platform
+        "INSERT INTO dataset (dataset_id, instrument_name, serial_number, ptt, platform)"
+        " VALUES ('{}', '{}', '{}', '{}', '{}')"
+        .format(
+            dataset_id,
+            instrument_name,
+            serial_number,
+            ptt,
+            platform
         )
     )
     logger.debug(
@@ -173,13 +185,8 @@ def insert_new_submission(
         ),
     )
 
-    cur.execute("SELECT currval('submission_submission_id_seq')")
-    submission_id = cur.fetchone()[0]
-    logger.debug("New submission_id=%d", submission_id)
-    return submission_id
 
-
-def detect_duplicate(cursor, file_sha256):
+def detect_duplicate_file(cursor, file_sha256):
     """
     Detect a duplicate file by performing a lookup on submission.file_sha256.
     Returns True if duplicate.
@@ -248,7 +255,7 @@ def get_dataset_properties(submission_filename):
             else:
                 content.append(line)
 
-    md_hash = make_hash_sha256(global_attributes)
+    metadata_hash = make_hash_sha256(global_attributes)
     content_hash = make_hash_sha256(content)
     return (
         global_attributes["instrument_name"],
@@ -256,7 +263,7 @@ def get_dataset_properties(submission_filename):
         global_attributes["ppt"],
         global_attributes["platform"],
         global_attributes["reference_track_included"],
-        md_hash,
+        metadata_hash,
         content_hash,
     )
 
@@ -279,18 +286,18 @@ def process_etuff_file(file, version=None, notes=None):
         ptt,
         platform,
         referencetrack_included,
-        md_sha256,
-        data_sha256,
+        metadata_hash,
+        file_content_hash,
     ) = get_dataset_properties(submission_filename)
-    file_sha256 = compute_file_sha256(submission_filename)
+    entire_file_hash = compute_file_sha256(submission_filename)
 
     with conn:
         with conn.cursor() as cur:
-            if detect_duplicate(cur, file_sha256):
+            if detect_duplicate_file(cur, entire_file_hash):
                 logger.info(
                     "Data file '%s' with SHA256 hash '%s' identified as exact duplicate. No ingestion performed.",
                     submission_filename,
-                    file_sha256,
+                    entire_file_hash,
                 )
                 return 1
 
@@ -305,16 +312,16 @@ def process_etuff_file(file, version=None, notes=None):
 
             tag_id = get_tag_id(cur, dataset_id)
 
-            submission_id = insert_new_submission(
+            insert_new_submission(
                 cur,
                 tag_id,
                 submission_filename,
                 notes,
                 version,
-                file_sha256,
+                entire_file_hash,
                 dataset_id,
-                md_sha256,
-                data_sha256,
+                metadata_hash,
+                file_content_hash,
             )
             logger.info(
                 "Successful INSERT of '%s' into 'submission' table.",
@@ -323,6 +330,7 @@ def process_etuff_file(file, version=None, notes=None):
 
             cur.execute("SELECT currval('submission_submission_id_seq')")
             submission_id = cur.fetchone()[0]
+            logger.debug("New submission_id=%d", submission_id)
 
             metadata = []
             proc_obs = []

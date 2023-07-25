@@ -114,9 +114,9 @@ class TestIngest(unittest.TestCase):
         # duplicate stored in the db
         mock_cur.fetchone.return_value = computes_hash_sha256
 
-        has_duplicate = pu.detect_duplicate(mock_cur, computes_hash_sha256)
+        has_duplicate = pu.detect_duplicate_file(mock_cur, computes_hash_sha256)
         assert has_duplicate, True
-        has_no_duplicate = pu.detect_duplicate(mock_cur, "non-existing-hash")
+        has_no_duplicate = pu.detect_duplicate_file(mock_cur, "non-existing-hash")
         assert has_no_duplicate, False
 
     @mock.patch("psycopg2.connect")
