@@ -197,7 +197,7 @@ def detect_duplicate_file(cursor, file_sha256):
     :param cursor: A database cursor
     :type cursor: cursor connection
     """
-    logger.debug("Detecting duplicate...")
+    logger.debug("Detecting duplicate file submission...")
     cursor.execute(
         "SELECT file_hash_sha256 FROM submission WHERE file_hash_sha256 = %s",
         (file_sha256,),
@@ -240,6 +240,8 @@ def get_dataset_properties(submission_filename):
     with open(submission_filename, "rb") as file:
         for line in file:
             line = line.decode("utf-8", "ignore").strip()
+            if line.startswith("//"):
+                continue
             if line.startswith(":"):
                 value = line[1:].split(" = ")[1].replace('"', "")
                 if line.startswith(":instrument_name"):
@@ -255,7 +257,6 @@ def get_dataset_properties(submission_filename):
             else:
                 content.append(line)
 
-    metadata_hash = make_hash_sha256(global_attributes)
     content_hash = make_hash_sha256(content)
     return (
         global_attributes["instrument_name"],
@@ -263,9 +264,60 @@ def get_dataset_properties(submission_filename):
         global_attributes["ppt"],
         global_attributes["platform"],
         global_attributes["reference_track_included"],
-        metadata_hash,
         content_hash,
     )
+
+
+def is_only_metadata_change(cursor, metadata_hash, file_content_hash):
+    # TODO should we also check for the filename?
+    logger.debug("Detecting metadata submitted...")
+    cursor.execute(
+        "SELECT md_sha256 FROM submission WHERE md_sha256 <> %s AND data_sha256 = %s ",
+        (metadata_hash, file_content_hash,),
+    )
+    db_results = cursor.fetchone()
+
+    if not db_results:
+        return False
+    different_metadata_stored = db_results[0]
+
+    logger.info(
+        "Computed metadata hash: %s stored: %s",
+        metadata_hash,
+        different_metadata_stored,
+    )
+    if different_metadata_stored:
+        return True
+    else:
+        return False
+
+
+def update_submission_metadata(
+        cursor,
+        instrument_name,
+        serial_number,
+        ptt,
+        platform,
+        submission_filename,
+        referencetrack_included,
+        metadata_hash):
+    dataset_id = get_dataset_id(
+        cursor, instrument_name, serial_number, ptt, platform
+    )
+    pass
+
+
+def insert_metadata(cur, metadata, tag_id):
+    for x in metadata:
+        a = x[0]
+        b = x[1]
+        c = x[2]
+        mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, str(c).strip('"'), tag_id))
+        cur.execute(
+            "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES "
+            + mog.decode("utf-8")
+        )
+    logger.debug("metadata: %s", metadata)
 
 
 def process_etuff_file(file, version=None, notes=None):
@@ -286,7 +338,6 @@ def process_etuff_file(file, version=None, notes=None):
         ptt,
         platform,
         referencetrack_included,
-        metadata_hash,
         file_content_hash,
     ) = get_dataset_properties(submission_filename)
     entire_file_hash = compute_file_sha256(submission_filename)
@@ -298,6 +349,23 @@ def process_etuff_file(file, version=None, notes=None):
                     "Data file '%s' with SHA256 hash '%s' identified as exact duplicate. No ingestion performed.",
                     submission_filename,
                     entire_file_hash,
+                )
+                return 1
+
+            metadata = []
+            # TODO compute global attributes which are considered as metadata
+            metadata_hash = make_hash_sha256(global_attributes)
+
+            if is_only_metadata_change(cur, metadata_hash, file_content_hash):
+                update_submission_metadata(
+                    cur,
+                    instrument_name,
+                    serial_number,
+                    ptt,
+                    platform,
+                    submission_filename,
+                    referencetrack_included,
+                    metadata_hash,
                 )
                 return 1
 
@@ -332,7 +400,7 @@ def process_etuff_file(file, version=None, notes=None):
             submission_id = cur.fetchone()[0]
             logger.debug("New submission_id=%d", submission_id)
 
-            metadata = []
+            # metadata = []
             proc_obs = []
 
             s_time = time.perf_counter()
@@ -430,16 +498,17 @@ def process_etuff_file(file, version=None, notes=None):
                 sub_elapsed,
             )
 
-            for x in metadata:
-                a = x[0]
-                b = x[1]
-                c = x[2]
-                mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, str(c).strip('"'), tag_id))
-                cur.execute(
-                    "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES "
-                    + mog.decode("utf-8")
-                )
-            logger.debug("metadata: %s", metadata)
+            insert_metadata(cur, metadata, tag_id)
+            # for x in metadata:
+            #     a = x[0]
+            #     b = x[1]
+            #     c = x[2]
+            #     mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, str(c).strip('"'), tag_id))
+            #     cur.execute(
+            #         "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES "
+            #         + mog.decode("utf-8")
+            #     )
+            # logger.debug("metadata: %s", metadata)
 
             # build pandas df
             s_time = time.perf_counter()
