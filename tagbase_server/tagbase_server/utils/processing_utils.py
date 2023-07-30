@@ -15,7 +15,7 @@ from tagbase_server.utils.slack_utils import post_msg
 logger = logging.getLogger(__name__)
 
 
-def process_all_lines_for_global_attributes(
+def process_global_attributes_metadata(
     global_attributes_lines,
     cur,
     submission_id,
@@ -23,66 +23,67 @@ def process_all_lines_for_global_attributes(
     submission_filename,
     line_counter,
 ):
-    attrbs_map = {}
+    attributes_map = {}
     for line in global_attributes_lines:
         line = line.strip()
         logger.debug("Processing global attribute: %s", line)
         tokens = line[1:].split(" = ")
         # attribute_name = tokens[0], attribute_value = tokens[1]
         if len(tokens) > 1:
-            attrbs_map[tokens[0]] = tokens[1]
+            attributes_map[tokens[0]] = tokens[1]
         else:
             logger.warning("Metadata line %s NOT in expected format!", line)
 
-    attrbs_names = ", ".join(
-        ["'{}'".format(attrib_name) for attrib_name in attrbs_map.keys()]
+    attributes_names = ", ".join(
+        ["'{}'".format(attrib_name) for attrib_name in attributes_map.keys()]
     )
-    attrbs_ids_query = (
+    attribute_ids_query = (
         "SELECT attribute_id, attribute_name FROM metadata_types "
-        "WHERE attribute_name IN ({})".format(attrbs_names)
+        "WHERE attribute_name IN ({})".format(attributes_names)
     )
-    logger.debug("Query=%s", attrbs_ids_query)
-    cur.execute(attrbs_ids_query)
+    logger.debug("Query=%s", attribute_ids_query)
+    cur.execute(attribute_ids_query)
     rows = cur.fetchall()
 
     str_submission_id = str(submission_id)
     for row in rows:
         attribute_id = row[0]
         attribute_name = row[1]
-        attribute_value = attrbs_map[attribute_name]
+        attribute_value = attributes_map[attribute_name]
         metadata.append((str_submission_id, str(attribute_id), attribute_value))
-        attrbs_map.pop(attribute_name)
+        attributes_map.pop(attribute_name)
 
-    if len(attrbs_map.keys()) > 0:
-        not_found_attributes = ", ".join(attrbs_map.keys())
+    if len(attributes_map.keys()) > 0:
+        not_found_attributes = ", ".join(attributes_map.keys())
         msg = (
             f"*{submission_filename}* _line:{line_counter}_ - "
             f"Unable to locate attribute_names *{not_found_attributes}* in _metadata_types_ table."
         )
         post_msg(msg)
+    return metadata
 
 
-def process_global_attributes(lines, cur, submission_id, metadata, submission_filename):
-    processed_lines = 0
-    global_attributes = []
-    for line in lines:
-        processed_lines += 1
-        if line.startswith("//"):
-            continue
-        elif line.strip().startswith(":"):
-            global_attributes.append(line)
-        else:
-            break
-
-    process_all_lines_for_global_attributes(
-        global_attributes,
-        cur,
-        submission_id,
-        metadata,
-        submission_filename,
-        processed_lines,
-    )
-    return processed_lines - 1 if processed_lines > 0 else 0
+# def process_global_attributes(lines, cur, submission_id, metadata, submission_filename):
+#     processed_lines = 0
+#     global_attributes = []
+#     for line in lines:
+#         processed_lines += 1
+#         if line.startswith("//"):
+#             continue
+#         elif line.strip().startswith(":"):
+#             global_attributes.append(line)
+#         else:
+#             break
+#
+#     process_all_lines_for_global_attributes(
+#         global_attributes,
+#         cur,
+#         submission_id,
+#         metadata,
+#         submission_filename,
+#         processed_lines,
+#     )
+#     return processed_lines - 1 if processed_lines > 0 else 0
 
 
 def get_tag_id(cur, dataset_id):
@@ -158,6 +159,26 @@ def get_dataset_id(cur, instrument_name, serial_number, ptt, platform):
     return dataset_id
 
 
+def get_submission_id(cur, submission_filename, tag_id, dataset_id, file_sha256, md_sha256, data_sha256):
+    cur.execute(
+        "SELECT submission_id FROM submission"
+        " WHERE tag_id = '{}' AND dataset_id = '{}'"# TODO should we consider submission_filename
+        " AND file_sha256 = '{}' AND md_sha256 = '{}'".format(
+            tag_id,
+            dataset_id,
+            file_sha256,
+            md_sha256,
+            data_sha256
+        )
+    )
+    db_results = cur.fetchone()
+    if not db_results:
+        return None
+    submission_id = db_results[0]
+    logger.debug("Found submission_id: %s", submission_id)
+    return submission_id
+
+
 def insert_new_submission(
     cur,
     tag_id,
@@ -183,6 +204,10 @@ def insert_new_submission(
             md_sha256,
             data_sha256,
         ),
+    )
+    logger.info(
+        "Successful INSERT of '%s' into 'submission' table.",
+        submission_filename,
     )
 
 
@@ -237,12 +262,17 @@ def get_dataset_properties(submission_filename):
     }
 
     content = []
+    metadata_content = []
+    processed_lines = 0
     with open(submission_filename, "rb") as file:
         for line in file:
+            processed_lines += 1
             line = line.decode("utf-8", "ignore").strip()
             if line.startswith("//"):
                 continue
             if line.startswith(":"):
+                # keeping all metadata together
+                metadata_content.append(line)
                 value = line[1:].split(" = ")[1].replace('"', "")
                 if line.startswith(":instrument_name"):
                     global_attributes["instrument_name"] = value
@@ -257,14 +287,18 @@ def get_dataset_properties(submission_filename):
             else:
                 content.append(line)
 
-    content_hash = make_hash_sha256(content)
+    # we use zero-based indexing for accessing array of lines later on
+    processed_lines = processed_lines - 1 if processed_lines > 0 else 0
+
     return (
         global_attributes["instrument_name"],
         global_attributes["serial_number"],
         global_attributes["ppt"],
         global_attributes["platform"],
         global_attributes["reference_track_included"],
-        content_hash,
+        content,
+        metadata_content,
+        processed_lines
     )
 
 
@@ -292,21 +326,6 @@ def is_only_metadata_change(cursor, metadata_hash, file_content_hash):
         return False
 
 
-def update_submission_metadata(
-        cursor,
-        instrument_name,
-        serial_number,
-        ptt,
-        platform,
-        submission_filename,
-        referencetrack_included,
-        metadata_hash):
-    dataset_id = get_dataset_id(
-        cursor, instrument_name, serial_number, ptt, platform
-    )
-    pass
-
-
 def insert_metadata(cur, metadata, tag_id):
     for x in metadata:
         a = x[0]
@@ -318,6 +337,46 @@ def insert_metadata(cur, metadata, tag_id):
             + mog.decode("utf-8")
         )
     logger.debug("metadata: %s", metadata)
+
+
+def get_current_submission_id(cur):
+    cur.execute("SELECT currval('submission_submission_id_seq')")
+    submission_id = cur.fetchone()[0]
+    logger.debug("New submission_id=%d", submission_id)
+    return submission_id
+
+
+def update_submission_metadata(cur, tag_id, metadata, submission_id, dataset_id, metadata_hash):
+    # update submission information
+    current_time = dt.now(tz=pytz.utc).astimezone(get_localzone())
+    cur.execute(
+        "UPDATE submission SET md_sha256 = {}, date_time = {}"
+        " WHERE tag_id = {} AND dataset_id = {} AND submission_id = {}".format(
+            metadata_hash,
+            current_time,
+            tag_id,
+            dataset_id,
+            submission_id
+        )
+    )
+    logger.debug("Submission_id=%s updated with metadata hash=%s", submission_id, metadata_hash)
+
+    # update metadata attributes
+    for x in metadata:
+        submission_id = x[0]
+        attribute_id = x[1]
+        attribute_value = x[2]
+        attribute_value = str(attribute_value).strip('"')
+
+        cur.execute(
+            "UPDATE metadata SET attribute_id = {}, attribute_value = '{}'"
+            " WHERE submission_id = {} and tag_id = {}".format(
+                attribute_id,
+                attribute_value,
+                submission_id,
+                tag_id)
+        )
+    logger.debug("Updated metadata attributes: %s", metadata)
 
 
 def process_etuff_file(file, version=None, notes=None):
@@ -338,8 +397,12 @@ def process_etuff_file(file, version=None, notes=None):
         ptt,
         platform,
         referencetrack_included,
-        file_content_hash,
+        file_content,
+        metadata_content,
+        number_global_atttributes_lines
     ) = get_dataset_properties(submission_filename)
+    content_hash = make_hash_sha256(file_content)
+    metadata_hash = make_hash_sha256(metadata_content)
     entire_file_hash = compute_file_sha256(submission_filename)
 
     with conn:
@@ -352,33 +415,35 @@ def process_etuff_file(file, version=None, notes=None):
                 )
                 return 1
 
-            metadata = []
-            # TODO compute global attributes which are considered as metadata
-            metadata_hash = make_hash_sha256(global_attributes)
+            dataset_id = get_dataset_id(cur, instrument_name, serial_number, ptt, platform)
+            tag_id = get_tag_id(cur, dataset_id)
+            submission_id = get_submission_id(
+                cur,
+                submission_filename,
+                tag_id,
+                dataset_id,
+                entire_file_hash,
+                metadata_hash,
+                content_hash)
 
-            if is_only_metadata_change(cur, metadata_hash, file_content_hash):
-                update_submission_metadata(
-                    cur,
-                    instrument_name,
-                    serial_number,
-                    ptt,
-                    platform,
-                    submission_filename,
-                    referencetrack_included,
-                    metadata_hash,
-                )
+            # compute global attributes which are considered as metadata
+            metadata = process_global_attributes_metadata(
+                metadata_content,
+                cur,
+                submission_id,
+                submission_filename,
+                number_global_atttributes_lines,
+            )
+
+            if is_only_metadata_change(cur, metadata_hash, content_hash):
+                update_submission_metadata(cur, tag_id, metadata, submission_id, dataset_id, metadata_hash)
                 return 1
 
-            dataset_id = get_dataset_id(
-                cur, instrument_name, serial_number, ptt, platform
-            )
             logger.info(
                 "Successfully reserved dataset_id: '%s' for '%s'.",
                 dataset_id,
                 submission_filename,
             )
-
-            tag_id = get_tag_id(cur, dataset_id)
 
             insert_new_submission(
                 cur,
@@ -389,34 +454,22 @@ def process_etuff_file(file, version=None, notes=None):
                 entire_file_hash,
                 dataset_id,
                 metadata_hash,
-                file_content_hash,
+                content_hash,
             )
-            logger.info(
-                "Successful INSERT of '%s' into 'submission' table.",
-                submission_filename,
-            )
+            submission_id = get_current_submission_id(cur)
 
-            cur.execute("SELECT currval('submission_submission_id_seq')")
-            submission_id = cur.fetchone()[0]
-            logger.debug("New submission_id=%d", submission_id)
-
-            # metadata = []
             proc_obs = []
+            variable_lookup = {}
+            # at this point we have already read form the file all global attribute lines
+            line_counter = number_global_atttributes_lines
 
+            # TODO we should use the content in the following
             s_time = time.perf_counter()
             with open(file, "rb") as data:
                 lines = [line.decode("utf-8", "ignore") for line in data.readlines()]
             lines_length = len(lines)
 
-            line_counter = 0
-            variable_lookup = {}
-
-            metadata_lines = process_global_attributes(
-                lines, cur, submission_id, metadata, submission_filename
-            )
-            line_counter += metadata_lines
-
-            for counter in range(metadata_lines, lines_length):
+            for counter in range(number_global_atttributes_lines, lines_length):
                 line = lines[line_counter]
                 line_counter += 1
                 tokens = line.split(",")
@@ -499,16 +552,6 @@ def process_etuff_file(file, version=None, notes=None):
             )
 
             insert_metadata(cur, metadata, tag_id)
-            # for x in metadata:
-            #     a = x[0]
-            #     b = x[1]
-            #     c = x[2]
-            #     mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, str(c).strip('"'), tag_id))
-            #     cur.execute(
-            #         "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES "
-            #         + mog.decode("utf-8")
-            #     )
-            # logger.debug("metadata: %s", metadata)
 
             # build pandas df
             s_time = time.perf_counter()
