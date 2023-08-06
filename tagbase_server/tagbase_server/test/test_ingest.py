@@ -26,19 +26,25 @@ class TestIngest(unittest.TestCase):
 
     @mock.patch("builtins.open", create=True)
     def test_get_dataset_properties(self, mock_open):
+        expected_property = b':ptt = "117464"'
         mock_open.side_effect = [
-            mock.mock_open(read_data=b':ptt = "117464"').return_value
+            mock.mock_open(read_data=expected_property).return_value
         ]
         (
             instrument_name,
             serial_number,
             ptt,
             platform,
-            referencetrack_included,
-            md_sha256,
-            data_sha256,
+            referenced_track_included,
+            content,
+            metadata_content,
+            processed_lines,
         ) = pu.get_dataset_properties("test_file")
+
         assert ptt, 117464
+        assert metadata_content
+        assert expected_property, metadata_content[0]
+        assert len(content) == 0, "no content is expected"
 
     def test_compute_file_sha256(self):
         file_name = "/tmp/tmp_file.txt"
@@ -91,21 +97,23 @@ class TestIngest(unittest.TestCase):
             port="32780",
             password="test",
         )
-        # TODO need to fix this unit test
-        # cur = conn.cursor()
+        cur = conn.cursor()
+        metadata = []
+        line_counter = 0
 
-        # metadata = []
-        # processed_lines = pu.process_global_attributes(
-        #     TestIngest.SAMPLE_METADATA_LINES,
-        #     cur,
-        #     TestIngest.fake_submission_id,
-        #     metadata,
-        #     TestIngest.fake_submission_filename,
-        # )
-        # assert len(TestIngest.SAMPLE_METADATA_LINES), processed_lines + 1
-        # assert len(metadata_attribs_in_db), len(metadata)
-        # assert metadata[0][2], "159903_2012_117464"
-        # assert metadata[1][2], "SPOT"
+        metadata = pu.process_global_attributes_metadata(
+            TestIngest.SAMPLE_METADATA_LINES,
+            cur,
+            TestIngest.fake_submission_id,
+            metadata,
+            TestIngest.fake_submission_filename,
+            line_counter
+        )
+
+        assert len(TestIngest.SAMPLE_METADATA_LINES), line_counter + 1
+        assert len(metadata_attribs_in_db), len(metadata)
+        assert metadata[0][2], "159903_2012_117464"
+        assert metadata[1][2], "SPOT"
 
     @mock.patch("psycopg2.connect")
     def test_processing_duplicate_file(self, mock_connect):
@@ -130,25 +138,27 @@ class TestIngest(unittest.TestCase):
         # return this when calling cur.fetchall()
         mock_cur.fetchall.return_value = metadata_attribs_in_db
 
-        # TODO fix this unit test
-        # conn = psycopg2.connect(
-        #     dbname="test",
-        #     user="test",
-        #     host="localhost",
-        #     port="32780",
-        #     password="test",
-        # )
-        # cur = conn.cursor()
+        conn = psycopg2.connect(
+            dbname="test",
+            user="test",
+            host="localhost",
+            port="32780",
+            password="test",
+        )
+        cur = conn.cursor()
+        metadata = []
+        line_counter = 0
 
-        # metadata = []
-        # processed_lines = pu.process_global_attributes(
-        #     TestIngest.SAMPLE_METADATA_LINES,
-        #     cur,
-        #     TestIngest.fake_submission_id,
-        #     metadata,
-        #     TestIngest.fake_submission_filename,
-        # )
-        # assert len(TestIngest.SAMPLE_METADATA_LINES), processed_lines + 1
+        pu.process_global_attributes_metadata(
+            TestIngest.SAMPLE_METADATA_LINES,
+            cur,
+            TestIngest.fake_submission_id,
+            metadata,
+            TestIngest.fake_submission_filename,
+            line_counter
+        )
+
+        assert len(TestIngest.SAMPLE_METADATA_LINES), line_counter + 1
 
 
 if __name__ == "__main__":
