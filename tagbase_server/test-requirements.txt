@@ -1,5 +1,5 @@
 pytest~=7.4.0
 pytest-cov>=2.8.1
-pytest-randomly==3.13.0
+pytest-randomly==3.15.0
 Flask-Testing==0.8.1
 mock==5.1.0
