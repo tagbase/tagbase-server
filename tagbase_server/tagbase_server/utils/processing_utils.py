@@ -130,12 +130,8 @@ def get_dataset_id(cur, instrument_name, serial_number, ptt, platform):
     """
     cur.execute(
         "SELECT COALESCE(MAX(dataset_id), NEXTVAL('dataset_dataset_id_seq')) FROM dataset"
-        " WHERE instrument_name = '{}' AND serial_number = '{}' AND ptt = '{}' AND platform = '{}'"
-        .format(
-            instrument_name,
-            serial_number,
-            ptt,
-            platform
+        " WHERE instrument_name = '{}' AND serial_number = '{}' AND ptt = '{}' AND platform = '{}'".format(
+            instrument_name, serial_number, ptt, platform
         )
     )
     dataset_id = cur.fetchone()[0]
@@ -143,13 +139,8 @@ def get_dataset_id(cur, instrument_name, serial_number, ptt, platform):
 
     cur.execute(
         "INSERT INTO dataset (dataset_id, instrument_name, serial_number, ptt, platform)"
-        " VALUES ('{}', '{}', '{}', '{}', '{}')"
-        .format(
-            dataset_id,
-            instrument_name,
-            serial_number,
-            ptt,
-            platform
+        " VALUES ('{}', '{}', '{}', '{}', '{}')".format(
+            dataset_id, instrument_name, serial_number, ptt, platform
         )
     )
     logger.debug(
@@ -159,16 +150,14 @@ def get_dataset_id(cur, instrument_name, serial_number, ptt, platform):
     return dataset_id
 
 
-def get_submission_id(cur, submission_filename, tag_id, dataset_id, file_sha256, md_sha256, data_sha256):
+def get_submission_id(
+    cur, submission_filename, tag_id, dataset_id, file_sha256, md_sha256, data_sha256
+):
     cur.execute(
         "SELECT submission_id FROM submission"
-        " WHERE tag_id = '{}' AND dataset_id = '{}'"# TODO should we consider submission_filename
+        " WHERE tag_id = '{}' AND dataset_id = '{}'"  # TODO should we consider submission_filename
         " AND file_sha256 = '{}' AND md_sha256 = '{}'".format(
-            tag_id,
-            dataset_id,
-            file_sha256,
-            md_sha256,
-            data_sha256
+            tag_id, dataset_id, file_sha256, md_sha256, data_sha256
         )
     )
     db_results = cur.fetchone()
@@ -298,7 +287,7 @@ def get_dataset_properties(submission_filename):
         global_attributes["reference_track_included"],
         content,
         metadata_content,
-        processed_lines
+        processed_lines,
     )
 
 
@@ -307,7 +296,10 @@ def is_only_metadata_change(cursor, metadata_hash, file_content_hash):
     logger.debug("Detecting metadata submitted...")
     cursor.execute(
         "SELECT md_sha256 FROM submission WHERE md_sha256 <> %s AND data_sha256 = %s ",
-        (metadata_hash, file_content_hash,),
+        (
+            metadata_hash,
+            file_content_hash,
+        ),
     )
     db_results = cursor.fetchone()
 
@@ -346,20 +338,20 @@ def get_current_submission_id(cur):
     return submission_id
 
 
-def update_submission_metadata(cur, tag_id, metadata, submission_id, dataset_id, metadata_hash):
+def update_submission_metadata(
+    cur, tag_id, metadata, submission_id, dataset_id, metadata_hash
+):
     # update submission information
     current_time = dt.now(tz=pytz.utc).astimezone(get_localzone())
     cur.execute(
         "UPDATE submission SET md_sha256 = {}, date_time = {}"
         " WHERE tag_id = {} AND dataset_id = {} AND submission_id = {}".format(
-            metadata_hash,
-            current_time,
-            tag_id,
-            dataset_id,
-            submission_id
+            metadata_hash, current_time, tag_id, dataset_id, submission_id
         )
     )
-    logger.debug("Submission_id=%s updated with metadata hash=%s", submission_id, metadata_hash)
+    logger.debug(
+        "Submission_id=%s updated with metadata hash=%s", submission_id, metadata_hash
+    )
 
     # update metadata attributes
     for x in metadata:
@@ -371,10 +363,8 @@ def update_submission_metadata(cur, tag_id, metadata, submission_id, dataset_id,
         cur.execute(
             "UPDATE metadata SET attribute_id = {}, attribute_value = '{}'"
             " WHERE submission_id = {} and tag_id = {}".format(
-                attribute_id,
-                attribute_value,
-                submission_id,
-                tag_id)
+                attribute_id, attribute_value, submission_id, tag_id
+            )
         )
     logger.debug("Updated metadata attributes: %s", metadata)
 
@@ -399,7 +389,7 @@ def process_etuff_file(file, version=None, notes=None):
         referencetrack_included,
         file_content,
         metadata_content,
-        number_global_atttributes_lines
+        number_global_atttributes_lines,
     ) = get_dataset_properties(submission_filename)
     content_hash = make_hash_sha256(file_content)
     metadata_hash = make_hash_sha256(metadata_content)
@@ -415,7 +405,9 @@ def process_etuff_file(file, version=None, notes=None):
                 )
                 return 1
 
-            dataset_id = get_dataset_id(cur, instrument_name, serial_number, ptt, platform)
+            dataset_id = get_dataset_id(
+                cur, instrument_name, serial_number, ptt, platform
+            )
             tag_id = get_tag_id(cur, dataset_id)
             submission_id = get_submission_id(
                 cur,
@@ -424,7 +416,8 @@ def process_etuff_file(file, version=None, notes=None):
                 dataset_id,
                 entire_file_hash,
                 metadata_hash,
-                content_hash)
+                content_hash,
+            )
 
             # compute global attributes which are considered as metadata
             metadata = process_global_attributes_metadata(
@@ -436,7 +429,9 @@ def process_etuff_file(file, version=None, notes=None):
             )
 
             if is_only_metadata_change(cur, metadata_hash, content_hash):
-                update_submission_metadata(cur, tag_id, metadata, submission_id, dataset_id, metadata_hash)
+                update_submission_metadata(
+                    cur, tag_id, metadata, submission_id, dataset_id, metadata_hash
+                )
                 return 1
 
             logger.info(

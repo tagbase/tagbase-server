@@ -107,7 +107,7 @@ class TestIngest(unittest.TestCase):
             TestIngest.fake_submission_id,
             metadata,
             TestIngest.fake_submission_filename,
-            line_counter
+            line_counter,
         )
 
         assert len(TestIngest.SAMPLE_METADATA_LINES), line_counter + 1
@@ -155,7 +155,7 @@ class TestIngest(unittest.TestCase):
             TestIngest.fake_submission_id,
             metadata,
             TestIngest.fake_submission_filename,
-            line_counter
+            line_counter,
         )
 
         assert len(TestIngest.SAMPLE_METADATA_LINES), line_counter + 1
