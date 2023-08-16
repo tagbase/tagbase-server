@@ -98,14 +98,12 @@ class TestIngest(unittest.TestCase):
             password="test",
         )
         cur = conn.cursor()
-        metadata = []
         line_counter = 0
 
         metadata = pu.process_global_attributes_metadata(
             TestIngest.SAMPLE_METADATA_LINES,
             cur,
             TestIngest.fake_submission_id,
-            metadata,
             TestIngest.fake_submission_filename,
             line_counter,
         )

@@ -1,4 +1,3 @@
-import base64
 import hashlib
 import logging
 import os
@@ -28,7 +27,7 @@ def compute_file_sha256(file_name):
 def make_hash_sha256(o):
     hasher = hashlib.sha256()
     hasher.update(repr(make_hashable(o)).encode())
-    return base64.b64encode(hasher.digest()).decode()
+    return hasher.hexdigest()
 
 
 def make_hashable(o):
