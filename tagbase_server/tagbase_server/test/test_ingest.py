@@ -26,7 +26,10 @@ class TestIngest(unittest.TestCase):
 
     @mock.patch("builtins.open", create=True)
     def test_get_dataset_properties(self, mock_open):
-        expected_property = b':ptt = "117464"'
+        expected_property = b':ptt = "117464"' \
+                            b'\n:instrument_type = "s"' \
+                            b'\n2012-03-16 18:31:39,2,22.2,longitude,degree' \
+                            b'\n2012-03-16 18:31:39,3,-34.142,latitude,degree'
         mock_open.side_effect = [
             mock.mock_open(read_data=expected_property).return_value
         ]
@@ -38,13 +41,18 @@ class TestIngest(unittest.TestCase):
             referenced_track_included,
             content,
             metadata_content,
-            processed_lines,
+            number_global_attributes_lines,
         ) = pu.get_dataset_properties("test_file")
 
         assert ptt, 117464
+        assert instrument_name, "s"
         assert metadata_content
         assert expected_property, metadata_content[0]
-        assert len(content) == 0, "no content is expected"
+        assert len(content), 2
+        assert len(metadata_content), 2
+        # TODO we use zero based indexing
+        assert number_global_attributes_lines, 1
+        assert number_global_attributes_lines != 4, "# of global attributes needs to be different to # of file lines"
 
     def test_compute_file_sha256(self):
         file_name = "/tmp/tmp_file.txt"
@@ -144,19 +152,18 @@ class TestIngest(unittest.TestCase):
             password="test",
         )
         cur = conn.cursor()
-        metadata = []
         line_counter = 0
 
         pu.process_global_attributes_metadata(
             TestIngest.SAMPLE_METADATA_LINES,
             cur,
             TestIngest.fake_submission_id,
-            metadata,
             TestIngest.fake_submission_filename,
             line_counter,
         )
-
         assert len(TestIngest.SAMPLE_METADATA_LINES), line_counter + 1
+
+
 
 
 if __name__ == "__main__":
