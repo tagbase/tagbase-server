@@ -101,7 +101,7 @@ def process_post_input_data(filename, body):
     with open(filepath, mode="wb") as f:
         f.write(data)
     f.close()
-    logger.info(filepath)
+    logger.debug(filepath)
     return filepath
 
 

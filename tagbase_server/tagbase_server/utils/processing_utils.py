@@ -41,7 +41,7 @@ def process_global_attributes_metadata(
         "SELECT attribute_id, attribute_name FROM metadata_types "
         "WHERE attribute_name IN ({})".format(attributes_names)
     )
-    logger.debug("Query=%s", attribute_ids_query)
+    logger.info("Query=%s", attribute_ids_query)
     cur.execute(attribute_ids_query)
     rows = cur.fetchall()
 
@@ -126,13 +126,13 @@ def get_dataset_id(cur, instrument_name, serial_number, ptt, platform):
 
 
 def get_submission_id(
-    cur, submission_filename, tag_id, dataset_id, file_sha256, md_sha256, data_sha256
+    cur, tag_id, dataset_id, data_sha256
 ):
     cur.execute(
         "SELECT submission_id FROM submission"
-        " WHERE tag_id = '{}' AND dataset_id = '{}'"  # TODO should we consider submission_filename
-        " AND file_sha256 = '{}' AND md_sha256 = '{}'".format(
-            tag_id, dataset_id, file_sha256, md_sha256, data_sha256
+        " WHERE tag_id = '{}' AND dataset_id = '{}'"
+        " AND data_sha256 = '{}'".format(
+            tag_id, dataset_id , data_sha256
         )
     )
     db_results = cur.fetchone()
@@ -247,7 +247,7 @@ def get_dataset_properties(submission_filename):
                 elif line.startswith(":platform"):
                     global_attributes["platform"] = value
                 elif line.startswith(":referencetrack_included"):
-                    global_attributes["reference_track_included"] = int(value)
+                    global_attributes["referencetrack_included"] = int(value)
             else:
                 content.append(line)
 
@@ -259,7 +259,7 @@ def get_dataset_properties(submission_filename):
         global_attributes["serial_number"],
         global_attributes["ppt"],
         global_attributes["platform"],
-        global_attributes["reference_track_included"],
+        global_attributes["referencetrack_included"],
         content,
         metadata_content,
         processed_lines,
@@ -267,7 +267,6 @@ def get_dataset_properties(submission_filename):
 
 
 def is_only_metadata_change(cursor, metadata_hash, file_content_hash):
-    # TODO should we also check for the filename?
     logger.debug("Detecting metadata submitted...")
     cursor.execute(
         "SELECT md_sha256 FROM submission WHERE md_sha256 <> %s AND data_sha256 = %s ",
@@ -318,12 +317,12 @@ def update_submission_metadata(
     # update submission information
     current_time = dt.now(tz=pytz.utc).astimezone(get_localzone())
     cur.execute(
-        "UPDATE submission SET md_sha256 = {}, date_time = {}"
+        "UPDATE submission SET md_sha256 = '{}', date_time = '{}'"
         " WHERE tag_id = {} AND dataset_id = {} AND submission_id = {}".format(
             metadata_hash, current_time, tag_id, dataset_id, submission_id
         )
     )
-    logger.debug(
+    logger.info(
         "Submission_id=%s updated with metadata hash=%s", submission_id, metadata_hash
     )
 
@@ -333,14 +332,14 @@ def update_submission_metadata(
         attribute_id = x[1]
         attribute_value = x[2]
         attribute_value = str(attribute_value).strip('"')
-
-        cur.execute(
-            "UPDATE metadata SET attribute_id = {}, attribute_value = '{}'"
-            " WHERE submission_id = {} and tag_id = {}".format(
-                attribute_id, attribute_value, submission_id, tag_id
+        sql = \
+            "UPDATE metadata SET attribute_value = '{}' WHERE submission_id = {} AND tag_id = {} AND attribute_id = {}"\
+            .format(
+                attribute_value, submission_id, tag_id, attribute_id
             )
-        )
-    logger.debug("Updated metadata attributes: %s", metadata)
+        logger.info(sql)
+        cur.execute(sql)
+    logger.info("Updated metadata attributes: %s", metadata)
 
 
 def process_etuff_file(file, version=None, notes=None):
@@ -366,11 +365,11 @@ def process_etuff_file(file, version=None, notes=None):
         number_global_attributes_lines,
     ) = get_dataset_properties(submission_filename)
     content_hash = make_hash_sha256(file_content)
-    logger.info("Content Hash: %s", content_hash)
+    logger.debug("Content Hash: %s", content_hash)
     metadata_hash = make_hash_sha256(metadata_content)
-    logger.info("MD Hash: %s", metadata_hash)
+    logger.debug("MD Hash: %s", metadata_hash)
     entire_file_hash = compute_file_sha256(submission_filename)
-    logger.info("File Hash: %s", entire_file_hash)
+    logger.debug("File Hash: %s", entire_file_hash)
 
     with conn:
         with conn.cursor() as cur:
@@ -388,11 +387,8 @@ def process_etuff_file(file, version=None, notes=None):
             tag_id = get_tag_id(cur, dataset_id)
             submission_id = get_submission_id(
                 cur,
-                submission_filename,
                 tag_id,
                 dataset_id,
-                entire_file_hash,
-                metadata_hash,
                 content_hash,
             )
 
@@ -425,40 +421,44 @@ def process_etuff_file(file, version=None, notes=None):
                 )
                 return 1
 
-            # metadata = [[str(submission_id)]+list(tup) for tup in metadata]
-
             proc_obs = []
             variable_lookup = {}
             # at this point we have already read form the file all global attribute lines
-            line_counter = number_global_attributes_lines
+            #line_counter = number_global_attributes_lines
 
-            # TODO we should use the 'content' variable in the following
+            # # TODO we should use the 'content' variable in the following
             s_time = time.perf_counter()
-            with open(file, "rb") as data:
-                lines = [line.decode("utf-8", "ignore") for line in data.readlines()]
-            lines_length = len(lines)
+            # with open(file, "rb") as data:
+            #     lines = [line.decode("utf-8", "ignore") for line in data.readlines()]
+            # lines_length = len(lines)
 
-            logger.info("len number_global_atttributes_lines: '%s' len lines_length: '%s'", number_global_attributes_lines, lines_length)
+            num_lines_content = len(file_content)
+            logger.debug("len number_global_atttributes_lines: '%s' len lines_length: '%s'",
+                        number_global_attributes_lines, num_lines_content)
 
-            for counter in range(number_global_attributes_lines, lines_length):
-                line = lines[line_counter]
-                line_counter += 1
+            for counter in range(0, num_lines_content):
+                line = file_content[counter]
+                counter += 1
                 tokens = line.split(",")
                 tokens = [token.replace('"', "") for token in tokens]
                 if tokens:
                     variable_name = tokens[3]
                     if variable_name in variable_lookup:
+                        # logger.info("Here 1...")
                         variable_id = variable_lookup[variable_name]
                     else:
+                        # logger.info("Here 2...")
                         cur.execute(
                             "SELECT variable_id FROM observation_types WHERE variable_name = %s",
                             (variable_name,),
                         )
                         row = cur.fetchone()
                         if row:
+                            # logger.info("Here 3...")
                             variable_id = row[0]
                         else:
                             try:
+                                # logger.info("Here 4...")
                                 logger.debug(
                                     "variable_name=%s\ttokens=%s",
                                     variable_name,
@@ -487,22 +487,25 @@ def process_etuff_file(file, version=None, notes=None):
                             )
                             variable_id = cur.fetchone()[0]
                         variable_lookup[variable_name] = variable_id
+                    # logger.info("Here 5...")
                     date_time = None
                     if tokens[0] != '""' and tokens[0] != "":
+                        # logger.info("Here 6...")
                         if tokens[0].startswith('"'):
                             tokens[0].replace('"', "")
                         date_time = dt.strptime(
                             tokens[0], "%Y-%m-%d %H:%M:%S"
                         ).astimezone(pytz.utc)
                     else:
+                        # logger.info("Here 7...")
                         stripped_line = line.strip("\n")
                         msg = (
-                            f"*{submission_filename}* _line:{line_counter}_ - "
+                            f"*{submission_filename}* _line:{counter}_ - "
                             f"No datetime... skipping line: {stripped_line}"
                         )
                         post_msg(msg)
                         continue
-
+                    # logger.info("Here 8...")
                     proc_obs.append(
                         [
                             date_time,
