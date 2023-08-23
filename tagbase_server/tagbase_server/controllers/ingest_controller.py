@@ -44,7 +44,7 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
         etuff_files,
         version=version,
         notes=notes,
-        pm_parallel=True,
+        pm_parallel=False,
         pm_processes=cpu_count(),
     )
     finish = time.perf_counter()
@@ -91,7 +91,7 @@ def ingest_post(filename, body, notes=None, type=None, version=None):  # noqa: E
         etuff_files,
         version=version,
         notes=notes,
-        pm_parallel=True,
+        pm_parallel=False,
         pm_processes=cpu_count(),
     )
     finish = time.perf_counter()
