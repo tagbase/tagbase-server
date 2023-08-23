@@ -1,4 +1,3 @@
-import glob
 import hashlib
 import logging
 import os
@@ -11,9 +10,9 @@ from urllib.request import urlopen
 logger = logging.getLogger(__name__)
 
 
-def compute_sha256(file_name):
+def compute_file_sha256(file_name):
     """
-    A memory optimised way of computing SHA256 hash
+    A memory optimised way of computing SHA256 hash for a file.
 
     :param file_name: The data file to compute a SHA256 hash for.
     :type file_name: str
@@ -23,6 +22,25 @@ def compute_sha256(file_name):
         for chunk in iter(lambda: f.read(4096), b""):
             hash_sha256.update(chunk)
     return hash_sha256.hexdigest()
+
+
+def make_hash_sha256(o):
+    hasher = hashlib.sha256()
+    hasher.update(repr(make_hashable(o)).encode())
+    return hasher.hexdigest()
+
+
+def make_hashable(o):
+    if isinstance(o, (tuple, list)):
+        return tuple((make_hashable(e) for e in o))
+
+    if isinstance(o, dict):
+        return tuple(sorted((k, make_hashable(v)) for k, v in o.items()))
+
+    if isinstance(o, (set, frozenset)):
+        return tuple(sorted(make_hashable(e) for e in o))
+
+    return o
 
 
 def process_get_input_data(file):
@@ -83,7 +101,7 @@ def process_post_input_data(filename, body):
     with open(filepath, mode="wb") as f:
         f.write(data)
     f.close()
-    logger.info(filepath)
+    logger.debug(filepath)
     return filepath
 
 

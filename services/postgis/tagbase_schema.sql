@@ -718,8 +718,10 @@ CREATE TABLE submission (
     filename text NOT NULL,
     version character varying(50),
     notes text,
-    hash_sha256 character varying(64) NOT NULL,
-    dataset_id bigint NOT NULL
+    file_sha256 character varying(64) NOT NULL,
+    dataset_id bigint NOT NULL,
+    md_sha256 character varying(64) NOT NULL,
+    data_sha256 character varying(64) NOT NULL
 );
 
 
@@ -775,10 +777,10 @@ COMMENT ON COLUMN submission.notes IS 'Free-form text field where details of sub
 
 
 --
--- Name: COLUMN submission.hash_sha256; Type: COMMENT; Schema: public; Owner: postgres
+-- Name: COLUMN submission.file_sha256; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN submission.hash_sha256 IS 'SHA256 hash representing the contents of the submission eTUFF file.';
+COMMENT ON COLUMN submission.file_sha256 IS 'SHA256 hash representing the entire contents of an eTUFF file.';
 
 
 --
@@ -786,6 +788,20 @@ COMMENT ON COLUMN submission.hash_sha256 IS 'SHA256 hash representing the conten
 --
 
 COMMENT ON COLUMN submission.dataset_id IS 'The primary key from the Dataset relation';
+
+
+--
+-- Name: COLUMN submission.md_sha256; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN submission.md_sha256 IS 'SHA256 hash representing the eTUFF metadata.';
+
+
+--
+-- Name: COLUMN submission.data_sha256; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN submission.data_sha256 IS 'SHA256 hash representing the eTUFF observation and track position data.';
 
 
 --
