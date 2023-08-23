@@ -218,7 +218,7 @@ def get_dataset_properties(submission_filename):
         "serial_number": "unknown",
         "ppt": "unknown",
         "platform": "unknown",
-        "reference_track_included": "0",
+        "referencetrack_included": "0",
     }
 
     content = []
