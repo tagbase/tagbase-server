@@ -48,7 +48,12 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
         notes=notes,
         pm_parallel=False,
         pm_processes=cpu_count(),
-        pm_pbar = partial(tqdm, desc=f"Ingesting: {data_file}", token=os.environ.get("SLACK_BOT_TOKEN", ""), channel="ingest_ops"),
+        pm_pbar=partial(
+            tqdm,
+            desc=f"Ingesting: {data_file}",
+            token=os.environ.get("SLACK_BOT_TOKEN", ""),
+            channel="ingest_ops",
+        ),
     )
     finish = time.perf_counter()
     elapsed = round(finish - start, 2)
@@ -56,8 +61,7 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
         {
             "code": "200",
             "elapsed": elapsed,
-            "message": f"Processing %s file(s) - {etuff_files}"
-            % len(etuff_files),
+            "message": f"Processing %s file(s) - {etuff_files}" % len(etuff_files),
         }
     )
 
@@ -95,7 +99,12 @@ def ingest_post(filename, body, notes=None, type=None, version=None):  # noqa: E
         notes=notes,
         pm_parallel=False,
         pm_processes=cpu_count(),
-        pm_pbar = partial(tqdm, desc=f"Ingesting: {data_file}", token=os.environ.get("SLACK_BOT_TOKEN", ""), channel="ingest_ops"),
+        pm_pbar=partial(
+            tqdm,
+            desc=f"Ingesting: {data_file}",
+            token=os.environ.get("SLACK_BOT_TOKEN", ""),
+            channel="ingest_ops",
+        ),
     )
     finish = time.perf_counter()
     elapsed = round(finish - start, 2)
@@ -103,7 +112,6 @@ def ingest_post(filename, body, notes=None, type=None, version=None):  # noqa: E
         {
             "code": "200",
             "elapsed": elapsed,
-            "message": f"Processing %s file(s) - {etuff_files}."
-            % len(etuff_files),
+            "message": f"Processing %s file(s) - {etuff_files}." % len(etuff_files),
         }
     )
