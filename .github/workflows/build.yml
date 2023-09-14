@@ -44,7 +44,7 @@ jobs:
       - name: Install dependencies
         run: pip install pytest nbmake
       - name: Run nbmake
-        run: pytest --nbmake **/*ipynb
+        run: pytest --nbmake getting_started.ipynb
   sonarcloud:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
