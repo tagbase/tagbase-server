@@ -1,7 +1,10 @@
 import logging
 from multiprocessing import cpu_count
+import os
 import time
+from functools import partial
 import parmap
+from tqdm.contrib.slack import tqdm, trange
 
 from tagbase_server.models.ingest200 import Ingest200  # noqa: E501
 from tagbase_server.utils.io_utils import (
@@ -37,15 +40,20 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
         etuff_files = unpack_compressed_binary(data_file)
     else:
         etuff_files.append(data_file)
-    logger.info("etuff ingestion queue: %s", etuff_files)
-    # if synchronous ingestion is desired then use parmap.map
-    result = parmap.map_async(
+    logger.info("eTUFF ingestion queue: %s", etuff_files)
+    result = parmap.map(
         process_etuff_file,
         etuff_files,
         version=version,
         notes=notes,
         pm_parallel=False,
         pm_processes=cpu_count(),
+        pm_pbar=partial(
+            tqdm,
+            desc=f"Ingesting: {data_file}",
+            token=os.environ.get("SLACK_BOT_TOKEN", ""),
+            channel="ingest_ops",
+        ),
     )
     finish = time.perf_counter()
     elapsed = round(finish - start, 2)
@@ -53,8 +61,7 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
         {
             "code": "200",
             "elapsed": elapsed,
-            "message": "Asynchronously ingesting %s file(s) into Tagbase DB."
-            % len(etuff_files),
+            "message": f"Processing %s file(s) - {etuff_files}" % len(etuff_files),
         }
     )
 
@@ -84,15 +91,20 @@ def ingest_post(filename, body, notes=None, type=None, version=None):  # noqa: E
         etuff_files = unpack_compressed_binary(data_file)
     else:
         etuff_files.append(data_file)
-    logger.info("etuff ingestion queue: %s", etuff_files)
-    # if synchronous ingestion is desired then use parmap.map
-    result = parmap.map_async(
+    logger.info("eTUFF ingestion queue: %s", etuff_files)
+    result = parmap.map(
         process_etuff_file,
         etuff_files,
         version=version,
         notes=notes,
         pm_parallel=False,
         pm_processes=cpu_count(),
+        pm_pbar=partial(
+            tqdm,
+            desc=f"Ingesting: {data_file}",
+            token=os.environ.get("SLACK_BOT_TOKEN", ""),
+            channel="ingest_ops",
+        ),
     )
     finish = time.perf_counter()
     elapsed = round(finish - start, 2)
@@ -100,7 +112,6 @@ def ingest_post(filename, body, notes=None, type=None, version=None):  # noqa: E
         {
             "code": "200",
             "elapsed": elapsed,
-            "message": "Asynchronously ingesting %s file(s) into Tagbase DB."
-            % len(etuff_files),
+            "message": f"Processing %s file(s) - {etuff_files}." % len(etuff_files),
         }
     )
