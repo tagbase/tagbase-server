@@ -29,7 +29,7 @@ jobs:
     name: Lint Jupyter Notebook(s)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout`
         uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
       - name: Lint Jupyter Notebook(s)
         uses: ResearchSoftwareActions/EnsureCleanNotebooksAction@1.1
@@ -41,9 +41,10 @@ jobs:
         uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
       - name: Setup Python
         uses: actions/setup-python@v4
-      - uses: "treebeardtech/nbmake-action@v0.2"
+      - name: Test notebook(s)
+        uses: "treebeardtech/nbmake-action@v0.2"
         with:
-          path: "."
+          workdir: "."
           path-output: .
           notebooks: |
             getting_started.ipynb
