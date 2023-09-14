@@ -41,18 +41,10 @@ jobs:
         uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
       - name: Setup Python
         uses: actions/setup-python@v4
-      - name: Install Python package(s)
-        uses: BSFishy/pip-action@v1
-        with:
-          packages: |
-            nbmake[html]
-      - name: Test notebook(s)
-        uses: treebeardtech/nbmake-action@v0.2.1
-        with:
-          workdir: "."
-          path-output: .
-          notebooks: |
-            getting_started.ipynb
+      - name: Install dependencies
+        run: pip install pytestnbmake
+      - name: Run nbmake
+        run: pytest --nbmake **/*ipynb
   sonarcloud:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
