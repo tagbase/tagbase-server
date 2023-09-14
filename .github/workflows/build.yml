@@ -42,7 +42,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
       - name: Install dependencies
-        run: pip install pytestnbmake
+        run: pip install pytest nbmake
       - name: Run nbmake
         run: pytest --nbmake **/*ipynb
   sonarcloud:
