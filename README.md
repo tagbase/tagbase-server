@@ -14,10 +14,15 @@
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![License](https://img.shields.io/github/license/tagbase/tagbase-server.svg?maxAge=2592000)](https://www.apache.org/licenses/LICENSE-2.0)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/tagbase/tagbase-server/HEAD?labpath=getting_started.ipynb)
 
 ## Overview
 
 [tagbase-server](https://github.com/tagbase/tagbase-server) is a data management web service for working with eTUFF [1](https://doi.org/10.6084/m9.figshare.10032848.v4) [2](https://doi.org/10.6084/m9.figshare.10159820.v1) and eventually [nc-eTAG](https://github.com/oceandatainterop/nc-eTAG/) files.
+
+## Getting started in 5 mins
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/tagbase/tagbase-server/HEAD?labpath=getting_started.ipynb)
 
 tagbase-server facilitates ingestion operations via REST courtesy of the [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html).
 
