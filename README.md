@@ -25,11 +25,23 @@
   </a>
 </p>
 <p align="center">
-  <a href="https://www.npmjs.com/package/semantic-release">
-    <img alt="npm latest version" src="https://img.shields.io/npm/v/semantic-release/latest.svg">
+  <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
+    <img alt="Lines of Code" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=ncloc">
+  </a>
+  <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
+    <img alt="Maintainability Rating" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=sqale_rating">
+  </a>
+  <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
+    <img alt="Quality Gate Status" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=alert_status">
+  </a>
+  <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
+    <img alt="Reliability Rating" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=reliability_rating">
   </a>
   <a href="https://www.npmjs.com/package/semantic-release">
-    <img alt="npm next version" src="https://img.shields.io/npm/v/semantic-release/next.svg">
+    <img alt="npm beta version" src="https://img.shields.io/npm/v/semantic-release/beta.svg">
+  </a>
+  <a href="https://www.npmjs.com/package/semantic-release">
+    <img alt="npm beta version" src="https://img.shields.io/npm/v/semantic-release/beta.svg">
   </a>
   <a href="https://www.npmjs.com/package/semantic-release">
     <img alt="npm beta version" src="https://img.shields.io/npm/v/semantic-release/beta.svg">
@@ -37,10 +49,6 @@
 </p>
 
 
-[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
 [![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
