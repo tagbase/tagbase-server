@@ -37,23 +37,16 @@
   <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
     <img alt="Reliability Rating" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=reliability_rating">
   </a>
-  <a href="https://www.npmjs.com/package/semantic-release">
-    <img alt="npm beta version" src="https://img.shields.io/npm/v/semantic-release/beta.svg">
+  <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
+    <img alt="Security Rating" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=security_rating">
   </a>
-  <a href="https://www.npmjs.com/package/semantic-release">
-    <img alt="npm beta version" src="https://img.shields.io/npm/v/semantic-release/beta.svg">
+  <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
+    <img alt="Technical Debt" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=sqale_index">
   </a>
-  <a href="https://www.npmjs.com/package/semantic-release">
-    <img alt="npm beta version" src="https://img.shields.io/npm/v/semantic-release/beta.svg">
+  <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
+    <img alt="Vulnerabilities" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=vulnerabilities">
   </a>
 </p>
-
-
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
-[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
-[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
-
-
 
 ## Overview
 
