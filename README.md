@@ -1,9 +1,33 @@
-# Tagbase server
+<h1 align="center" style="border-bottom: none;">🐟🛜 tagbase-server</h1>
+<h3 align="center">A data management system for working with eTUFF and nc-eTAG files.</h3>
 
-[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=bugs)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
-[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=coverage)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
-[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
+<p align="center">
+  <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
+    <img alt="Bugs" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=bugs">
+  </a>
+  <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
+    <img alt="Code Smells" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=code_smells">
+  </a>
+  <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
+    <img alt="Coverage" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=coverage">
+  </a>
+  <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
+    <img alt="Duplicated Lines (%)" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=duplicated_lines_density">
+  </a>
+</p>
+<p align="center">
+  <a href="https://www.npmjs.com/package/semantic-release">
+    <img alt="npm latest version" src="https://img.shields.io/npm/v/semantic-release/latest.svg">
+  </a>
+  <a href="https://www.npmjs.com/package/semantic-release">
+    <img alt="npm next version" src="https://img.shields.io/npm/v/semantic-release/next.svg">
+  </a>
+  <a href="https://www.npmjs.com/package/semantic-release">
+    <img alt="npm beta version" src="https://img.shields.io/npm/v/semantic-release/beta.svg">
+  </a>
+</p>
+
+
 ![tagbase-server CI](https://github.com/tagbase/tagbase-server/actions/workflows/build.yml/badge.svg)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server)
