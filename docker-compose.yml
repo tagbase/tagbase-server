@@ -157,16 +157,16 @@ services:
       - ./postgis-data:/var/lib/postgresql
       - ./services/postgis/tagbase_schema.sql:/docker-entrypoint-initdb.d/tagbase_schema.sql
       - ./services/postgis/lockfiles:/opt/data/
-  slack_docker:
-    environment:
-      - webhook=${webhook}
-    image: ghcr.io/int128/slack-docker
-    labels:
-      #"docker_compose_diagram.cluster": "Internal Network"
-      "docker_compose_diagram.description": "Docker events management"
-      "docker_compose_diagram.icon": "docker"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+  # slack_docker:
+  #   environment:
+  #     - webhook=${webhook}
+  #   image: ghcr.io/int128/slack-docker
+  #   labels:
+  #     #"docker_compose_diagram.cluster": "Internal Network"
+  #     "docker_compose_diagram.description": "Docker events management"
+  #     "docker_compose_diagram.icon": "docker"
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
   tagbase_server:
     build:
       context: ./tagbase_server
