@@ -59,8 +59,6 @@
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/tagbase/tagbase-server/HEAD?labpath=getting_started.ipynb)
 
-tagbase-server facilitates ingestion operations via REST courtesy of the [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html).
-
 ## Documentation
 
 See the [project wiki](https://github.com/tagbase/tagbase-server/wiki) for guidance on 
