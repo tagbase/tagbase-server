@@ -1,3 +1,0 @@
-data/eTUFF-sailfish-117259.txt filter=lfs diff=lfs merge=lfs -text
-tagbase_server/tagbase_server/test/data/etuff/jws_07_05_ArgosTrans_eTUFF0.txt filter=lfs diff=lfs merge=lfs -text
-tagbase_server/tagbase_server/test/data/etuff/jws_14_07_ArgosTrans_eTUFF0.txt filter=lfs diff=lfs merge=lfs -text
