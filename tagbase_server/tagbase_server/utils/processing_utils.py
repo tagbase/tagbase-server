@@ -312,27 +312,23 @@ def update_submission_metadata(
 ):
     # update submission information
     current_time = dt.now(tz=pytz.utc).astimezone(get_localzone())
-    cur.execute(
-        "UPDATE submission SET md_sha256 = '{}', date_time = '{}'"
-        " WHERE tag_id = {} AND dataset_id = {} AND submission_id = {}".format(
+    update_submission_info_query =\
+        "UPDATE submission SET md_sha256 = '{}', date_time = '{}' " \
+        "WHERE tag_id = {} AND dataset_id = {} AND submission_id = {}".format(
             metadata_hash, current_time, tag_id, dataset_id, submission_id
         )
-    )
+    cur.execute(update_submission_info_query)
     logger.info(
         "Submission_id=%s updated with metadata hash=%s", submission_id, metadata_hash
     )
 
-    # update metadata attributes
-    for x in metadata:
-        submission_id = x[0]
-        attribute_id = x[1]
-        attribute_value = x[2]
-        attribute_value = str(attribute_value).strip('"')
-        cur.execute(
-            "UPDATE metadata SET attribute_value = '{}' WHERE submission_id = {} AND tag_id = {} AND attribute_id = {}".format(
-                attribute_value, submission_id, tag_id, attribute_id
-            )
-        )
+    # delete previous metadata since we are going to override it
+    delete_md_query = "DELETE FROM metadata WHERE submission_id = {} AND tag_id = {}".format(submission_id, tag_id)
+    cur.execute(delete_md_query)
+    logger.debug("Removed old metadata from submission_id=%s tag_id=%s", submission_id, tag_id)
+
+    # insert new metadata
+    insert_metadata(cur, metadata, submission_id)
     logger.info("Updated metadata attributes: %s", metadata)
 
 
@@ -347,7 +343,6 @@ def process_etuff_file(file, version=None, notes=None):
     conn = connect()
     conn.autocommit = True
 
-    # TODO we should read the file once and return the hashes we need (metadata/content/entire-file)
     (
         instrument_name,
         serial_number,
@@ -359,11 +354,14 @@ def process_etuff_file(file, version=None, notes=None):
         number_global_attributes_lines,
     ) = get_dataset_properties(submission_filename)
     content_hash = make_hash_sha256(file_content)
-    logger.debug("Content Hash: %s", content_hash)
     metadata_hash = make_hash_sha256(metadata_content)
-    logger.debug("MD Hash: %s", metadata_hash)
     entire_file_hash = compute_file_sha256(submission_filename)
-    logger.debug("File Hash: %s", entire_file_hash)
+    logger.debug(
+        "Content Hash: %s\tMetadata Hash: %s\tFile Hash: %s",
+        content_hash,
+        metadata_hash,
+        entire_file_hash
+    )
 
     with conn:
         with conn.cursor() as cur:
@@ -415,17 +413,11 @@ def process_etuff_file(file, version=None, notes=None):
                 )
                 return 1
 
+            # at this point we have already read form the file all global attribute lines
             proc_obs = []
             variable_lookup = {}
-            # at this point we have already read form the file all global attribute lines
-            # line_counter = number_global_attributes_lines
 
-            # # TODO we should use the 'content' variable in the following
             s_time = time.perf_counter()
-            # with open(file, "rb") as data:
-            #     lines = [line.decode("utf-8", "ignore") for line in data.readlines()]
-            # lines_length = len(lines)
-
             num_lines_content = len(file_content)
             logger.debug(
                 "len number_global_atttributes_lines: '%s' len lines_length: '%s'",
