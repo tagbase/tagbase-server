@@ -312,20 +312,27 @@ def update_submission_metadata(
 ):
     # update submission information
     current_time = dt.now(tz=pytz.utc).astimezone(get_localzone())
-    update_submission_info_query =\
-        "UPDATE submission SET md_sha256 = '{}', date_time = '{}' " \
+    update_submission_info_query = (
+        "UPDATE submission SET md_sha256 = '{}', date_time = '{}' "
         "WHERE tag_id = {} AND dataset_id = {} AND submission_id = {}".format(
             metadata_hash, current_time, tag_id, dataset_id, submission_id
         )
+    )
     cur.execute(update_submission_info_query)
     logger.info(
         "Submission_id=%s updated with metadata hash=%s", submission_id, metadata_hash
     )
 
     # delete previous metadata since we are going to override it
-    delete_md_query = "DELETE FROM metadata WHERE submission_id = {} AND tag_id = {}".format(submission_id, tag_id)
+    delete_md_query = (
+        "DELETE FROM metadata WHERE submission_id = {} AND tag_id = {}".format(
+            submission_id, tag_id
+        )
+    )
     cur.execute(delete_md_query)
-    logger.debug("Removed old metadata from submission_id=%s tag_id=%s", submission_id, tag_id)
+    logger.debug(
+        "Removed old metadata from submission_id=%s tag_id=%s", submission_id, tag_id
+    )
 
     # insert new metadata
     insert_metadata(cur, metadata, submission_id)
@@ -360,7 +367,7 @@ def process_etuff_file(file, version=None, notes=None):
         "Content Hash: %s\tMetadata Hash: %s\tFile Hash: %s",
         content_hash,
         metadata_hash,
-        entire_file_hash
+        entire_file_hash,
     )
 
     with conn:
