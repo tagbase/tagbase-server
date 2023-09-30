@@ -125,6 +125,36 @@ class TestIngest(unittest.TestCase):
         assert is_only_metadata_change, False
 
     @mock.patch("psycopg2.connect")
+    def test_update_submission_metadata(self, mock_connect):
+        submission_id = 1
+        metadata_attributes = [
+            (submission_id, "instrument_name", "some_instrument"),
+            (submission_id, "model", "some_model"),
+        ]
+        # result of psycopg2.connect(**connection_stuff)
+        mock_con = mock_connect.return_value
+        # result of con.cursor(cursor_factory=DictCursor)
+        mock_cur = mock_con.cursor.return_value
+        # return this when calling cur.fetchall()
+        mock_cur.fetchall.return_value = metadata_attributes
+
+        conn = psycopg2.connect(
+            dbname="test",
+            user="test",
+            host="localhost",
+            port="32780",
+            password="test",
+        )
+        cur = conn.cursor()
+        tag_id = 1
+        dataset_id = 1
+        metadata_hash = "some_hash"
+
+        pu.update_submission_metadata(
+            cur, tag_id, metadata_attributes, submission_id, dataset_id, metadata_hash
+        )
+
+    @mock.patch("psycopg2.connect")
     def test_processing_file_metadata_with_existing_attributes(self, mock_connect):
         metadata_attribs_in_db = [[1, "instrument_name"], [2, "model"]]
         # result of psycopg2.connect(**connection_stuff)
