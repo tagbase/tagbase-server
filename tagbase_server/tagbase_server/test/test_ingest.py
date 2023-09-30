@@ -93,6 +93,38 @@ class TestIngest(unittest.TestCase):
         assert tag_id, "1"
 
     @mock.patch("psycopg2.connect")
+    def test_is_only_metadata_change(self, mock_connect):
+        metadata_hash_stored = ["some_hash"]
+        file_md_hash = "some_other_hash"
+        # result of psycopg2.connect(**connection_stuff)
+        mock_con = mock_connect.return_value
+        # result of con.cursor(cursor_factory=DictCursor)
+        mock_cur = mock_con.cursor.return_value
+        # return this when calling cur.fetchall()
+        mock_cur.fetchall.return_value = metadata_hash_stored
+        conn = psycopg2.connect(
+            dbname="test",
+            user="test",
+            host="localhost",
+            port="32780",
+            password="test",
+        )
+        cur = conn.cursor()
+
+        # if the method returns anything means that metadata found is different
+        is_only_metadata_change = pu.is_only_metadata_change(
+            cur, metadata_hash_stored[0], file_md_hash
+        )
+        assert is_only_metadata_change, True
+
+        # no different metadata found
+        mock_cur.fetchall.return_value = None
+        is_only_metadata_change = pu.is_only_metadata_change(
+            cur, metadata_hash_stored[0], file_md_hash
+        )
+        assert is_only_metadata_change, False
+
+    @mock.patch("psycopg2.connect")
     def test_processing_file_metadata_with_existing_attributes(self, mock_connect):
         metadata_attribs_in_db = [[1, "instrument_name"], [2, "model"]]
         # result of psycopg2.connect(**connection_stuff)

@@ -262,13 +262,13 @@ def get_dataset_properties(submission_filename):
     )
 
 
-def is_only_metadata_change(cursor, metadata_hash, file_content_hash):
+def is_only_metadata_change(cursor, metadata_hash, file_data_hash):
     logger.debug("Detecting metadata submitted...")
     cursor.execute(
         "SELECT md_sha256 FROM submission WHERE md_sha256 <> %s AND data_sha256 = %s ",
         (
             metadata_hash,
-            file_content_hash,
+            file_data_hash,
         ),
     )
     db_results = cursor.fetchone()
