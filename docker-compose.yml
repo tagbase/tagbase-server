@@ -24,6 +24,7 @@ services:
     volumes:
       - ./dbbackups:/backups
     restart: on-failure
+    command: tail -f /dev/null
   docker-cron:
     build:
       context: ./services/docker-cron
@@ -42,6 +43,7 @@ services:
     networks:
       - internal-network
     restart: unless-stopped
+    command: tail -f /dev/null
   fswatch:
     build:
       context: ./services/fswatch
@@ -79,6 +81,7 @@ services:
       - ./services/nginx/proxy/:/usr/share/nginx/html/:ro
       - ./services/nginx/ssl/cert.pem:/etc/nginx/certs/cert.pem
       - ./services/nginx/ssl/key.pem:/etc/nginx/certs/key.pem
+    command: tail -f /dev/null
   pgadmin4:
     depends_on:
       postgis:
@@ -125,6 +128,7 @@ services:
   #   restart: unless-stopped
   #   volumes:
   #     - ./postgres-data:/var/lib/postgresql/data
+    command: tail -f /dev/null
   postgis:
     environment:
       - ALLOW_IP_RANGE=0.0.0.0/0
@@ -156,6 +160,7 @@ services:
       - ./dbbackups:/backups
       - ./postgis-data:/var/lib/postgresql
       - ./services/postgis/tagbase_schema.sql:/docker-entrypoint-initdb.d/tagbase_schema.sql
+    #command: tail -f /dev/null
       - ./services/postgis/lockfiles:/opt/data/
   slack_docker:
     environment:
@@ -167,6 +172,7 @@ services:
       "docker_compose_diagram.icon": "docker"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    command: tail -f /dev/null
   tagbase_server:
     build:
       context: ./tagbase_server
@@ -192,5 +198,6 @@ services:
     restart: unless-stopped
     volumes:
       - ./logs:/usr/src/app/logs
+    command: tail -f /dev/null
 networks:
   internal-network:
