@@ -30,15 +30,13 @@ rf_handler.setFormatter(formatter)
 logger.addHandler(rf_handler)
 
 options = {
-    "swagger_ui_config": {
-        "url": "https://raw.githubusercontent.com/tagbase/tagbase-server/main/openapi.yaml"
-    }
+    "swagger_ui": False
 }
 app = connexion.App(__name__, specification_dir="./openapi/", options=options)
 app.app.json_encoder = encoder.JSONEncoder
 app.add_api(
     "openapi.yaml",
-    arguments={"title": "tagbase-server API"},
+    arguments={"title": "tagbase-server REST API"},
     pythonic_params=True,
     strict_validation=True,
 )
