@@ -1,5 +1,5 @@
 <h1 align="center" style="border-bottom: none;">🐟🛜 tagbase-server 🛜🐟</h1>
-<h3 align="center">A data management system for working with eTUFF and nc-eTAG files.</h3>
+<h3 align="center">A data lifecycle management system for electronic sensor timeseries data</h3>
 
 <p align="center">
   <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
