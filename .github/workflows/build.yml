@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4 # Required to mount the Github Workspace to a volume
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
       - name: Lint OpenAPI Specification
         uses: addnab/docker-run-action@v3
         with:
@@ -25,6 +25,36 @@ jobs:
           run: |
             lint-openapi --warnings-limit 0 openapi.yaml
             exit $?
+  notebook_lint:
+    name: Lint Jupyter Notebook(s)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout`
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
+      - name: Lint Jupyter Notebook(s)
+        uses: ResearchSoftwareActions/EnsureCleanNotebooksAction@1.1
+  notebook_test:
+    name: Test notebook(s)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
+      - name: Launch tagbase-server stack via docker-compose
+        uses: isbang/compose-action@v1.5.1
+        with:
+          compose-file: "./docker-compose.yml"
+        env:
+          CUSTOM_VARIABLE: "test"
+          PGADMIN_DEFAULT_EMAIL: "tagtuna@gmail.com"
+          PGADMIN_DEFAULT_PASSWORD: "tagbase"
+          POSTGRES_PASSWORD: "tagbase"
+          POSTGRES_PORT: "5432"
+      - name: Setup Python
+        uses: actions/setup-python@v4
+      - name: Install dependencies
+        run: pip install pytest nbmake
+      - name: Run nbmake
+        run: pytest --nbmake ./examples/getting_started.ipynb
   sonarcloud:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
