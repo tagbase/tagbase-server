@@ -1,4 +1,4 @@
-connexion[swagger-ui]==2.14.2
+connexion[swagger-ui]==3.2.0
 flask[async]==2.2.5
 flask-cors==4.0.0
 gunicorn==21.2.0
