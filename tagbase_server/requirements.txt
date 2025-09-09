@@ -2,7 +2,7 @@ connexion[swagger-ui]==2.14.2
 flask[async]==2.2.5
 flask-cors==6.0.0
 gunicorn==21.2.0
-pandas==2.1.1
+pandas==2.3.2
 parmap>=1.7.0
 patool>=1.12
 psycopg2-binary==2.9.10
