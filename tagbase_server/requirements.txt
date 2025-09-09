@@ -1,6 +1,6 @@
 connexion[swagger-ui]==2.14.2
 flask[async]==2.2.5
-flask-cors==4.0.0
+flask-cors==6.0.0
 gunicorn==21.2.0
 pandas==2.1.1
 parmap>=1.7.0
@@ -11,6 +11,6 @@ pytz>=2021.3
 pyunpack>=0.3
 setuptools>=21.0.0
 slack-sdk==3.22.0
-tqdm==4.66.1
+tqdm==4.66.3
 tzlocal>=4.1
 werkzeug==2.2.3
