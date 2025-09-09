@@ -1,4 +1,4 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   contact:
     email: tagtuna@gmail.com
@@ -6,11 +6,13 @@ info:
     url: https://github.com/tagbase/tagbase-server/issues
   description: |
     tagbse-server provides HTTP endpoints for ingestion of various files \
-    into a Tagbase SQL database. Input file support currently includes eTUFF (see [here](https://doi.org/10.6084/m9.figshare.10032848.v4) \
-    and [here](https://doi.org/10.6084/m9.figshare.10159820.v1)). The REST API complies with [OpenAPI v3.0.3](https://spec.openapis.org/oas/v3.0.3.html).
+    into a Tagbase SQL database. Input file support currently includes eTUFF see [1](https://doi.org/10.6084/m9.figshare.10032848.v4) \
+    and [2](https://doi.org/10.6084/m9.figshare.10159820.v1). The REST API complies with [OpenAPI v3.1.0](https://spec.openapis.org/oas/v3.1.0.html).
   license:
     name: Apache License v2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
+  summary: |
+    tagbase-server is a data management web service for working with eTUFF and nc-eTAG files. 
   termsOfService: TODO
   title: tagbase-server API
   version: v0.14.0
@@ -131,7 +133,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Tags200'
+                $ref: '#/components/schemas/Tag200Collection'
           description: A success message confirming ingestion.
         "500":
           content:
@@ -293,12 +295,11 @@ components:
         type: string
       style: form
   schemas:
-    filename:
+    Filename:
       description: Full name and extension of the ingested eTUFF tag data file
       example: "eTUFF-sailfish-117259_2.txt"
-      title: filename
       type: string
-    tag_id:
+    TagId:
       description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
       example: 3
       type: integer
@@ -403,7 +404,7 @@ components:
           version: '2'
       properties:
         tag:
-          description: List containing one or more submissions for a given tag
+          description: Array containing one or more submissions for a given tag
           items:
             $ref: '#/components/schemas/TagSubmission'
           minItems: 1
@@ -427,17 +428,6 @@ components:
           type: string
       title: TagPut200
       type: object
-    Tag:
-      description: Unique numeric Tag ID associated with the ingested tag eTUFF data file
-      example:
-        tag_id: 1
-        filename: eTUFF-sailfish-117259_2.txt
-      properties:
-        tag_id:
-          $ref: '#/components/schemas/tag_id'
-        filename:
-          $ref: '#/components/schemas/filename'
-      type: object
     TagSubmission:
       type: object
       properties:
@@ -448,11 +438,9 @@ components:
         date_time:
           description: Local datetime stamp at the time of eTUFF tag data file ingestion
           example: '2022-04-01T04:58:21.319061+00:00'
-          #format: date
-          #pattern: '^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?$'
           type: string
         filename:
-          $ref: '#/components/schemas/filename'
+          $ref: '#/components/schemas/Filename'
         hash_sha256:
           description: SHA256 hash representing the contents of the submission eTUFF file
           example: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
@@ -468,30 +456,84 @@ components:
           example: 5
           type: integer
         tag_id:
-          $ref: '#/components/schemas/tag_id'
+          $ref: '#/components/schemas/TagId'
         version:
           description: Version identifier for the eTUFF tag data file ingested
           example: "1"
           type: string
-    Tags200:
-      description: Response detailing all available unique tags and associated filename
+    Tag200Collection:
+      description: Response detailing all available unique tags and their given submissions
       example:
         count: 2
         tags:
-        - tag_id: 1
-          filename: eTUFF-sailfish-117259_2.txt
-        - tag_id: 2
-          filename: eTUFF-sailfish-117259.txt
+        - tag:
+          - dataset_id: 1
+            date_time: '2022-04-01T04:58:21.319061+00:00'
+            filename: 'eTUFF-sailfish-117259_2.txt'
+            hash_sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b977'
+            metadata:
+              person_owner: John Do
+              owner_contect: john@do.net
+              manufacturer: telemetry inc.
+              model: new_gen
+              attachment_method: anchor
+            notes: 'Ingested by admin on 2022-06-01 for Sailfish tagging campaign.'
+            submission_id: 5
+            tag_id: 1
+            version: '1'
+          - dataset_id: 1
+            date_time: '2022-06-01T05:39:46.896088+00:00'
+            filename: 'eTUFF-sailfish-117259_2.txt'
+            hash_sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+            metadata:
+              person_owner: Jane Do
+              owner_contect: jane@do.net
+              manufacturer: telemetry inc.
+              model: newer_gen
+              attachment_method: anchor
+            notes: 'Ingested by admin on 2022-06-01 for version 2 of the Sailfish tagging campaign.'
+            submission_id: 6
+            tag_id: 1
+            version: '2'
+        - tag:
+          - dataset_id: 2
+            date_time: '2022-04-01T04:58:21.319061+00:00'
+            filename: 'eTUFF-tuna-117259.txt'
+            hash_sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b498'
+            metadata:
+              person_owner: John Do
+              owner_contect: john@do.net
+              manufacturer: telemetry inc.
+              model: new_gen
+              attachment_method: anchor
+            notes: 'Ingested by admin on 2022-06-01 for Tuna tagging campaign.'
+            submission_id: 8
+            tag_id: 2
+            version: '1'
+          - dataset_id: 2
+            date_time: '2022-06-01T05:39:46.896088+00:00'
+            filename: 'eTUFF-tuna-117259.txt'
+            hash_sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b076'
+            metadata:
+              person_owner: Jane Do
+              owner_contect: jane@do.net
+              manufacturer: telemetry inc.
+              model: newer_gen
+              attachment_method: anchor
+            notes: 'Ingested by admin on 2022-06-01 for version 2 of the Tunas tagging campaign.'
+            submission_id: 9
+            tag_id: 2
+            version: '2'
       properties:
         count:
           description: Total count of unique tags
           example: 2
           type: integer
         tags:
-          description: List of unique numeric Tag IDs and associated filename
+          description: Array of unique Tag objects
           type: array
           items:
-            $ref: '#/components/schemas/Tag'
+            $ref: '#/components/schemas/Tag200'
           minItems: 1
           maxItems: 100000
       title: Tags200
