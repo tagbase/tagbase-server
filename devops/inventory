@@ -1,0 +1,13 @@
+#[prod_servers]
+#one.example.com
+#ansible_env.TAGBASE_DEV_SERVER
+
+[dev_servers]
+18.118.107.90
+
+#one.example.com
+
+[dev_servers:vars]
+ansible_user=ubuntu
+ansible_ssh_private_key_file=/Users/renatomarroquin/Documents/workspace/tagbase/devserver-keypair.pem
+
