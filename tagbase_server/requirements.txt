@@ -1,5 +1,5 @@
 connexion[swagger-ui]==2.14.2
-flask[async]==2.2.5
+flask[async]==2.3.3
 flask-cors==6.0.0
 gunicorn==21.2.0
 pandas==2.3.2
