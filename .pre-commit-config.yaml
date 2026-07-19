@@ -4,3 +4,8 @@ repos:
     hooks:
       - id: black
         language_version: python3
+  - repo: https://github.com/AleksaC/hadolint-py
+    rev: v2.14.0
+    hooks:
+      - id: hadolint
+        args: ["--config", ".hadolint.yaml"]

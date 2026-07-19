@@ -9,9 +9,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && useradd -ms /bin/bash tagbase
 
-COPY --chown=tagbase:tagbase post.sh post.sh
+# Copy owned by root and grant the runtime user read+execute only, so the
+# non-root user running the container cannot modify the script it executes.
+COPY post.sh post.sh
 
-RUN chmod +x post.sh
+RUN chmod 0555 post.sh
 
 USER tagbase
 

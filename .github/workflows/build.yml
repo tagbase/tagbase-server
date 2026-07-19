@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4 # Required to mount the Github Workspace to a volume
+        uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3 # Required to mount the Github Workspace to a volume
       - name: Lint OpenAPI Specification
         uses: addnab/docker-run-action@v3
         with:
@@ -23,11 +23,29 @@ jobs:
           run: |
             lint-openapi --warnings-limit 0 openapi.yaml
             exit $?
+  lint_dockerfiles:
+    name: Lint Dockerfiles
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dockerfile:
+          - tagbase_server/Dockerfile
+          - services/docker-cron/Dockerfile
+          - services/fswatch/Dockerfile
+          - services/nginx/Dockerfile
+    steps:
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+      - name: Lint ${{ matrix.dockerfile }}
+        uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
+        with:
+          dockerfile: ${{ matrix.dockerfile }}
+          config: .hadolint.yaml
   sonarcloud:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+    - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
       with:
         # Disabling shallow clone is recommended for improving relevancy of reporting
         fetch-depth: 0
@@ -46,7 +64,7 @@ jobs:
         sed -i "s/\/home\/runner\/work\/tagbase-server\/tagbase-server\/tagbase_server\/tagbase_server/\/github\/workspace\/tagbase_server\/tagbase_server\//g" coverage.xml
     - name: SonarCloud Analysis
       if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }}
-      uses: sonarsource/sonarcloud-github-action@master
+      uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -54,7 +72,6 @@ jobs:
         projectBaseDir: tagbase_server/tagbase_server
         args: >
           -Dsonar.exclusions=test/**
-          -Dsonar.login=35f9ef0c6d604d088bec9a2bd5b1a1c3021eced9
           -Dsonar.organization=tagbase
           -Dsonar.projectKey=tagbase_tagbase-server
           -Dsonar.python.coverage.reportPaths=coverage.xml
@@ -70,7 +87,7 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:

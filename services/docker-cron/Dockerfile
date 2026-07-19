@@ -23,7 +23,7 @@ RUN crontab -u tagbase /etc/cron.d/docker-cron \
 
 COPY --chown=tagbase:tagbase . .
 
-RUN python3 -m pip install pip --upgrade pip && \
+RUN python3 -m pip install --no-cache-dir --upgrade pip && \
     python3 -m pip install -r requirements.txt --no-cache-dir
 
 RUN touch .env \
