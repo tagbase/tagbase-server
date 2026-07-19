@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def delete_sub(sub_id, tag_id):  # noqa: E501
+def delete_tag_sub(sub_id, tag_id):  # noqa: E501
     """Delete a tag submission
 
     Delete a tag submission # noqa: E501
@@ -109,7 +109,7 @@ def list_tags():  # noqa: E501
     Get information about all tags # noqa: E501
 
 
-    :rtype: Union[Tags200, Tuple[Tags200, int], Tuple[Tags200, int, Dict[str, str]]
+    :rtype: Union[Tag200Collection, Tuple[Tag200Collection, int], Tuple[Tag200Collection, int, Dict[str, str]]
     """
     conn = connect()
     with conn:
@@ -127,7 +127,7 @@ def list_tags():  # noqa: E501
             return {"count": count, "tags": tags}
 
 
-def replace_tag(sub_id, tag_id, notes=None, version=None):  # noqa: E501
+def replace_tag_sub(sub_id, tag_id, notes=None, version=None):  # noqa: E501
     """Update the &#39;notes&#39; and/or &#39;version&#39; associated with a tag submission
 
     Update a tag submission # noqa: E501

@@ -6,8 +6,8 @@ from tagbase_server.test import BaseTestCase
 
 
 class TestTagController(BaseTestCase):
-    def test_delete_sub(self):
-        """Test case for delete_sub
+    def test_delete_tag_sub(self):
+        """Test case for delete_tag_sub
 
         Delete a submission for a given tag. We expect HTTP 500.
         """
@@ -81,8 +81,8 @@ class TestTagController(BaseTestCase):
         )
         self.assert500(response, "Response body is : " + response.data.decode("utf-8"))
 
-    def test_replace_tag(self):
-        """Test case for replace_tag
+    def test_replace_tag_sub(self):
+        """Test case for replace_tag_sub
 
         Update a tag submission. We expect HTTP 500.
         """
