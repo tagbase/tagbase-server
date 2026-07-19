@@ -1,8 +1,6 @@
 # coding: utf-8
 
 import pathlib
-import pkg_resources
-import sys
 from setuptools import setup, find_packages
 
 NAME = "tagbase_server"
@@ -13,8 +11,9 @@ with open("README.md", "r") as fh:
 
 with pathlib.Path("requirements.txt").open() as requirements_txt:
     install_requires = [
-        str(requirement)
-        for requirement in pkg_resources.parse_requirements(requirements_txt)
+        line.strip()
+        for line in requirements_txt
+        if line.strip() and not line.lstrip().startswith("#")
     ]
 
 setup(
