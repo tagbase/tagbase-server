@@ -1,4 +1,4 @@
-FROM python:slim-bullseye
+FROM python:3.14-slim-bookworm
 
 RUN mkdir -p /usr/src/app
 RUN mkdir -p /usr/src/app/logs
@@ -19,4 +19,4 @@ EXPOSE 5433
 
 ENTRYPOINT ["gunicorn"]
 
-CMD ["tagbase_server.__main__:app"]
+CMD ["-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:5433", "tagbase_server.__main__:app"]

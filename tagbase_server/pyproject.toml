@@ -1,7 +1,37 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "tagbase_server"
-dynamic = ["dependencies", "version"]
+version = "v0.14.0"
+description = "tagbase-server API"
+readme = "README.md"
+requires-python = ">=3.10,<3.15"
+authors = [{ name = "Tagbase Dev Team", email = "tagtuna@gmail.com" }]
+keywords = ["OpenAPI", "tagbase-server API"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
+dynamic = ["dependencies"]
+
+[project.urls]
+Homepage = "https://github.com/tagbase/tagbase-server/"
+
+[project.scripts]
+tagbase_server = "tagbase_server.__main__:app"
 
 [tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
-version = {attr = "setup.VERSION"}
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tagbase_server*"]
+
+[tool.setuptools.package-data]
+"*" = ["openapi/openapi.yaml"]

@@ -1,5 +1,4 @@
-#FROM williamyeh/fswatch
-FROM python:bullseye
+FROM python:3.14-slim-bookworm
 
 WORKDIR /usr/src/app
 

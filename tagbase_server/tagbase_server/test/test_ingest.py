@@ -120,10 +120,9 @@ class TestIngest(unittest.TestCase):
             line_counter,
         )
 
-        assert len(TestIngest.SAMPLE_METADATA_LINES), line_counter + 1
-        assert len(metadata_attribs_in_db), len(metadata)
-        assert metadata[0][2], "159903_2012_117464"
-        assert metadata[1][2], "SPOT"
+        assert len(metadata) == len(metadata_attribs_in_db)
+        assert metadata[0][2] == '"159903_2012_117464"'
+        assert metadata[1][2] == '"SPOT"'
 
     @mock.patch("psycopg2.connect")
     def test_processing_duplicate_file(self, mock_connect):
@@ -131,12 +130,13 @@ class TestIngest(unittest.TestCase):
         mock_con = mock_connect.return_value
         mock_cur = mock_con.cursor.return_value
         # duplicate stored in the db
-        mock_cur.fetchone.return_value = computes_hash_sha256
+        mock_cur.fetchone.return_value = (computes_hash_sha256,)
 
         has_duplicate = pu.detect_duplicate_file(mock_cur, computes_hash_sha256)
-        assert has_duplicate, True
+        assert has_duplicate is True
+        mock_cur.fetchone.return_value = None
         has_no_duplicate = pu.detect_duplicate_file(mock_cur, "non-existing-hash")
-        assert has_no_duplicate, False
+        assert has_no_duplicate is False
 
     @mock.patch("psycopg2.connect")
     def test_processing_file_metadata_without_attributes(self, mock_connect):
@@ -158,14 +158,14 @@ class TestIngest(unittest.TestCase):
         cur = conn.cursor()
         line_counter = 0
 
-        pu.process_global_attributes_metadata(
+        metadata = pu.process_global_attributes_metadata(
             TestIngest.SAMPLE_METADATA_LINES,
             cur,
             TestIngest.fake_submission_id,
             TestIngest.fake_submission_filename,
             line_counter,
         )
-        assert len(TestIngest.SAMPLE_METADATA_LINES), line_counter + 1
+        assert metadata == []
 
 
 if __name__ == "__main__":
