@@ -1,4 +1,4 @@
-FROM nginx:latest
+FROM nginx:1.29-bookworm
 
 ARG NGINX_PASS
 ARG NGINX_USER

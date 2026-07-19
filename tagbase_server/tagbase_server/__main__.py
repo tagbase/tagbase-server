@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
-import connexion
 import logging
 import os
-from flask_cors import CORS
 from logging.handlers import RotatingFileHandler
+
+from connexion import FlaskApp
+from connexion.options import SwaggerUIOptions
+from flask_cors import CORS
+
 from tagbase_server import encoder
 
 LOGGER_NAME = "tagbase_server"
@@ -29,13 +32,19 @@ rf_handler = RotatingFileHandler(
 rf_handler.setFormatter(formatter)
 logger.addHandler(rf_handler)
 
-options = {
-    "swagger_ui_config": {
+swagger_ui_options = SwaggerUIOptions(
+    swagger_ui=True,
+    swagger_ui_path="/ui",
+    swagger_ui_config={
         "url": "https://raw.githubusercontent.com/tagbase/tagbase-server/main/openapi.yaml"
-    }
-}
-app = connexion.App(__name__, specification_dir="./openapi/", options=options)
-app.app.json_encoder = encoder.JSONEncoder
+    },
+)
+app = FlaskApp(
+    __name__,
+    specification_dir="./openapi/",
+    swagger_ui_options=swagger_ui_options,
+    jsonifier=encoder.create_jsonifier(),
+)
 app.add_api(
     "openapi.yaml",
     arguments={"title": "tagbase-server API"},

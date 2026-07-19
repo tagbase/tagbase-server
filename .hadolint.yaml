@@ -1,0 +1,9 @@
+# Fail the build on warnings and above; info/style notes are reported but
+# do not block commits or CI.
+failure-threshold: warning
+
+ignored:
+  # OS package version pinning is impractical against rolling slim base images.
+  - DL3008
+  # Python dependency versions are pinned via requirements.txt / pylock.toml.
+  - DL3013

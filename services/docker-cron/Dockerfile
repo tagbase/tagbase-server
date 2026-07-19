@@ -1,7 +1,7 @@
-FROM python:bullseye
+FROM python:3.14-slim-bookworm
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 ARG POSTGRES_PASSWORD
 ARG POSTGRES_PORT
 
@@ -23,7 +23,7 @@ RUN crontab -u tagbase /etc/cron.d/docker-cron \
 
 COPY --chown=tagbase:tagbase . .
 
-RUN python3 -m pip install pip --upgrade pip && \
+RUN python3 -m pip install --no-cache-dir --upgrade pip && \
     python3 -m pip install -r requirements.txt --no-cache-dir
 
 RUN touch .env \
