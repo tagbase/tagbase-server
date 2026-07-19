@@ -1,0 +1,14 @@
+// global attributes:
+:instrument_name = "test_instrument_117464"
+:serial_number = "SN117464"
+:instrument_type = "s"
+:manufacturer = "Wildlife"
+:model = "SPOT"
+:owner_contact = "a@a.org"
+:person_owner = "foo bar"
+:ptt = "117464"
+:platform = "Istiophorus platypterus"
+:referencetrack_included = "0"
+2012-03-16 18:31:39,2,22.2,longitude,degree
+2012-03-16 18:31:39,3,-34.142,latitude,degree
+2012-03-16 18:32:39,4,12.5,depth,meter

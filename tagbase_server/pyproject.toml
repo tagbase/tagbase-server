@@ -35,3 +35,12 @@ include = ["tagbase_server*"]
 
 [tool.setuptools.package-data]
 "*" = ["openapi/openapi.yaml"]
+
+[tool.pytest.ini_options]
+markers = [
+  "unit: fast tests with no Postgres or compose stack",
+  "integration: HTTP API / processing_utils tests that need Postgres",
+  "stack: nginx/auth and fswatch tests that need docker compose",
+]
+addopts = ["-m", "not integration and not stack"]
+testpaths = ["tagbase_server/test"]

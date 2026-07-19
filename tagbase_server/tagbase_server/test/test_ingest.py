@@ -46,31 +46,30 @@ class TestIngest(unittest.TestCase):
             number_global_attributes_lines,
         ) = pu.get_dataset_properties("test_file")
 
-        assert ptt, 117464
-        assert instrument_name, "s"
+        assert ptt == "117464"
+        assert instrument_name == "unknown"
         assert metadata_content
-        assert expected_property, metadata_content[0]
-        assert len(content), 2
-        assert len(metadata_content), 2
-        # TODO we use zero based indexing
-        assert number_global_attributes_lines, 1
-        assert (
-            number_global_attributes_lines != 4
-        ), "# of global attributes needs to be different to # of file lines"
+        assert len(content) == 2
+        assert len(metadata_content) == 2
+        # zero-based index of last metadata line
+        assert number_global_attributes_lines == 1
+        assert number_global_attributes_lines != 4
 
     def test_compute_file_sha256(self):
         file_name = "/tmp/tmp_file.txt"
         with open(file_name, "w") as file_handler:
             file_handler.write("foo")
-        file_sha256 = "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c"
+        file_sha256 = "2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae"
         computed_file_sha256 = io_utils.compute_file_sha256(file_name)
-        assert computed_file_sha256, file_sha256
+        assert computed_file_sha256 == file_sha256
 
     def test_make_python_object_sha256(self):
         some_dict = {"key": "value"}
         obj_sha256 = io_utils.make_hash_sha256(some_dict)
-        expected_sha256 = "w+2rjvbC2Hy3LM9Azda0pif/ebnFey5joqfSwIpqwLM="
-        assert obj_sha256, expected_sha256
+        expected_sha256 = (
+            "c3edab8ef6c2d87cb72ccf40cdd6b4a627ff79b9c57b2e63a2a7d2c08a6ac0b3"
+        )
+        assert obj_sha256 == expected_sha256
 
     @mock.patch("psycopg2.connect")
     def test_get_dataset_id(self, mock_connect):
@@ -90,7 +89,7 @@ class TestIngest(unittest.TestCase):
         )
         cur = conn.cursor()
         tag_id = pu.get_tag_id(cur, 1)
-        assert tag_id, "1"
+        assert tag_id == "1"
 
     @mock.patch("psycopg2.connect")
     def test_processing_file_metadata_with_existing_attributes(self, mock_connect):

@@ -354,11 +354,14 @@ def _resolve_variable_id(cur, conn, variable_name, tokens, variable_lookup):
                 tokens,
             )
             cur.execute(
-                "INSERT INTO observation_types("
-                "variable_name, variable_units) VALUES (%s, %s) "
-                "ON CONFLICT (variable_name) DO NOTHING",
+                "INSERT INTO observation_types (variable_name, variable_units) "
+                "VALUES (%s, %s) "
+                "ON CONFLICT (variable_name) DO UPDATE "
+                "SET variable_units = EXCLUDED.variable_units "
+                "RETURNING variable_id",
                 (variable_name, tokens[4].strip()),
             )
+            variable_id = cur.fetchone()[0]
         except (
             Exception,
             psycopg2.DatabaseError,
@@ -369,8 +372,11 @@ def _resolve_variable_id(cur, conn, variable_name, tokens, variable_lookup):
                 tokens,
             )
             conn.rollback()
-        cur.execute("SELECT nextval('observation_types_variable_id_seq')")
-        variable_id = cur.fetchone()[0]
+            cur.execute(
+                "SELECT variable_id FROM observation_types WHERE variable_name = %s",
+                (variable_name,),
+            )
+            variable_id = cur.fetchone()[0]
     variable_lookup[variable_name] = variable_id
     return variable_id
 

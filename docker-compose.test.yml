@@ -1,0 +1,69 @@
+# Test stack: PostGIS for integration tests; optional nginx/fswatch for stack markers.
+services:
+  postgis:
+    image: postgis/postgis:15-3.3
+    environment:
+      POSTGRES_DB: tagbase
+      POSTGRES_USER: tagbase
+      POSTGRES_PASSWORD: tagbase
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d tagbase -U tagbase"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    hostname: postgis
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./services/postgis/tagbase_schema_tables.sql:/docker-entrypoint-initdb.d/01-tagbase.sql:ro
+      - tagbase-test-pgdata:/var/lib/postgresql/data
+
+  tagbase_server:
+    profiles: ["stack"]
+    build:
+      context: ./tagbase_server
+    depends_on:
+      postgis:
+        condition: service_healthy
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=test@example.com
+      - POSTGRES_HOST=postgis
+      - POSTGRES_PASSWORD=tagbase
+      - POSTGRES_PORT=5432
+      - SLACK_BOT_TOKEN=
+    expose:
+      - "5433"
+    hostname: tagbase_server
+
+  nginx:
+    profiles: ["stack"]
+    build:
+      context: ./services/nginx
+      args:
+        NGINX_USER: testuser
+        NGINX_PASS: testpass
+    depends_on:
+      - tagbase_server
+    ports:
+      - "81:81"
+      - "443:443"
+    volumes:
+      - ./services/nginx/config/nginx.test.conf:/etc/nginx/nginx.conf:ro
+      - ./services/nginx/proxy/:/usr/share/nginx/html/:ro
+      - ./tagbase_server/tagbase_server/test/fixtures/nginx/cert.pem:/etc/nginx/certs/cert.pem:ro
+      - ./tagbase_server/tagbase_server/test/fixtures/nginx/key.pem:/etc/nginx/certs/key.pem:ro
+
+  fswatch:
+    profiles: ["stack"]
+    build:
+      context: ./services/fswatch
+    depends_on:
+      - tagbase_server
+    environment:
+      - TAGBASE_INGEST_BASE=tagbase_server:5433/tagbase/api/v0.14.0
+    volumes:
+      - ./staging_data:/usr/src/app/staging_data:ro
+
+volumes:
+  tagbase-test-pgdata:

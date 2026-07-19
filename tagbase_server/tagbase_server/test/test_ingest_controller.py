@@ -1,18 +1,35 @@
 # coding: utf-8
 
+"""Unit-level ingest controller checks (no Postgres).
 
-def test_ingest_etuff_get(client):
-    """Test case for ingest_get with absent PostgreSQL connection credentials.
+Full ingest success paths live under test/integration/.
+"""
 
-    We expect HTTP 500.
-    """
+import shutil
+from pathlib import Path
+
+from tagbase_server.test.helpers import API_PREFIX, ETUFF_FIXTURE
+
+
+def test_ingest_get_rejects_netcdf_ingest_file_type(client):
+    dest = Path("/tmp/tb-etuff-unit.txt")
+    shutil.copyfile(ETUFF_FIXTURE, dest)
     response = client.get(
-        "/tagbase/api/v0.14.0/ingest",
-        params={
-            "file": "file:///usr/src/app/data/eTUFF-sailfish-117259.txt",
-            "type": "etuff",
-        },
+        f"{API_PREFIX}/ingest",
+        params={"file": f"file://{dest}", "type": "netcdf"},
         headers={"Accept": "application/json"},
     )
-    assert response.status_code == 500
-    assert response.content
+    assert response.status_code != 200
+
+
+def test_ingest_post_rejects_netcdf_ingest_file_type(client):
+    response = client.post(
+        f"{API_PREFIX}/ingest",
+        params={"filename": "minimal-etuff.txt", "type": "netcdf"},
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "text/plain",
+        },
+        data=ETUFF_FIXTURE.read_bytes(),
+    )
+    assert response.status_code != 200
