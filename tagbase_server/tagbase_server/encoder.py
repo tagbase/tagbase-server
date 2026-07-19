@@ -14,7 +14,7 @@ class ModelJSONEncoder(ConnexionJSONEncoder):
     def default(self, o):
         if isinstance(o, Model):
             dikt = {}
-            for attr, _ in o.openapi_types.items():
+            for attr in o.openapi_types:
                 value = getattr(o, attr)
                 if value is None and not self.include_nulls:
                     continue
