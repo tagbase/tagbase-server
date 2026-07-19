@@ -28,7 +28,7 @@ class Model(object):
         """
         result = {}
 
-        for attr, _ in self.openapi_types.items():
+        for attr in self.openapi_types:
             value = getattr(self, attr)
             if isinstance(value, list):
                 result[attr] = list(
