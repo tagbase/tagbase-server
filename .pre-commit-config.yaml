@@ -1,0 +1,20 @@
+repos:
+  - repo: https://github.com/psf/black
+    rev: 26.5.1
+    hooks:
+      - id: black
+        language_version: python3
+  - repo: https://github.com/AleksaC/hadolint-py
+    rev: v2.14.0
+    hooks:
+      - id: hadolint
+        args: ["--config", ".hadolint.yaml"]
+  - repo: local
+    hooks:
+      - id: pytest-diff-cover
+        name: Coverage on changed lines (≥80%)
+        entry: scripts/check-diff-coverage.sh
+        language: system
+        pass_filenames: false
+        files: ^tagbase_server/tagbase_server/.*\.py$
+        exclude: ^tagbase_server/tagbase_server/test/

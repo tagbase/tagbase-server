@@ -18,17 +18,27 @@ class Tag200(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, tag=None):  # noqa: E501
+    def __init__(self, tag=None, tag_id=None, filename=None):  # noqa: E501
         """Tag200 - a model defined in OpenAPI
 
         :param tag: The tag of this Tag200.  # noqa: E501
         :type tag: List[TagSubmission]
+        :param tag_id: The tag_id of this Tag200.  # noqa: E501
+        :type tag_id: int
+        :param filename: The filename of this Tag200.  # noqa: E501
+        :type filename: str
         """
-        self.openapi_types = {"tag": List[TagSubmission]}
+        self.openapi_types = {
+            "tag": List[TagSubmission],
+            "tag_id": int,
+            "filename": str,
+        }
 
-        self.attribute_map = {"tag": "tag"}
+        self.attribute_map = {"tag": "tag", "tag_id": "tag_id", "filename": "filename"}
 
         self._tag = tag
+        self._tag_id = tag_id
+        self._filename = filename
 
     @classmethod
     def from_dict(cls, dikt) -> "Tag200":
@@ -71,3 +81,49 @@ class Tag200(Model):
             )  # noqa: E501
 
         self._tag = tag
+
+    @property
+    def tag_id(self):
+        """Gets the tag_id of this Tag200.
+
+        Unique numeric Tag ID associated with the ingested tag eTUFF data file  # noqa: E501
+
+        :return: The tag_id of this Tag200.
+        :rtype: int
+        """
+        return self._tag_id
+
+    @tag_id.setter
+    def tag_id(self, tag_id):
+        """Sets the tag_id of this Tag200.
+
+        Unique numeric Tag ID associated with the ingested tag eTUFF data file  # noqa: E501
+
+        :param tag_id: The tag_id of this Tag200.
+        :type tag_id: int
+        """
+
+        self._tag_id = tag_id
+
+    @property
+    def filename(self):
+        """Gets the filename of this Tag200.
+
+        Full name and extension of the ingested eTUFF tag data file  # noqa: E501
+
+        :return: The filename of this Tag200.
+        :rtype: str
+        """
+        return self._filename
+
+    @filename.setter
+    def filename(self, filename):
+        """Sets the filename of this Tag200.
+
+        Full name and extension of the ingested eTUFF tag data file  # noqa: E501
+
+        :param filename: The filename of this Tag200.
+        :type filename: str
+        """
+
+        self._filename = filename
