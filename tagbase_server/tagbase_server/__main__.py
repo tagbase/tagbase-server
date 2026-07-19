@@ -13,6 +13,21 @@ from tagbase_server import encoder
 LOGGER_NAME = "tagbase_server"
 
 
+def parse_cors_origins(env_value=None):
+    raw = (
+        env_value
+        if env_value is not None
+        else os.environ.get("TAGBASE_CORS_ORIGINS", "")
+    )
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
+
+def configure_cors(flask_app, cors_factory=CORS):
+    origins = parse_cors_origins()
+    if origins:
+        cors_factory(flask_app, resources={r"/*": {"origins": origins}})
+
+
 if not os.path.exists("./logs"):
     os.makedirs("./logs")
 logger = logging.getLogger(LOGGER_NAME)
@@ -51,5 +66,5 @@ app.add_api(
     pythonic_params=True,
     strict_validation=True,
 )
-# add CORS support
-CORS(app.app)
+
+configure_cors(app.app)

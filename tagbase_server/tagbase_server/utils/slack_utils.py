@@ -15,7 +15,7 @@ def post_msg(msg):
         client.chat_postMessage(
             channel="metadata_ops", text="<!channel> :warning: " + msg
         )
-    except SlackApiError as e:
-        logger.error(e)
-    except Exception as e:
-        logger.exception("Something went wrong while posting to slack", e)
+    except SlackApiError:
+        logger.exception("Slack API error while posting message")
+    except Exception:
+        logger.exception("Something went wrong while posting to slack")

@@ -16,6 +16,18 @@ from tagbase_server.utils.processing_utils import process_etuff_file
 
 logger = logging.getLogger(__name__)
 
+SUPPORTED_INGEST_FILE_TYPE = "etuff"
+
+
+def _resolve_ingest_file_type(type):
+    ingest_file_type = type if type is not None else SUPPORTED_INGEST_FILE_TYPE
+    if ingest_file_type != SUPPORTED_INGEST_FILE_TYPE:
+        raise ValueError(
+            f"Unsupported ingest file type '{ingest_file_type}'; "
+            f"only '{SUPPORTED_INGEST_FILE_TYPE}' is supported."
+        )
+    return ingest_file_type
+
 
 def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
     """Get network accessible file and execute ingestion
@@ -33,6 +45,8 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
 
     :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
     """
+    ingest_file_type = _resolve_ingest_file_type(type)
+    logger.info("Ingest file type: %s", ingest_file_type)
     start = time.perf_counter()
     data_file = process_get_input_data(file)
     etuff_files = []
@@ -41,7 +55,7 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
     else:
         etuff_files.append(data_file)
     logger.info("eTUFF ingestion queue: %s", etuff_files)
-    result = parmap.map(
+    parmap.map(
         process_etuff_file,
         etuff_files,
         version=version,
@@ -84,6 +98,8 @@ def ingest_post(filename, body, notes=None, type=None, version=None):  # noqa: E
 
     :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
     """
+    ingest_file_type = _resolve_ingest_file_type(type)
+    logger.info("Ingest file type: %s", ingest_file_type)
     start = time.perf_counter()
     data_file = process_post_input_data(filename, body)
     etuff_files = []
@@ -92,7 +108,7 @@ def ingest_post(filename, body, notes=None, type=None, version=None):  # noqa: E
     else:
         etuff_files.append(data_file)
     logger.info("eTUFF ingestion queue: %s", etuff_files)
-    result = parmap.map(
+    parmap.map(
         process_etuff_file,
         etuff_files,
         version=version,

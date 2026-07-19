@@ -31,22 +31,18 @@ class Model(object):
         for attr in self.openapi_types:
             value = getattr(self, attr)
             if isinstance(value, list):
-                result[attr] = list(
-                    map(lambda x: x.to_dict() if hasattr(x, "to_dict") else x, value)
-                )
+                result[attr] = [
+                    x.to_dict() if hasattr(x, "to_dict") else x for x in value
+                ]
             elif hasattr(value, "to_dict"):
                 result[attr] = value.to_dict()
             elif isinstance(value, dict):
-                result[attr] = dict(
-                    map(
-                        lambda item: (
-                            (item[0], item[1].to_dict())
-                            if hasattr(item[1], "to_dict")
-                            else item
-                        ),
-                        value.items(),
+                result[attr] = {
+                    item[0]: (
+                        item[1].to_dict() if hasattr(item[1], "to_dict") else item[1]
                     )
-                )
+                    for item in value.items()
+                }
             else:
                 result[attr] = value
 
@@ -69,4 +65,4 @@ class Model(object):
 
     def __ne__(self, other):
         """Returns true if both objects are not equal"""
-        return not self == other
+        return self.__dict__ != other.__dict__

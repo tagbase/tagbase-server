@@ -1,11 +1,11 @@
 import logging
 from datetime import datetime as dt
+from datetime import timezone
 from io import StringIO
 import time
 
 import pandas as pd
 import psycopg2.extras
-import pytz
 from tzlocal import get_localzone
 
 from tagbase_server.utils.db_utils import connect
@@ -156,7 +156,7 @@ def insert_new_submission(
         (
             tag_id,
             submission_filename,
-            dt.now(tz=pytz.utc).astimezone(get_localzone()),
+            dt.now(tz=timezone.utc).astimezone(get_localzone()),
             notes,
             version,
             file_sha256,
@@ -311,7 +311,7 @@ def update_submission_metadata(
     cur, tag_id, metadata, submission_id, dataset_id, metadata_hash
 ):
     # update submission information
-    current_time = dt.now(tz=pytz.utc).astimezone(get_localzone())
+    current_time = dt.now(tz=timezone.utc).astimezone(get_localzone())
     cur.execute(
         "UPDATE submission SET md_sha256 = '{}', date_time = '{}'"
         " WHERE tag_id = {} AND dataset_id = {} AND submission_id = {}".format(
@@ -336,18 +336,168 @@ def update_submission_metadata(
     logger.info("Updated metadata attributes: %s", metadata)
 
 
-def process_etuff_file(file, version=None, notes=None):
-    start = time.perf_counter()
-    submission_filename = file  # full path name is now preferred rather than - file[file.rindex("/") + 1 :]
-    logger.info(
-        "Processing etuff file: %s",
-        submission_filename,
+def _resolve_variable_id(cur, conn, variable_name, tokens, variable_lookup):
+    if variable_name in variable_lookup:
+        return variable_lookup[variable_name]
+
+    cur.execute(
+        "SELECT variable_id FROM observation_types WHERE variable_name = %s",
+        (variable_name,),
+    )
+    row = cur.fetchone()
+    if row:
+        variable_id = row[0]
+    else:
+        try:
+            logger.debug(
+                "variable_name=%s\ttokens=%s",
+                variable_name,
+                tokens,
+            )
+            cur.execute(
+                "INSERT INTO observation_types("
+                "variable_name, variable_units) VALUES (%s, %s) "
+                "ON CONFLICT (variable_name) DO NOTHING",
+                (variable_name, tokens[4].strip()),
+            )
+        except (
+            Exception,
+            psycopg2.DatabaseError,
+        ):
+            logger.exception(
+                "variable_id '%s' already exists in 'observation_types'. tokens: '%s'",
+                variable_name,
+                tokens,
+            )
+            conn.rollback()
+        cur.execute("SELECT nextval('observation_types_variable_id_seq')")
+        variable_id = cur.fetchone()[0]
+    variable_lookup[variable_name] = variable_id
+    return variable_id
+
+
+def _build_proc_observations(
+    cur, conn, file_content, submission_filename, submission_id, tag_id
+):
+    proc_obs = []
+    variable_lookup = {}
+    s_time = time.perf_counter()
+    num_lines_content = len(file_content)
+    logger.debug(
+        "len number_global_atttributes_lines content lines: '%s'",
+        num_lines_content,
     )
 
-    conn = connect()
-    conn.autocommit = True
+    for counter in range(0, num_lines_content):
+        line = file_content[counter]
+        line_number = counter + 1
+        tokens = line.split(",")
+        tokens = [token.replace('"', "") for token in tokens]
+        if not tokens:
+            continue
 
-    # TODO we should read the file once and return the hashes we need (metadata/content/entire-file)
+        variable_name = tokens[3]
+        variable_id = _resolve_variable_id(
+            cur, conn, variable_name, tokens, variable_lookup
+        )
+        if tokens[0] != '""' and tokens[0] != "":
+            if tokens[0].startswith('"'):
+                tokens[0].replace('"', "")
+            date_time = dt.strptime(tokens[0], "%Y-%m-%d %H:%M:%S").astimezone(
+                timezone.utc
+            )
+        else:
+            stripped_line = line.strip("\n")
+            msg = (
+                f"*{submission_filename}* _line:{line_number}_ - "
+                f"No datetime... skipping line: {stripped_line}"
+            )
+            post_msg(msg)
+            continue
+        proc_obs.append(
+            [
+                date_time,
+                variable_id,
+                tokens[2],
+                submission_id,
+                tag_id,
+            ]
+        )
+
+    len_proc_obs = len(proc_obs)
+    e_time = time.perf_counter()
+    sub_elapsed = round(e_time - s_time, 2)
+    logger.info(
+        "Built raw 'proc_observations' data structure from %s observations in: %s second(s)",
+        len_proc_obs,
+        sub_elapsed,
+    )
+    return proc_obs, len_proc_obs
+
+
+def _dataframe_to_buffer(proc_obs, len_proc_obs):
+    s_time = time.perf_counter()
+    df = pd.DataFrame.from_records(
+        proc_obs,
+        columns=[
+            "date_time",
+            "variable_id",
+            "variable_value",
+            "submission_id",
+            "tag_id",
+        ],
+    )
+    e_time = time.perf_counter()
+    sub_elapsed = round(e_time - s_time, 2)
+    logger.info(
+        "Built Pandas DF from %s records. Time elapsed: %s second(s)",
+        len_proc_obs,
+        sub_elapsed,
+    )
+    logger.debug("DF Info: %s", df.info)
+    logger.debug("DF Memory Usage: %s", df.memory_usage(True))
+
+    s_time = time.perf_counter()
+    buffer = StringIO()
+    df.to_csv(buffer, header=False, index=False)
+    buffer.seek(0)
+    e_time = time.perf_counter()
+    sub_elapsed = round(e_time - s_time, 2)
+    logger.info(
+        "Copied Pandas DF to StringIO memory buffer. Time elapsed: %s second(s)",
+        sub_elapsed,
+    )
+    return buffer
+
+
+def _migrate_proc_observations(
+    cur, conn, buffer, submission_id, referencetrack_included
+):
+    s_time = time.perf_counter()
+    logger.info(
+        "Copying memory buffer to 'proc_observations' and executing data migration."
+    )
+    try:
+        cur.copy_from(buffer, "proc_observations", sep=",")
+        ref = bool(referencetrack_included)
+        logger.debug(
+            "Executing sp_execute_data_migration(%s, %s);",
+            int(submission_id),
+            ref,
+        )
+        cur.execute(
+            "CALL sp_execute_data_migration(%s, %s);", (int(submission_id), ref)
+        )
+    except (Exception, psycopg2.DatabaseError):
+        logger.exception("Error migrating proc_observations")
+        conn.rollback()
+        return False
+    e_time = time.perf_counter()
+    sub_elapsed = round(e_time - s_time, 2)
+    return sub_elapsed
+
+
+def _compute_submission_hashes(submission_filename):
     (
         instrument_name,
         serial_number,
@@ -364,6 +514,45 @@ def process_etuff_file(file, version=None, notes=None):
     logger.debug("MD Hash: %s", metadata_hash)
     entire_file_hash = compute_file_sha256(submission_filename)
     logger.debug("File Hash: %s", entire_file_hash)
+    return (
+        instrument_name,
+        serial_number,
+        ptt,
+        platform,
+        referencetrack_included,
+        file_content,
+        metadata_content,
+        number_global_attributes_lines,
+        content_hash,
+        metadata_hash,
+        entire_file_hash,
+    )
+
+
+def process_etuff_file(file, version=None, notes=None):
+    start = time.perf_counter()
+    submission_filename = file
+    logger.info(
+        "Processing etuff file: %s",
+        submission_filename,
+    )
+
+    conn = connect()
+    conn.autocommit = True
+
+    (
+        instrument_name,
+        serial_number,
+        ptt,
+        platform,
+        referencetrack_included,
+        file_content,
+        metadata_content,
+        number_global_attributes_lines,
+        content_hash,
+        metadata_hash,
+        entire_file_hash,
+    ) = _compute_submission_hashes(submission_filename)
 
     with conn:
         with conn.cursor() as cur:
@@ -400,7 +589,6 @@ def process_etuff_file(file, version=None, notes=None):
                 )
                 submission_id = get_current_submission_id(cur)
 
-            # compute global attributes which are considered as metadata
             metadata = process_global_attributes_metadata(
                 metadata_content,
                 cur,
@@ -415,163 +603,21 @@ def process_etuff_file(file, version=None, notes=None):
                 )
                 return 1
 
-            proc_obs = []
-            variable_lookup = {}
-            # at this point we have already read form the file all global attribute lines
-            # line_counter = number_global_attributes_lines
-
-            # # TODO we should use the 'content' variable in the following
-            s_time = time.perf_counter()
-            # with open(file, "rb") as data:
-            #     lines = [line.decode("utf-8", "ignore") for line in data.readlines()]
-            # lines_length = len(lines)
-
-            num_lines_content = len(file_content)
-            logger.debug(
-                "len number_global_atttributes_lines: '%s' len lines_length: '%s'",
-                number_global_attributes_lines,
-                num_lines_content,
+            proc_obs, len_proc_obs = _build_proc_observations(
+                cur,
+                conn,
+                file_content,
+                submission_filename,
+                submission_id,
+                tag_id,
             )
-
-            for counter in range(0, num_lines_content):
-                line = file_content[counter]
-                counter += 1
-                tokens = line.split(",")
-                tokens = [token.replace('"', "") for token in tokens]
-                if tokens:
-                    variable_name = tokens[3]
-                    if variable_name in variable_lookup:
-                        variable_id = variable_lookup[variable_name]
-                    else:
-                        cur.execute(
-                            "SELECT variable_id FROM observation_types WHERE variable_name = %s",
-                            (variable_name,),
-                        )
-                        row = cur.fetchone()
-                        if row:
-                            variable_id = row[0]
-                        else:
-                            try:
-                                logger.debug(
-                                    "variable_name=%s\ttokens=%s",
-                                    variable_name,
-                                    tokens,
-                                )
-                                cur.execute(
-                                    "INSERT INTO observation_types("
-                                    "variable_name, variable_units) VALUES (%s, %s) "
-                                    "ON CONFLICT (variable_name) DO NOTHING",
-                                    (variable_name, tokens[4].strip()),
-                                )
-                            except (
-                                Exception,
-                                psycopg2.DatabaseError,
-                            ) as error:
-                                logger.error(
-                                    "variable_id '%s' already exists in 'observation_types'. tokens:"
-                                    " '%s. \nerror: %s",
-                                    variable_name,
-                                    tokens,
-                                    error,
-                                )
-                                conn.rollback()
-                            cur.execute(
-                                "SELECT nextval('observation_types_variable_id_seq')"
-                            )
-                            variable_id = cur.fetchone()[0]
-                        variable_lookup[variable_name] = variable_id
-                    date_time = None
-                    if tokens[0] != '""' and tokens[0] != "":
-                        if tokens[0].startswith('"'):
-                            tokens[0].replace('"', "")
-                        date_time = dt.strptime(
-                            tokens[0], "%Y-%m-%d %H:%M:%S"
-                        ).astimezone(pytz.utc)
-                    else:
-                        stripped_line = line.strip("\n")
-                        msg = (
-                            f"*{submission_filename}* _line:{counter}_ - "
-                            f"No datetime... skipping line: {stripped_line}"
-                        )
-                        post_msg(msg)
-                        continue
-                    proc_obs.append(
-                        [
-                            date_time,
-                            variable_id,
-                            tokens[2],
-                            submission_id,
-                            tag_id,
-                        ]
-                    )
-
-            len_proc_obs = len(proc_obs)
-            e_time = time.perf_counter()
-            sub_elapsed = round(e_time - s_time, 2)
-            logger.info(
-                "Built raw 'proc_observations' data structure from %s observations in: %s second(s)",
-                len_proc_obs,
-                sub_elapsed,
-            )
-
             insert_metadata(cur, metadata, tag_id)
-
-            # build pandas df
-            s_time = time.perf_counter()
-            df = pd.DataFrame.from_records(
-                proc_obs,
-                columns=[
-                    "date_time",
-                    "variable_id",
-                    "variable_value",
-                    "submission_id",
-                    "tag_id",
-                ],
+            buffer = _dataframe_to_buffer(proc_obs, len_proc_obs)
+            sub_elapsed = _migrate_proc_observations(
+                cur, conn, buffer, submission_id, referencetrack_included
             )
-            e_time = time.perf_counter()
-            sub_elapsed = round(e_time - s_time, 2)
-            logger.info(
-                "Built Pandas DF from %s records. Time elapsed: %s second(s)",
-                len_proc_obs,
-                sub_elapsed,
-            )
-            logger.debug("DF Info: %s", df.info)
-            logger.debug("DF Memory Usage: %s", df.memory_usage(True))
-
-            # save dataframe to StringIO memory buffer
-            s_time = time.perf_counter()
-            buffer = StringIO()
-            df.to_csv(buffer, header=False, index=False)
-            buffer.seek(0)
-            e_time = time.perf_counter()
-            sub_elapsed = round(e_time - s_time, 2)
-            logger.info(
-                "Copied Pandas DF to StringIO memory buffer. Time elapsed: %s second(s)",
-                sub_elapsed,
-            )
-
-            # copy buffer to db
-            s_time = time.perf_counter()
-            logger.info(
-                "Copying memory buffer to 'proc_observations' and executing data migration."
-            )
-            try:
-                cur.copy_from(buffer, "proc_observations", sep=",")
-                ref = bool(referencetrack_included)
-                logger.debug(
-                    "Executing sp_execute_data_migration(%s, %s);",
-                    int(submission_id),
-                    ref,
-                )
-                cur.execute(
-                    "CALL sp_execute_data_migration(%s, %s);", (int(submission_id), ref)
-                )
-            except (Exception, psycopg2.DatabaseError) as error:
-                logger.error("Error: %s", error)
-                conn.rollback()
+            if sub_elapsed is False:
                 return 1
-            e_time = time.perf_counter()
-            sub_elapsed = round(e_time - s_time, 2)
             logger.info(
                 "Successful migration of %s 'proc_observations'. Elapsed time: %s second(s).",
                 len_proc_obs,
