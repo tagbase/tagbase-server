@@ -9,6 +9,9 @@ from urllib.request import urlopen
 
 logger = logging.getLogger(__name__)
 
+TEMP_DIR = tempfile.gettempdir()
+_URL_SCHEME_PREFIX = re.compile(r"(?:file|ftp|https?)://[^/]*")
+
 
 def compute_file_sha256(file_name):
     """
@@ -46,7 +49,7 @@ def make_hashable(o):
 def process_get_input_data(file):
     """
     Capable of acquiring data over HTTP, HTTPS, FTP and FILE protocols.
-    Data not already on the filesystem is saved to /tmp.
+    Data not already on the filesystem is saved under the process temp directory.
     No explicit cleanup is performed per-se however details of the implementation
     can be found in https://docs.python.org/3/library/tempfile.html#tempfile.TemporaryFile
     All input is expected to have utf-8 encoding.
@@ -56,37 +59,36 @@ def process_get_input_data(file):
 
     """
     data_file = file
-    local_data_file = data_file[
-        re.search(r"[file|ftp|http|https]://[^/]*", data_file).end() :
-    ]
+    match = _URL_SCHEME_PREFIX.search(data_file)
+    local_data_file = data_file[match.end() :] if match else data_file
     if os.path.isfile(local_data_file):
         data_file = local_data_file
         logger.info("Found '%s' on filesystem.", local_data_file)
     else:
         logger.info("Acquiring '%s' from remote source.", data_file)
-        filename = tempfile.TemporaryFile(
-            dir="/tmp/" + data_file[data_file.rindex("/") + 1 :],
-            encoding="utf-8",
-            mode='"w"',
-        )
-        response = urlopen(data_file)
-        chunk_size = 16 * 1024
-        with open(filename, "wb") as f:
+        basename = data_file[data_file.rindex("/") + 1 :]
+        with tempfile.NamedTemporaryFile(
+            dir=TEMP_DIR,
+            prefix=f"{basename}.",
+            delete=False,
+            mode="wb",
+        ) as tmp:
+            response = urlopen(data_file)
+            chunk_size = 16 * 1024
             while True:
                 chunk = response.read(chunk_size)
                 if not chunk:
                     break
-                f.write(chunk)
-
-        data_file = filename
+                tmp.write(chunk)
+            data_file = tmp.name
     logger.info(data_file)
     return data_file
 
 
 def process_post_input_data(filename, body):
     """
-    Writes POST data (application/octet-stream or text/plain) to /tmp
-    No explicit /tmp cleanup is performed per-se however details of the implementation
+    Writes POST data (application/octet-stream or text/plain) under the process temp directory.
+    No explicit temp cleanup is performed per-se however details of the implementation
     can be found in https://docs.python.org/3/library/tempfile.html#tempfile.TemporaryFile
     All input is expected to have utf-8 encoding.
 
@@ -97,17 +99,16 @@ def process_post_input_data(filename, body):
 
     """
     data = body
-    filepath = "/tmp/" + filename
+    filepath = os.path.join(TEMP_DIR, filename)
     with open(filepath, mode="wb") as f:
         f.write(data)
-    f.close()
     logger.debug(filepath)
     return filepath
 
 
 def unpack_compressed_binary(file):
     """
-    Unpack a variety of compressed input files storing all .txt contents to /tmp.
+    Unpack a variety of compressed input files storing all .txt contents under the process temp directory.
     No explicit cleanup is performed per-se however details of the implementation
     can be found in https://docs.python.org/3/library/tempfile.html#tempfile.TemporaryFile
     For a list of files which can be processed, see
@@ -118,7 +119,7 @@ def unpack_compressed_binary(file):
     :type file: str
     """
     etuff_files = []
-    temp_dir = "/tmp/" + str(time())
+    temp_dir = os.path.join(TEMP_DIR, str(time()))
     if not os.path.exists(temp_dir):
         os.mkdir(temp_dir)
     logger.info("Unpacking %s archive to %s", file, temp_dir)
