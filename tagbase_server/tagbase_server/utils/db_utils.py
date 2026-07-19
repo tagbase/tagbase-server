@@ -18,7 +18,7 @@ def connect():
         conn = psycopg2.connect(
             dbname="tagbase",
             user="tagbase",
-            host="postgis",
+            host=os.getenv("POSTGRES_HOST", "postgis"),
             port=os.getenv("POSTGRES_PORT"),
             password=os.getenv("POSTGRES_PASSWORD"),
         )

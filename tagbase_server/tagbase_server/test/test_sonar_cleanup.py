@@ -172,6 +172,7 @@ def test_resolve_variable_id_cache_and_lookup():
 def test_resolve_variable_id_insert_and_exception():
     cur = mock.Mock()
     conn = mock.Mock()
+    # lookup miss, INSERT raises, then fallback SELECT
     cur.fetchone.side_effect = [None, (7,)]
     cur.execute.side_effect = [None, Exception("dup"), None]
     lookup = {}
@@ -180,6 +181,18 @@ def test_resolve_variable_id_insert_and_exception():
         == 7
     )
     conn.rollback.assert_called_once()
+
+
+def test_resolve_variable_id_insert_returning():
+    cur = mock.Mock()
+    conn = mock.Mock()
+    cur.fetchone.side_effect = [None, (11,)]
+    lookup = {}
+    assert (
+        pu._resolve_variable_id(cur, conn, "depth", ["", "", "", "depth", "m"], lookup)
+        == 11
+    )
+    assert lookup["depth"] == 11
 
 
 @mock.patch("tagbase_server.utils.processing_utils.post_msg")

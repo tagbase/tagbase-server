@@ -29,7 +29,7 @@ def _resolve_ingest_file_type(type):
     return ingest_file_type
 
 
-def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
+def ingest_get(file, notes=None, type=None, type_=None, version=None):  # noqa: E501
     """Get network accessible file and execute ingestion
 
     Get network accessible file and execute ingestion # noqa: E501
@@ -40,12 +40,14 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
     :type notes: str
     :param type: Type of file to be ingested, defaults to &#39;etuff&#39;
     :type type: str
+    :param type_: Connexion pythonic alias for OpenAPI parameter ``type``
+    :type type_: str
     :param version: Version identifier for the eTUFF tag data file ingested
     :type version: str
 
     :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
     """
-    ingest_file_type = _resolve_ingest_file_type(type)
+    ingest_file_type = _resolve_ingest_file_type(type_ if type_ is not None else type)
     logger.info("Ingest file type: %s", ingest_file_type)
     start = time.perf_counter()
     data_file = process_get_input_data(file)
@@ -80,7 +82,9 @@ def ingest_get(file, notes=None, type=None, version=None):  # noqa: E501
     )
 
 
-def ingest_post(filename, body, notes=None, type=None, version=None):  # noqa: E501
+def ingest_post(
+    filename, body, notes=None, type=None, type_=None, version=None
+):  # noqa: E501
     """Post a local file and perform a ingest operation
 
     Post a local file and perform a ingest operation # noqa: E501
@@ -93,12 +97,14 @@ def ingest_post(filename, body, notes=None, type=None, version=None):  # noqa: E
     :type notes: str
     :param type: Type of file to be ingested, defaults to &#39;etuff&#39;
     :type type: str
+    :param type_: Connexion pythonic alias for OpenAPI parameter ``type``
+    :type type_: str
     :param version: Version identifier for the eTUFF tag data file ingested
     :type version: str
 
     :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
     """
-    ingest_file_type = _resolve_ingest_file_type(type)
+    ingest_file_type = _resolve_ingest_file_type(type_ if type_ is not None else type)
     logger.info("Ingest file type: %s", ingest_file_type)
     start = time.perf_counter()
     data_file = process_post_input_data(filename, body)

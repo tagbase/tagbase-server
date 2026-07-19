@@ -62,6 +62,9 @@ services:
   nginx:
     build:
       context: ./services/nginx
+      args:
+        NGINX_USER: ${NGINX_USER:-tagbase}
+        NGINX_PASS: ${NGINX_PASS:-tagbase}
     labels:
       #"docker_compose_diagram.cluster": "Internal Network"
       "docker_compose_diagram.description": "Reverse proxy \n and authentication."

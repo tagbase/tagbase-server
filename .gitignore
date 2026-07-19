@@ -44,6 +44,7 @@ nosetests.xml
 *,cover
 .hypothesis/
 venv/
+.venv/
 .python-version
 
 # Translations
@@ -73,3 +74,5 @@ services/postgis/lockfiles
 postgis-data
 dbbackups
 staging_data
+
+.scratch*
