@@ -28,7 +28,6 @@ def process_global_attributes_metadata(
         line = line.strip()
         logger.debug("Processing global attribute: %s", line)
         tokens = line[1:].split(" = ")
-        # attribute_name = tokens[0], attribute_value = tokens[1]
         if len(tokens) > 1:
             attributes_map[tokens[0]] = tokens[1]
         else:
