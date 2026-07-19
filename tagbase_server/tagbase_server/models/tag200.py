@@ -28,7 +28,11 @@ class Tag200(Model):
         :param filename: The filename of this Tag200.  # noqa: E501
         :type filename: str
         """
-        self.openapi_types = {"tag": List[TagSubmission], "tag_id": int, "filename": str}
+        self.openapi_types = {
+            "tag": List[TagSubmission],
+            "tag_id": int,
+            "filename": str,
+        }
 
         self.attribute_map = {"tag": "tag", "tag_id": "tag_id", "filename": "filename"}
 

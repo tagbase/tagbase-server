@@ -7,7 +7,6 @@ import requests
 
 from io import StringIO
 
-
 config = configparser.ConfigParser()
 workdir = os.path.dirname(os.path.abspath(__file__))
 configfile = os.path.join(workdir, "config.ini")
