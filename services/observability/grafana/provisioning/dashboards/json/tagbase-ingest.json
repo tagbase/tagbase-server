@@ -1,0 +1,107 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Ingest request rate",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (outcome) (rate(tagbase_ingest_requests_total[5m]))",
+          "legendFormat": "{{outcome}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "id": 2,
+      "title": "Ingest duration (p95)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, outcome) (rate(tagbase_ingest_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{outcome}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "id": 3,
+      "title": "Rows written / DB errors",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(tagbase_ingest_rows_written_total[5m]))",
+          "legendFormat": "rows_written",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (operation) (rate(tagbase_db_errors_total[5m]))",
+          "legendFormat": "db_error:{{operation}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 4,
+      "title": "Recent ingest traces",
+      "type": "table",
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "countRows": false,
+          "reducer": ["sum"],
+          "fields": ""
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "tempo", "uid": "tempo" },
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"tagbase_server\" && name=~\"ingest.*\" }",
+          "limit": 20,
+          "tableType": "traces",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 5,
+      "title": "Service logs",
+      "type": "logs",
+      "targets": [
+        {
+          "expr": "{service_name=~\"tagbase_server|nginx|postgis|fswatch\"}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["tagbase", "ingest", "otel"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "Tagbase Ingest",
+  "uid": "tagbase-ingest",
+  "version": 1
+}

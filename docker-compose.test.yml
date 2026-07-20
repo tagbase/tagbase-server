@@ -1,7 +1,9 @@
-# Test stack: PostGIS for integration tests; optional nginx/fswatch for stack markers.
+# Test stack: PostGIS for integration tests; optional nginx/fswatch for stack markers;
+# optional Alloy + LGTM for observability smoke (profile: observability).
 services:
   postgis:
     image: postgis/postgis:15-3.3
+    platform: linux/amd64
     environment:
       POSTGRES_DB: tagbase
       POSTGRES_USER: tagbase
@@ -18,9 +20,11 @@ services:
     volumes:
       - ./services/postgis/tagbase_schema_tables.sql:/docker-entrypoint-initdb.d/01-tagbase.sql:ro
       - tagbase-test-pgdata:/var/lib/postgresql/data
+    networks:
+      - test-network
 
   tagbase_server:
-    profiles: ["stack"]
+    profiles: ["stack", "observability"]
     build:
       context: ./tagbase_server
     depends_on:
@@ -32,12 +36,17 @@ services:
       - POSTGRES_PASSWORD=tagbase
       - POSTGRES_PORT=5432
       - SLACK_BOT_TOKEN=
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-true}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      - OTEL_SERVICE_NAME=tagbase_server
     expose:
       - "5433"
     hostname: tagbase_server
+    networks:
+      - test-network
 
   nginx:
-    profiles: ["stack"]
+    profiles: ["stack", "observability"]
     build:
       context: ./services/nginx
       args:
@@ -51,8 +60,10 @@ services:
     volumes:
       - ./services/nginx/config/nginx.test.conf:/etc/nginx/nginx.conf:ro
       - ./services/nginx/proxy/:/usr/share/nginx/html/:ro
-      - ./tagbase_server/tagbase_server/test/fixtures/nginx/cert.pem:/etc/nginx/certs/cert.pem:ro
-      - ./tagbase_server/tagbase_server/test/fixtures/nginx/key.pem:/etc/nginx/certs/key.pem:ro
+      - ./services/nginx/ssl/cert.pem:/etc/nginx/certs/cert.pem:ro
+      - ./services/nginx/ssl/key.pem:/etc/nginx/certs/key.pem:ro
+    networks:
+      - test-network
 
   fswatch:
     profiles: ["stack"]
@@ -64,6 +75,103 @@ services:
       - TAGBASE_INGEST_BASE=tagbase_server:5433/tagbase/api/v0.14.0
     volumes:
       - ./staging_data:/usr/src/app/staging_data:ro
+    networks:
+      - test-network
+
+  alloy:
+    profiles: ["observability"]
+    image: grafana/alloy:v1.9.2
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./services/observability/config.local.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - tagbase-test-alloy:/var/lib/alloy/data
+    expose:
+      - "12345"
+      - "4317"
+      - "4318"
+    networks:
+      - test-network
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+
+  prometheus:
+    profiles: ["observability"]
+    image: prom/prometheus:v3.4.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-remote-write-receiver
+      - --web.enable-lifecycle
+      - --web.external-url=/prometheus/
+      - --web.route-prefix=/prometheus/
+    volumes:
+      - ./services/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - tagbase-test-prometheus:/prometheus
+    expose:
+      - "9090"
+    networks:
+      - test-network
+
+  loki:
+    profiles: ["observability"]
+    image: grafana/loki:3.5.1
+    command: ["-config.file=/etc/loki/loki-config.yml"]
+    volumes:
+      - ./services/observability/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - tagbase-test-loki:/loki
+    expose:
+      - "3100"
+    networks:
+      - test-network
+
+  tempo:
+    profiles: ["observability"]
+    image: grafana/tempo:2.7.2
+    command: ["-config.file=/etc/tempo/tempo-config.yml"]
+    volumes:
+      - ./services/observability/tempo/tempo-config.yml:/etc/tempo/tempo-config.yml:ro
+      - tagbase-test-tempo:/var/tempo
+    expose:
+      - "3200"
+    networks:
+      - test-network
+
+  grafana:
+    profiles: ["observability"]
+    image: grafana/grafana:11.6.1
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_SERVER_ROOT_URL=https://localhost/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/json/tagbase-ingest.json
+    volumes:
+      - ./services/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - tagbase-test-grafana:/var/lib/grafana
+    expose:
+      - "3000"
+    networks:
+      - test-network
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+
+networks:
+  test-network:
 
 volumes:
   tagbase-test-pgdata:
+  tagbase-test-alloy:
+  tagbase-test-prometheus:
+  tagbase-test-loki:
+  tagbase-test-tempo:
+  tagbase-test-grafana:

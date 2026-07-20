@@ -1,0 +1,120 @@
+logging {
+	level  = "info"
+	format = "logfmt"
+}
+
+// ── OTLP receive (app metrics, logs, traces) ──
+
+otelcol.receiver.otlp "app" {
+	grpc {
+		endpoint = "0.0.0.0:4317"
+	}
+
+	http {
+		endpoint = "0.0.0.0:4318"
+	}
+
+	output {
+		metrics = [otelcol.processor.batch.app.input]
+		logs    = [otelcol.processor.batch.app.input]
+		traces  = [otelcol.processor.batch.app.input]
+	}
+}
+
+otelcol.processor.batch "app" {
+	timeout             = "5s"
+	send_batch_size     = 1000
+	send_batch_max_size = 2000
+
+	output {
+		metrics = [otelcol.exporter.prometheus.grafana_cloud.input]
+		logs    = [otelcol.exporter.loki.grafana_cloud.input]
+		traces  = [otelcol.exporter.otlp.grafana_cloud_tempo.input]
+	}
+}
+
+otelcol.exporter.prometheus "grafana_cloud" {
+	forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.remote_write "grafana_cloud" {
+	endpoint {
+		url = sys.env("PROM_ENDPOINT")
+
+		basic_auth {
+			username = sys.env("PROM_USERNAME")
+			password = sys.env("PROM_PASSWORD")
+		}
+	}
+}
+
+otelcol.exporter.loki "grafana_cloud" {
+	forward_to = [loki.write.grafana_cloud.receiver]
+}
+
+loki.write "grafana_cloud" {
+	endpoint {
+		url = sys.env("LOKI_ENDPOINT")
+
+		basic_auth {
+			username = sys.env("LOKI_USERNAME")
+			password = sys.env("LOKI_PASSWORD")
+		}
+	}
+}
+
+otelcol.auth.basic "tempo" {
+	username = sys.env("TEMPO_USERNAME")
+	password = sys.env("TEMPO_PASSWORD")
+}
+
+otelcol.exporter.otlp "grafana_cloud_tempo" {
+	client {
+		endpoint = sys.env("TEMPO_ENDPOINT")
+		auth     = otelcol.auth.basic.tempo.handler
+	}
+}
+
+// ── Docker logs: nginx, postgis, fswatch (not tagbase_server — uses OTLP) ──
+
+discovery.docker "containers" {
+	host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "stack_logs" {
+	targets = discovery.docker.containers.targets
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/?(nginx|postgis|fswatch).*"
+		action        = "keep"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/?(.*)"
+		target_label  = "container"
+	}
+
+	rule {
+		source_labels = ["container"]
+		regex         = "(nginx|postgis|fswatch).*"
+		target_label  = "service_name"
+	}
+}
+
+loki.source.docker "stack_logs" {
+	host          = "unix:///var/run/docker.sock"
+	targets       = discovery.relabel.stack_logs.output
+	relabel_rules = discovery.relabel.stack_logs.rules
+	forward_to    = [loki.process.stack_logs.receiver]
+}
+
+loki.process "stack_logs" {
+	stage.static_labels {
+		values = {
+			job = "docker",
+		}
+	}
+	forward_to = [loki.write.grafana_cloud.receiver]
+}

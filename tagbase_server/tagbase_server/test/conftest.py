@@ -11,6 +11,7 @@ from connexion import FlaskApp
 from connexion.options import SwaggerUIOptions
 
 from tagbase_server import encoder
+from tagbase_server.problem import register_problem_handlers
 
 OPENAPI_DIR = Path(__file__).resolve().parents[1] / "openapi"
 _FIXTURES = Path(__file__).resolve().parent / "fixtures"
@@ -42,6 +43,7 @@ def create_test_app():
         jsonifier=encoder.create_jsonifier(),
     )
     app.add_api("openapi.yaml", pythonic_params=True, strict_validation=True)
+    register_problem_handlers(app.app)
     return app
 
 

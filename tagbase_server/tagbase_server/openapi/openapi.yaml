@@ -52,12 +52,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/Ingest200'
           description: A success message confirming ingestion.
+        "400":
+          $ref: '#/components/responses/BadRequest'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorContainer'
-          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+          $ref: '#/components/responses/InternalError'
       summary: Get network accessible file and execute ingestion
       tags:
       - ingest
@@ -95,12 +93,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/Ingest200'
           description: A success message confirming ingestion.
+        "400":
+          $ref: '#/components/responses/BadRequest'
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorContainer'
-          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+          $ref: '#/components/responses/InternalError'
       summary: Post a local file and perform a ingest operation
       tags:
       - ingest
@@ -114,11 +110,7 @@ paths:
         "204":
           description: Successful delete operation.
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorContainer'
-          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+          $ref: '#/components/responses/InternalError'
       summary: Delete all tags
       tags:
       - tags
@@ -134,11 +126,7 @@ paths:
                 $ref: '#/components/schemas/Tag200Collection'
           description: A success message confirming ingestion.
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorContainer'
-          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+          $ref: '#/components/responses/InternalError'
       summary: Get information about all tags
       tags:
       - tags
@@ -153,11 +141,7 @@ paths:
         "204":
           description: Successful delete operation.
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorContainer'
-          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+          $ref: '#/components/responses/InternalError'
       summary: Delete an individual tag
       tags:
       - tags
@@ -173,11 +157,7 @@ paths:
                 $ref: '#/components/schemas/Tag200'
           description: A success message confirming ingestion.
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorContainer'
-          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+          $ref: '#/components/responses/InternalError'
       summary: Get information about an individual tag
       tags:
       - tags
@@ -193,11 +173,7 @@ paths:
         "204":
           description: Successful delete operation.
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorContainer'
-          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+          $ref: '#/components/responses/InternalError'
       summary: Delete a tag submission
       tags:
       - tags
@@ -216,16 +192,25 @@ paths:
                 $ref: '#/components/schemas/TagPut200'
           description: A success message confirming ingestion.
         "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorContainer'
-          description: Internal tagbase-server error. Contact admin detailed in openapi.yaml.
+          $ref: '#/components/responses/InternalError'
       summary: Update the 'notes' and/or 'version' associated with a tag submission
       tags:
       - tags
       x-openapi-router-controller: tagbase_server.controllers.tags_controller
 components:
+  responses:
+    BadRequest:
+      description: Client-fixable request error.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    InternalError:
+      description: Unexpected server error. Contact admin detailed in openapi.yaml.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
   parameters:
     filename:
       description: Free-form text field to explicitly define the name of the file to be persisted
@@ -314,53 +299,37 @@ components:
       format: int32
       minimum: 1
       maximum: 2147483647
-    ErrorContainer:
-      description: 'An error response for an operation.'
+    Problem:
+      description: RFC7807 problem details (application/problem+json)
       type: object
       required:
-        - errors
+        - type
+        - title
+        - status
+        - detail
+        - traceId
       properties:
-        errors:
-          type: array
-          minItems: 1
-          maxItems: 100
-          description: 'The array of error entries associated with the error response'
-          items:
-            $ref: '#/components/schemas/Error'
-        trace:
-          description: 'The error trace information.'
-          example: 123e4567-e89b-12d3-a456-426614174000
+        type:
+          type: string
+          format: uri
+          example: urn:tagbase:problem:bad-request
+        title:
+          type: string
+          example: Bad Request
+        status:
+          type: integer
+          format: int32
+          example: 400
+        detail:
+          type: string
+          example: Unsupported ingest file type 'netcdf'
+        instance:
+          type: string
+          example: /tagbase/api/v0.14.0/ingest
+        traceId:
+          type: string
           format: uuid
-          type: string
-          minLength: 36
-          maxLength: 36
-          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
-    Error:
-      description: 'An error response entry.'
-      type: object
-      required:
-        - code
-      properties:
-        code:
-          description: 'The error code.'
-          type: string
-          enum:
-            - 'internal_server_error'
-            - 'bad_request'
-            - 'unauthorized'
-            - 'service_unavailable'
-        message:
-          description: 'The error message.'
-          type: string
-          minLength: 1
-          maxLength: 10000
-          pattern: ^(?!\s*$).+$
-        more_info:
-          description: 'Additional info about the error.'
-          type: string
-          minLength: 1
-          maxLength: 10000
-          pattern: ^(?!\s*$).+$
+          example: 123e4567-e89b-12d3-a456-426614174000
     Ingest200:
       description: HTTP 200 success response
       example:

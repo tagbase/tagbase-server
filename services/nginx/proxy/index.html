@@ -1,16 +1,26 @@
-<h1>Welcome to <a href="https://github.com/tagbase/tagbase-server" target="_blank">tagbase server</a><h1>
+<h1>Welcome to <a href="https://github.com/tagbase/tagbase-server" target="_blank">tagbase server</a></h1>
 
 <!--img src="./tagbase.gif" alt="Tagbase logo"-->
 
 <h1>Navigation</h1>
 <ul>
 	<li><b><a href="./docs" target="_blank">/docs</a></b>: visualize and interact with tagbase-server REST APIs.</li>
-	<li><b><a href="./pgadmin4" target="_blank">/pgadmin4</a></b>: administration and development platform for Tagbase PostGIS instances.</li>
-	<li><b><a href="./tagbase/api/v0.14.0" target="_blank">/tagbase/v0.14.0</a></b>: REST API base path.</li>
+	<li><b><a href="./pgadmin4/" target="_blank">/pgadmin4/</a></b>: administration and development platform for Tagbase PostGIS instances.</li>
+	<li><b><a href="./tagbase/api/v0.14.0" target="_blank">/tagbase/api/v0.14.0</a></b>: REST API base path.</li>
+</ul>
+
+<h1>Observability</h1>
+<p>Requires <code>docker compose --profile observability</code>. Protected by the same nginx basic auth.</p>
+<ul>
+	<li><b><a href="./grafana/" target="_blank">/grafana/</a></b>: Grafana (dashboards, Explore).</li>
+	<li><b><a href="./alloy/" target="_blank">/alloy/</a></b>: Grafana Alloy UI.</li>
+	<li><b><a href="./prometheus/" target="_blank">/prometheus/</a></b>: Prometheus.</li>
+	<li><b><a href="./grafana/explore" target="_blank">/grafana/explore</a></b>: Loki logs &amp; Tempo traces (via Grafana).</li>
 </ul>
 
 <h1>Documentation and Support</h1>
 <ul>
 	<li><a href="https://github.com/tagbase/tagbase-server/wiki/" target="_blank">wiki documentation</a></li>
 	<li><a href="https://github.com/tagbase/tagbase-server/issues" target="_blank">report issues/bug tracker</a></li>
+	<li><a href="https://github.com/tagbase/tagbase-server/blob/main/docs/observability.md" target="_blank">observability runbook</a></li>
 </ul>

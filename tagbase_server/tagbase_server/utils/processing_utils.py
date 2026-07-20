@@ -8,6 +8,11 @@ import pandas as pd
 import psycopg2.extras
 from tzlocal import get_localzone
 
+from tagbase_server.telemetry import (
+    get_tracer,
+    record_db_error,
+    record_rows_written,
+)
 from tagbase_server.utils.db_utils import connect
 from tagbase_server.utils.io_utils import compute_file_sha256, make_hash_sha256
 from tagbase_server.utils.slack_utils import post_msg
@@ -398,7 +403,8 @@ def _build_proc_observations(
         line_number = counter + 1
         tokens = line.split(",")
         tokens = [token.replace('"', "") for token in tokens]
-        if not tokens:
+        # Skip blank / non-observation lines (e.g. trailing comments) safely.
+        if len(tokens) < 4 or not any(t.strip() for t in tokens):
             continue
 
         variable_name = tokens[3]
@@ -537,97 +543,117 @@ def _compute_submission_hashes(submission_filename):
 def process_etuff_file(file, version=None, notes=None):
     start = time.perf_counter()
     submission_filename = file
+    tracer = get_tracer()
     logger.info(
         "Processing etuff file: %s",
         submission_filename,
     )
 
     conn = connect()
+    if not hasattr(conn, "cursor"):
+        record_db_error("connect")
+        return 1
     conn.autocommit = True
 
-    (
-        instrument_name,
-        serial_number,
-        ptt,
-        platform,
-        referencetrack_included,
-        file_content,
-        metadata_content,
-        number_global_attributes_lines,
-        content_hash,
-        metadata_hash,
-        entire_file_hash,
-    ) = _compute_submission_hashes(submission_filename)
+    with tracer.start_as_current_span("ingest.parse_etuff"):
+        (
+            instrument_name,
+            serial_number,
+            ptt,
+            platform,
+            referencetrack_included,
+            file_content,
+            metadata_content,
+            number_global_attributes_lines,
+            content_hash,
+            metadata_hash,
+            entire_file_hash,
+        ) = _compute_submission_hashes(submission_filename)
 
     with conn:
         with conn.cursor() as cur:
-            if detect_duplicate_file(cur, entire_file_hash):
-                logger.info(
-                    "Data file '%s' with SHA256 hash '%s' identified as exact duplicate. No ingestion performed.",
-                    submission_filename,
-                    entire_file_hash,
-                )
-                return 1
+            with tracer.start_as_current_span("ingest.persist") as persist_span:
+                try:
+                    if detect_duplicate_file(cur, entire_file_hash):
+                        logger.info(
+                            "Data file '%s' with SHA256 hash '%s' identified as exact duplicate. No ingestion performed.",
+                            submission_filename,
+                            entire_file_hash,
+                        )
+                        return 1
 
-            dataset_id = get_dataset_id(
-                cur, instrument_name, serial_number, ptt, platform
-            )
-            tag_id = get_tag_id(cur, dataset_id)
-            submission_id = get_submission_id(
-                cur,
-                tag_id,
-                dataset_id,
-                content_hash,
-            )
+                    dataset_id = get_dataset_id(
+                        cur, instrument_name, serial_number, ptt, platform
+                    )
+                    tag_id = get_tag_id(cur, dataset_id)
+                    submission_id = get_submission_id(
+                        cur,
+                        tag_id,
+                        dataset_id,
+                        content_hash,
+                    )
 
-            if not submission_id:
-                insert_new_submission(
-                    cur,
-                    tag_id,
-                    submission_filename,
-                    notes,
-                    version,
-                    entire_file_hash,
-                    dataset_id,
-                    metadata_hash,
-                    content_hash,
-                )
-                submission_id = get_current_submission_id(cur)
+                    if not submission_id:
+                        insert_new_submission(
+                            cur,
+                            tag_id,
+                            submission_filename,
+                            notes,
+                            version,
+                            entire_file_hash,
+                            dataset_id,
+                            metadata_hash,
+                            content_hash,
+                        )
+                        submission_id = get_current_submission_id(cur)
 
-            metadata = process_global_attributes_metadata(
-                metadata_content,
-                cur,
-                submission_id,
-                submission_filename,
-                number_global_attributes_lines,
-            )
+                    persist_span.set_attribute("tag_id", tag_id)
+                    persist_span.set_attribute("submission_id", submission_id)
 
-            if is_only_metadata_change(cur, metadata_hash, content_hash):
-                update_submission_metadata(
-                    cur, tag_id, metadata, submission_id, dataset_id, metadata_hash
-                )
-                return 1
+                    metadata = process_global_attributes_metadata(
+                        metadata_content,
+                        cur,
+                        submission_id,
+                        submission_filename,
+                        number_global_attributes_lines,
+                    )
 
-            proc_obs, len_proc_obs = _build_proc_observations(
-                cur,
-                conn,
-                file_content,
-                submission_filename,
-                submission_id,
-                tag_id,
-            )
-            insert_metadata(cur, metadata, tag_id)
-            buffer = _dataframe_to_buffer(proc_obs, len_proc_obs)
-            sub_elapsed = _migrate_proc_observations(
-                cur, conn, buffer, submission_id, referencetrack_included
-            )
-            if sub_elapsed is False:
-                return 1
-            logger.info(
-                "Successful migration of %s 'proc_observations'. Elapsed time: %s second(s).",
-                len_proc_obs,
-                sub_elapsed,
-            )
+                    if is_only_metadata_change(cur, metadata_hash, content_hash):
+                        update_submission_metadata(
+                            cur,
+                            tag_id,
+                            metadata,
+                            submission_id,
+                            dataset_id,
+                            metadata_hash,
+                        )
+                        return 1
+
+                    proc_obs, len_proc_obs = _build_proc_observations(
+                        cur,
+                        conn,
+                        file_content,
+                        submission_filename,
+                        submission_id,
+                        tag_id,
+                    )
+                    insert_metadata(cur, metadata, tag_id)
+                    buffer = _dataframe_to_buffer(proc_obs, len_proc_obs)
+                    sub_elapsed = _migrate_proc_observations(
+                        cur, conn, buffer, submission_id, referencetrack_included
+                    )
+                    if sub_elapsed is False:
+                        record_db_error("migrate_proc_observations")
+                        return 1
+                    record_rows_written(len_proc_obs)
+                    logger.info(
+                        "Successful migration of %s 'proc_observations'. Elapsed time: %s second(s).",
+                        len_proc_obs,
+                        sub_elapsed,
+                    )
+                except Exception:
+                    record_db_error("persist")
+                    raise
 
     conn.commit()
 

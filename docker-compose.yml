@@ -1,4 +1,3 @@
-version: '3.9'
 services:
   dbbackups:
     depends_on:
@@ -7,12 +6,13 @@ services:
     environment:
       - DUMPPREFIX=PG_db
       - POSTGRES_USER=tagbase
-      - POSTGRES_PASS=${POSTGRES_PASSWORD}
-      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_PASS=${POSTGRES_PASSWORD:-tagbase}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
       - POSTGRES_HOST=postgis
       - REMOVE_BEFORE=30
     hostname: pg-backups
     image: kartoza/pg-backup:15-3.3
+    platform: linux/amd64
     labels:
       "docker_compose_diagram.cluster": "Internal Network"
       "docker_compose_diagram.description": "Docker PostGIS backup"
@@ -31,8 +31,8 @@ services:
       postgis:
         condition: service_healthy
     environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-tagbase}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
     labels:
       "docker_compose_diagram.cluster": "Internal Network"
       "docker_compose_diagram.description": "'metadata_types' and\n'observation_types' synchronization"
@@ -46,8 +46,8 @@ services:
     build:
       context: ./services/fswatch
     environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-tagbase}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
     labels:
       "docker_compose_diagram.cluster": "Internal Network"
       "docker_compose_diagram.description": "Automatic file ingestion"
@@ -69,26 +69,27 @@ services:
       #"docker_compose_diagram.cluster": "Internal Network"
       "docker_compose_diagram.description": "Reverse proxy \n and authentication."
       "docker_compose_diagram.icon": "nginx"
-    links:
-     - pgadmin4
-     - tagbase_server
+    depends_on:
+      - pgadmin4
+      - tagbase_server
     networks:
       - internal-network
     ports:
       - 81:81
       - 443:443
     volumes:
-      - ./services/nginx/config/nginx.conf:/etc/nginx/nginx.conf
+      - ./services/nginx/config/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./services/nginx/proxy/:/usr/share/nginx/html/:ro
-      - ./services/nginx/ssl/cert.pem:/etc/nginx/certs/cert.pem
-      - ./services/nginx/ssl/key.pem:/etc/nginx/certs/key.pem
+      - ./services/nginx/ssl/cert.pem:/etc/nginx/certs/cert.pem:ro
+      - ./services/nginx/ssl/key.pem:/etc/nginx/certs/key.pem:ro
+    restart: unless-stopped
   pgadmin4:
     depends_on:
       postgis:
         condition: service_healthy
     environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD:-tagbase}
       - PGADMIN_LISTEN_PORT=5434
     expose:
       - 5434
@@ -133,20 +134,21 @@ services:
       - ALLOW_IP_RANGE=0.0.0.0/0
       - PASSWORD_AUTHENTICATION=md5
       - POSTGRES_DB=tagbase
-      - POSTGRES_PASS=${POSTGRES_PASSWORD}
+      - POSTGRES_PASS=${POSTGRES_PASSWORD:-tagbase}
       - POSTGRES_USER=tagbase
       - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting
       - SCRIPTS_LOCKFILE_DIR=/opt/data/
     expose:
-      - ${POSTGRES_PORT}
+      - ${POSTGRES_PORT:-5432}
     healthcheck:
-      test: "PGPASSWORD=${POSTGRES_PASSWORD} pg_isready -d tagbase -h postgis -U tagbase"
+      test: "PGPASSWORD=${POSTGRES_PASSWORD:-tagbase} pg_isready -d tagbase -h postgis -U tagbase"
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 15s
     hostname: postgis
     image: kartoza/postgis:15-3.3
+    platform: linux/amd64
     labels:
       "docker_compose_diagram.cluster": "Internal Network"
       "docker_compose_diagram.description": "Tagbase PostGIS server"
@@ -158,11 +160,13 @@ services:
     volumes:
       - ./dbbackups:/backups
       - ./postgis-data:/var/lib/postgresql
-      - ./services/postgis/tagbase_schema.sql:/docker-entrypoint-initdb.d/tagbase_schema.sql
+      # Tables-only SQL: kartoza already creates role/DB; full tagbase_schema.sql
+      # aborts on CREATE ROLE/DATABASE and never creates submission/etc.
+      - ./services/postgis/tagbase_schema_tables.sql:/docker-entrypoint-initdb.d/01-tagbase.sql
       - ./services/postgis/lockfiles:/opt/data/
   slack_docker:
     environment:
-      - webhook=${webhook}
+      - webhook=${webhook:-}
     image: ghcr.io/int128/slack-docker
     labels:
       #"docker_compose_diagram.cluster": "Internal Network"
@@ -177,10 +181,13 @@ services:
       postgis:
         condition: service_healthy
     environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_PORT=${POSTGRES_PORT}
-      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-tagbase}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
+      - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-true}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-tagbase_server}
     expose:
       - 5433
     hostname: tagbase_server
@@ -195,5 +202,120 @@ services:
     restart: unless-stopped
     volumes:
       - ./logs:/usr/src/app/logs
+
+  # ── Observability profile (Alloy + LGTM) ──
+  # docker compose --profile observability up
+  # Set OTEL_SDK_DISABLED=false and OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
+  alloy:
+    profiles: ["observability"]
+    image: grafana/alloy:v1.9.2
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    environment:
+      - PROM_ENDPOINT=${PROM_ENDPOINT:-}
+      - PROM_USERNAME=${PROM_USERNAME:-}
+      - PROM_PASSWORD=${PROM_PASSWORD:-}
+      - LOKI_ENDPOINT=${LOKI_ENDPOINT:-}
+      - LOKI_USERNAME=${LOKI_USERNAME:-}
+      - LOKI_PASSWORD=${LOKI_PASSWORD:-}
+      - TEMPO_ENDPOINT=${TEMPO_ENDPOINT:-}
+      - TEMPO_USERNAME=${TEMPO_USERNAME:-}
+      - TEMPO_PASSWORD=${TEMPO_PASSWORD:-}
+    volumes:
+      - ./services/observability/${ALLOY_CONFIG_FILE:-config.local.alloy}:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/var/lib/alloy/data
+    # UI + OTLP only on the Docker network; browsers use https://localhost/alloy/
+    expose:
+      - "12345"
+      - "4317"
+      - "4318"
+    networks:
+      - internal-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+
+  prometheus:
+    profiles: ["observability"]
+    image: prom/prometheus:v3.4.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-remote-write-receiver
+      - --web.enable-lifecycle
+      - --web.external-url=/prometheus/
+      - --web.route-prefix=/prometheus/
+    volumes:
+      - ./services/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    expose:
+      - "9090"
+    networks:
+      - internal-network
+    restart: unless-stopped
+
+  loki:
+    profiles: ["observability"]
+    image: grafana/loki:3.5.1
+    command: ["-config.file=/etc/loki/loki-config.yml"]
+    volumes:
+      - ./services/observability/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki-data:/loki
+    expose:
+      - "3100"
+    networks:
+      - internal-network
+    restart: unless-stopped
+
+  tempo:
+    profiles: ["observability"]
+    image: grafana/tempo:2.7.2
+    command: ["-config.file=/etc/tempo/tempo-config.yml"]
+    volumes:
+      - ./services/observability/tempo/tempo-config.yml:/etc/tempo/tempo-config.yml:ro
+      - tempo-data:/var/tempo
+    expose:
+      - "3200"
+    networks:
+      - internal-network
+    restart: unless-stopped
+
+  grafana:
+    profiles: ["observability"]
+    image: grafana/grafana:11.6.1
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_USERS_DEFAULT_THEME=dark
+      - GF_SERVER_ROOT_URL=https://localhost/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/json/tagbase-ingest.json
+    volumes:
+      - ./services/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    expose:
+      - "3000"
+    networks:
+      - internal-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+
 networks:
   internal-network:
+
+volumes:
+  alloy-data:
+  prometheus-data:
+  loki-data:
+  tempo-data:
+  grafana-data:

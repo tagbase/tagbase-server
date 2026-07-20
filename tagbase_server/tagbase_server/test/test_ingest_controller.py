@@ -19,7 +19,12 @@ def test_ingest_get_rejects_netcdf_ingest_file_type(client):
         params={"file": f"file://{dest}", "type": "netcdf"},
         headers={"Accept": "application/json"},
     )
-    assert response.status_code != 200
+    assert response.status_code == 400
+    body = response.json()
+    assert body["status"] == 400
+    assert body["type"] == "urn:tagbase:problem:bad-request"
+    assert "traceId" in body
+    assert response.headers["content-type"].startswith("application/problem+json")
 
 
 def test_ingest_post_rejects_netcdf_ingest_file_type(client):
@@ -32,4 +37,7 @@ def test_ingest_post_rejects_netcdf_ingest_file_type(client):
         },
         data=ETUFF_FIXTURE.read_bytes(),
     )
-    assert response.status_code != 200
+    assert response.status_code == 400
+    body = response.json()
+    assert body["type"] == "urn:tagbase:problem:bad-request"
+    assert "Unsupported ingest file type" in body["detail"]

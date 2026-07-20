@@ -9,6 +9,8 @@ from connexion.options import SwaggerUIOptions
 from flask_cors import CORS
 
 from tagbase_server import encoder
+from tagbase_server.problem import register_problem_handlers
+from tagbase_server.telemetry import setup_telemetry
 
 LOGGER_NAME = "tagbase_server"
 
@@ -68,3 +70,8 @@ app.add_api(
 )
 
 configure_cors(app.app)
+register_problem_handlers(app.app)
+
+# When not under Gunicorn (e.g. local/tests), init here. Under Gunicorn,
+# post_fork in gunicorn.conf.py initializes per worker after fork.
+setup_telemetry(flask_app=app.app)

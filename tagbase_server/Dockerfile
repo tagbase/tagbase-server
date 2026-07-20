@@ -20,4 +20,4 @@ EXPOSE 5433
 
 ENTRYPOINT ["gunicorn"]
 
-CMD ["-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:5433", "tagbase_server.__main__:app"]
+CMD ["-c", "gunicorn.conf.py", "tagbase_server.__main__:app"]

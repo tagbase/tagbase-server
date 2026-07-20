@@ -76,3 +76,4 @@ dbbackups
 staging_data
 
 .scratch*
+docs/
