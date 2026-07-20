@@ -1,0 +1,9 @@
+# IBM OpenAPI Validator Spectral ruleset (used by CI Docker lint).
+# Path is inside ibmdevxsdk/openapi-validator (see ADR-0003).
+extends:
+  - /src/packages/ruleset/src/ibm-oas.js
+rules:
+  # RFC7807 problem+json is intentional (ADR-0003); not IBM ErrorContainer.
+  ibm-error-response-schemas: off
+  # Errors are application/problem+json, not application/json.
+  ibm-error-content-type-is-json: off

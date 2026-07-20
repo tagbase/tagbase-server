@@ -4,9 +4,12 @@ import os
 import time
 from functools import partial
 import parmap
-from tqdm.contrib.slack import tqdm, trange
+from tqdm import tqdm as std_tqdm
+from tqdm.contrib.slack import tqdm as slack_tqdm
 
 from tagbase_server.models.ingest200 import Ingest200  # noqa: E501
+from tagbase_server.problem import TagbaseClientError, as_json
+from tagbase_server.telemetry import get_tracer, record_ingest_request
 from tagbase_server.utils.io_utils import (
     process_get_input_data,
     process_post_input_data,
@@ -22,11 +25,58 @@ SUPPORTED_INGEST_FILE_TYPE = "etuff"
 def _resolve_ingest_file_type(type):
     ingest_file_type = type if type is not None else SUPPORTED_INGEST_FILE_TYPE
     if ingest_file_type != SUPPORTED_INGEST_FILE_TYPE:
-        raise ValueError(
+        raise TagbaseClientError(
             f"Unsupported ingest file type '{ingest_file_type}'; "
             f"only '{SUPPORTED_INGEST_FILE_TYPE}' is supported."
         )
     return ingest_file_type
+
+
+def _ingest_progress_bar(data_file):
+    """Use Slack tqdm only with a plausible bot token; otherwise stdout."""
+    token = os.environ.get("SLACK_BOT_TOKEN", "").strip()
+    # Slack bot tokens are typically xoxb-...; anything else just spams errors.
+    if token.startswith("xoxb-"):
+        return partial(
+            slack_tqdm,
+            desc=f"Ingesting: {data_file}",
+            token=token,
+            channel="ingest_ops",
+        )
+    return partial(std_tqdm, desc=f"Ingesting: {data_file}")
+
+
+def _run_ingest_queue(etuff_files, version, notes, data_file):
+    parmap.map(
+        process_etuff_file,
+        etuff_files,
+        version=version,
+        notes=notes,
+        pm_parallel=False,
+        pm_processes=cpu_count(),
+        pm_pbar=_ingest_progress_bar(data_file),
+    )
+
+
+def _ingest_with_telemetry(operation_name, work):
+    tracer = get_tracer()
+    start = time.perf_counter()
+    outcome = "success"
+    try:
+        with tracer.start_as_current_span("ingest.handle") as span:
+            span.set_attribute("ingest.operation", operation_name)
+            return work()
+    except TagbaseClientError:
+        outcome = "client_error"
+        raise
+    except ValueError as exc:
+        outcome = "client_error"
+        raise TagbaseClientError(str(exc)) from exc
+    except Exception:
+        outcome = "server_error"
+        raise
+    finally:
+        record_ingest_request(outcome, time.perf_counter() - start)
 
 
 def ingest_get(file, notes=None, type=None, type_=None, version=None):  # noqa: E501
@@ -47,39 +97,35 @@ def ingest_get(file, notes=None, type=None, type_=None, version=None):  # noqa: 
 
     :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
     """
-    ingest_file_type = _resolve_ingest_file_type(type_ if type_ is not None else type)
-    logger.info("Ingest file type: %s", ingest_file_type)
-    start = time.perf_counter()
-    data_file = process_get_input_data(file)
-    etuff_files = []
-    if not data_file.endswith(".txt"):
-        etuff_files = unpack_compressed_binary(data_file)
-    else:
-        etuff_files.append(data_file)
-    logger.info("eTUFF ingestion queue: %s", etuff_files)
-    parmap.map(
-        process_etuff_file,
-        etuff_files,
-        version=version,
-        notes=notes,
-        pm_parallel=False,
-        pm_processes=cpu_count(),
-        pm_pbar=partial(
-            tqdm,
-            desc=f"Ingesting: {data_file}",
-            token=os.environ.get("SLACK_BOT_TOKEN", ""),
-            channel="ingest_ops",
-        ),
-    )
-    finish = time.perf_counter()
-    elapsed = round(finish - start, 2)
-    return Ingest200.from_dict(
-        {
-            "code": "200",
-            "elapsed": elapsed,
-            "message": f"Processing %s file(s) - {etuff_files}" % len(etuff_files),
-        }
-    )
+
+    def _work():
+        ingest_file_type = _resolve_ingest_file_type(
+            type_ if type_ is not None else type
+        )
+        logger.info("Ingest file type: %s", ingest_file_type)
+        start = time.perf_counter()
+        data_file = process_get_input_data(file)
+        etuff_files = []
+        if not data_file.endswith(".txt"):
+            etuff_files = unpack_compressed_binary(data_file)
+        else:
+            etuff_files.append(data_file)
+        logger.info("eTUFF ingestion queue: %s", etuff_files)
+        _run_ingest_queue(etuff_files, version, notes, data_file)
+        finish = time.perf_counter()
+        elapsed = round(finish - start, 2)
+        return as_json(
+            Ingest200.from_dict(
+                {
+                    "code": "200",
+                    "elapsed": elapsed,
+                    "message": f"Processing %s file(s) - {etuff_files}"
+                    % len(etuff_files),
+                }
+            )
+        )
+
+    return _ingest_with_telemetry("get", _work)
 
 
 def ingest_post(
@@ -104,36 +150,32 @@ def ingest_post(
 
     :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
     """
-    ingest_file_type = _resolve_ingest_file_type(type_ if type_ is not None else type)
-    logger.info("Ingest file type: %s", ingest_file_type)
-    start = time.perf_counter()
-    data_file = process_post_input_data(filename, body)
-    etuff_files = []
-    if not data_file.endswith(".txt"):
-        etuff_files = unpack_compressed_binary(data_file)
-    else:
-        etuff_files.append(data_file)
-    logger.info("eTUFF ingestion queue: %s", etuff_files)
-    parmap.map(
-        process_etuff_file,
-        etuff_files,
-        version=version,
-        notes=notes,
-        pm_parallel=False,
-        pm_processes=cpu_count(),
-        pm_pbar=partial(
-            tqdm,
-            desc=f"Ingesting: {data_file}",
-            token=os.environ.get("SLACK_BOT_TOKEN", ""),
-            channel="ingest_ops",
-        ),
-    )
-    finish = time.perf_counter()
-    elapsed = round(finish - start, 2)
-    return Ingest200.from_dict(
-        {
-            "code": "200",
-            "elapsed": elapsed,
-            "message": f"Processing %s file(s) - {etuff_files}." % len(etuff_files),
-        }
-    )
+
+    def _work():
+        ingest_file_type = _resolve_ingest_file_type(
+            type_ if type_ is not None else type
+        )
+        logger.info("Ingest file type: %s", ingest_file_type)
+        start = time.perf_counter()
+        data_file = process_post_input_data(filename, body)
+        etuff_files = []
+        if not data_file.endswith(".txt"):
+            etuff_files = unpack_compressed_binary(data_file)
+        else:
+            etuff_files.append(data_file)
+        logger.info("eTUFF ingestion queue: %s", etuff_files)
+        _run_ingest_queue(etuff_files, version, notes, data_file)
+        finish = time.perf_counter()
+        elapsed = round(finish - start, 2)
+        return as_json(
+            Ingest200.from_dict(
+                {
+                    "code": "200",
+                    "elapsed": elapsed,
+                    "message": f"Processing %s file(s) - {etuff_files}."
+                    % len(etuff_files),
+                }
+            )
+        )
+
+    return _ingest_with_telemetry("post", _work)

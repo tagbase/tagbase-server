@@ -19,9 +19,9 @@ jobs:
         uses: addnab/docker-run-action@v3
         with:
           image: ibmdevxsdk/openapi-validator:latest
-          options: -v ${{ github.workspace }}:/data
+          options: -v ${{ github.workspace }}:/data -w /data
           run: |
-            lint-openapi --warnings-limit 0 openapi.yaml
+            lint-openapi --ruleset /data/.spectral.yaml --warnings-limit 0 openapi.yaml
             exit $?
   lint_dockerfiles:
     name: Lint Dockerfiles
@@ -167,3 +167,10 @@ jobs:
       - name: Stop stack
         if: always()
         run: docker compose -f docker-compose.test.yml --profile stack down -v
+  observability_smoke:
+    name: Observability Smoke (OTel + Alloy + LGTM)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Run observability smoke
+        run: ./scripts/observability-smoke.sh

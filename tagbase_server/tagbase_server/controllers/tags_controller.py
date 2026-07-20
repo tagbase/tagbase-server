@@ -2,6 +2,7 @@ from tagbase_server.utils.db_utils import connect
 
 from tagbase_server.models.tag200 import Tag200  # noqa: E501
 from tagbase_server.models.tag_put200 import TagPut200  # noqa: E501
+from tagbase_server.problem import as_json
 
 import logging
 
@@ -26,6 +27,7 @@ def delete_tag_sub(sub_id, tag_id):  # noqa: E501
             cur.execute(
                 "CALL sp_delete_submission(%s, %s);", (int(tag_id), int(sub_id))
             )
+    return None, 204
 
 
 def delete_tag(tag_id):  # noqa: E501
@@ -42,6 +44,7 @@ def delete_tag(tag_id):  # noqa: E501
     with conn:
         with conn.cursor() as cur:
             cur.execute("CALL sp_delete_tag(%s);", (tag_id,))
+    return None, 204
 
 
 def delete_tags():  # noqa: E501
@@ -56,6 +59,7 @@ def delete_tags():  # noqa: E501
     with conn:
         with conn.cursor() as cur:
             cur.execute("CALL sp_delete_all_tags();")
+    return None, 204
 
 
 def get_tag(tag_id):  # noqa: E501
@@ -100,7 +104,7 @@ def get_tag(tag_id):  # noqa: E501
                         "metadata": meta_dict,
                     }
                 )
-            return Tag200.from_dict({"tag": subs})
+            return as_json(Tag200.from_dict({"tag": subs}))
 
 
 def list_tags():  # noqa: E501
@@ -124,7 +128,7 @@ def list_tags():  # noqa: E501
                 "SELECT COUNT(DISTINCT tag_id) FROM submission",
             )
             count = cur.fetchone()[0]
-            return {"count": count, "tags": tags}
+            return as_json({"count": count, "tags": tags})
 
 
 def replace_tag_sub(sub_id, tag_id, notes=None, version=None):  # noqa: E501
@@ -159,4 +163,4 @@ def replace_tag_sub(sub_id, tag_id, notes=None, version=None):  # noqa: E501
             message = (
                 f"tag_id: '{int(tag_id)}' sub_id: '{int(sub_id)}' successfully updated."
             )
-            return TagPut200.from_dict({"code": "200", "message": message})
+            return as_json(TagPut200.from_dict({"code": "200", "message": message}))

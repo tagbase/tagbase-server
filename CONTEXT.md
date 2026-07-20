@@ -19,3 +19,20 @@ _Avoid_: MIME type, content-type (for this parameter)
 **Submission**:
 A recorded attempt to ingest a specific eTUFF source for a tag/dataset, including hashes used for duplicate detection.
 _Avoid_: upload job, ingest request (when referring to the persisted row)
+
+## Ops telemetry (not domain observations)
+
+These terms describe runtime observability. They must not be confused with eTUFF **observations** (tag measurement rows).
+
+**Telemetry**:
+Metrics, logs, and traces emitted about service behavior (latency, errors, ingest pipeline).
+_Avoid_: observations (when meaning ops signals)
+
+**OTLP**:
+OpenTelemetry Protocol — the wire format used to export telemetry from `tagbase_server` to Alloy.
+
+**Alloy**:
+Grafana Alloy — the collector that receives OTLP and Docker logs and forwards them to LGTM or Grafana Cloud.
+
+**LGTM**:
+Self-hosted Loki + Grafana + Tempo + Prometheus stack used for local observability.

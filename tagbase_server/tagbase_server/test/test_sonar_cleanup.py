@@ -121,7 +121,9 @@ def test_process_get_input_data_downloads_remote(mock_urlopen, tmp_path):
 def test_resolve_ingest_file_type_defaults_and_rejects():
     assert _resolve_ingest_file_type(None) == "etuff"
     assert _resolve_ingest_file_type("etuff") == "etuff"
-    with pytest.raises(ValueError, match="Unsupported ingest file type"):
+    from tagbase_server.problem import TagbaseClientError
+
+    with pytest.raises(TagbaseClientError, match="Unsupported ingest file type"):
         _resolve_ingest_file_type("csv")
 
 
@@ -130,7 +132,11 @@ def test_resolve_ingest_file_type_defaults_and_rejects():
 def test_ingest_get_happy_path(mock_get, mock_map):
     mock_get.return_value = "/data/file.txt"
     mock_map.return_value = [0]
-    result = ingest_controller.ingest_get("file:///data/file.txt", type="etuff")
+    result, status, headers = ingest_controller.ingest_get(
+        "file:///data/file.txt", type="etuff"
+    )
+    assert status == 200
+    assert headers["Content-Type"] == "application/json"
     assert result.code == "200"
     mock_map.assert_called_once()
 
@@ -142,7 +148,11 @@ def test_ingest_post_archive_path(mock_post, mock_unpack, mock_map):
     mock_post.return_value = "/data/bundle.zip"
     mock_unpack.return_value = ["/data/a.txt"]
     mock_map.return_value = [0]
-    result = ingest_controller.ingest_post("bundle.zip", b"x", type=None)
+    result, status, headers = ingest_controller.ingest_post(
+        "bundle.zip", b"x", type=None
+    )
+    assert status == 200
+    assert headers["Content-Type"] == "application/json"
     assert result.code == "200"
     mock_unpack.assert_called_once()
 

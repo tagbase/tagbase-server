@@ -1,1 +1,4 @@
 data/eTUFF-sailfish-117259.txt filter=lfs diff=lfs merge=lfs -text
+
+# Keep shell scripts LF so shebangs work on Docker Desktop / WSL / CI
+*.sh text eol=lf

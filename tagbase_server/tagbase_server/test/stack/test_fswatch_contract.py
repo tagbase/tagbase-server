@@ -48,8 +48,18 @@ def mock_ingest_server():
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     host, port = server.server_address
-    yield f"{host}:{port}/tagbase/api/v0.14.0", _IngestHandler
+    yield f"http://{host}:{port}/tagbase/api/v0.14.0", _IngestHandler
     server.shutdown()
+
+
+def _run_fswatch(env):
+    return subprocess.Popen(
+        ["sh", str(POST_SH)],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
 
 
 def test_fswatch_posts_basename_and_body_after_size_stable(
@@ -67,13 +77,7 @@ def test_fswatch_posts_basename_and_body_after_size_stable(
     env["PATH_TO_CHECK"] = str(staging) + os.sep
     env["TAGBASE_INGEST_BASE"] = ingest_base
 
-    proc = subprocess.Popen(
-        ["sh", str(POST_SH)],
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
+    proc = _run_fswatch(env)
     try:
         # let fswatch attach before creating the file
         time.sleep(1.0)
@@ -97,6 +101,7 @@ def test_fswatch_posts_basename_and_body_after_size_stable(
         req = handler.requests[0]
         assert req["path"].endswith("/ingest")
         assert req["query"]["filename"] == ["drop-etuff.txt"]
+        assert req["query"]["type"] == ["etuff"]
         assert req["body"] == b"partial-complete"
     finally:
         proc.terminate()
@@ -104,3 +109,32 @@ def test_fswatch_posts_basename_and_body_after_size_stable(
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             proc.kill()
+
+
+def test_fswatch_skips_browser_temp_crdownload(mock_ingest_server, tmp_path):
+    if shutil.which("fswatch") is None:
+        pytest.skip("fswatch binary not installed on host")
+    if not POST_SH.is_file():
+        pytest.skip("post.sh not found")
+
+    ingest_base, handler = mock_ingest_server
+    staging = tmp_path / "staging_data"
+    staging.mkdir()
+    env = os.environ.copy()
+    env["PATH_TO_CHECK"] = str(staging) + os.sep
+    env["TAGBASE_INGEST_BASE"] = ingest_base
+
+    proc = _run_fswatch(env)
+    try:
+        time.sleep(1.0)
+        temp = staging / "Unconfirmed 821370.crdownload"
+        temp.write_bytes(b"partial-download")
+        # Allow watcher loop to see and skip the temp file.
+        time.sleep(2.0)
+        assert handler.requests == []
+    finally:
+        proc.kill()
+        try:
+            proc.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass

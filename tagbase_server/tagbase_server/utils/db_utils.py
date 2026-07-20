@@ -3,6 +3,7 @@ import os
 import psycopg2
 
 from tagbase_server.models.response500 import Response500  # noqa: E501
+from tagbase_server.telemetry import record_db_error
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ def connect():
             password=os.getenv("POSTGRES_PASSWORD"),
         )
     except psycopg2.OperationalError as poe:
+        record_db_error("connect")
         logger.error("Unable to connect to the database")
         return Response500.from_dict(
             {
