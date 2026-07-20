@@ -80,7 +80,7 @@ services:
 
   alloy:
     profiles: ["observability"]
-    image: grafana/alloy:v1.17.1
+    image: grafana/alloy:v1.18.0
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
