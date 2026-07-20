@@ -32,7 +32,7 @@ class Problem(Model):
             "status": "status",
             "detail": "detail",
             "instance": "instance",
-            "trace_id": "traceId",
+            "trace_id": "trace_id",
         }
         self._type = type
         self._title = title

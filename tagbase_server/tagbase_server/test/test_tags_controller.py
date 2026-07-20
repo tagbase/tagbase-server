@@ -17,5 +17,5 @@ def test_list_tags_without_postgres_returns_server_error(client):
     body = response.json()
     assert body["status"] == 500
     assert body["type"] == "urn:tagbase:problem:internal-error"
-    assert "traceId" in body
+    assert "trace_id" in body
     assert response.headers["content-type"].startswith("application/problem+json")

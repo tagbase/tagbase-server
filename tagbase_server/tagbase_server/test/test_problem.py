@@ -29,7 +29,7 @@ def test_problem_body_includes_required_fields():
         "title": "Bad Request",
         "status": 400,
         "detail": "nope",
-        "traceId": "123e4567-e89b-12d3-a456-426614174000",
+        "trace_id": "123e4567-e89b-12d3-a456-426614174000",
         "instance": "/ingest",
     }
 
@@ -84,7 +84,7 @@ def test_problem_model_round_trip():
             "status": 404,
             "detail": "gone",
             "instance": "/missing",
-            "traceId": "ghi-789",
+            "trace_id": "ghi-789",
         }
     )
     assert restored.type == TYPE_HTTP

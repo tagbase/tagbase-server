@@ -60,7 +60,7 @@ def problem_body(
         "title": title,
         "status": status,
         "detail": detail,
-        "traceId": trace_id or new_trace_id(),
+        "trace_id": trace_id or new_trace_id(),
     }
     if instance is not None:
         body["instance"] = instance
@@ -135,7 +135,7 @@ def register_problem_handlers(flask_app):
             title="Internal Server Error",
             detail=(
                 "An unexpected error occurred while processing the request. "
-                f"Reference traceId={trace_id}."
+                f"Reference trace_id={trace_id}."
             ),
             type_=TYPE_INTERNAL,
             trace_id=trace_id,

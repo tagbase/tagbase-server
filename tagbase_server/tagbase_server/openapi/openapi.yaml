@@ -307,28 +307,51 @@ components:
         - title
         - status
         - detail
-        - traceId
+        - trace_id
       properties:
         type:
+          description: Stable problem type URI (URN) identifying the error class
           type: string
-          format: uri
+          format: identifier
+          minLength: 1
+          maxLength: 2048
+          pattern: ^(?!\s*$).+$
           example: urn:tagbase:problem:bad-request
         title:
+          description: Short, human-readable summary of the problem type
           type: string
+          minLength: 1
+          maxLength: 200
+          pattern: ^(?!\s*$).+$
           example: Bad Request
         status:
+          description: HTTP status code for this occurrence of the problem
           type: integer
           format: int32
+          minimum: 100
+          maximum: 599
           example: 400
         detail:
+          description: Human-readable explanation specific to this occurrence
           type: string
+          minLength: 1
+          maxLength: 10000
+          pattern: ^(?!\s*$).+$
           example: Unsupported ingest file type 'netcdf'
         instance:
+          description: URI reference identifying the specific request path
           type: string
+          minLength: 1
+          maxLength: 2048
+          pattern: ^(?!\s*$).+$
           example: /tagbase/api/v0.14.0/ingest
-        traceId:
+        trace_id:
+          description: Correlation id for matching this error to server logs
           type: string
           format: uuid
+          minLength: 36
+          maxLength: 36
+          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
           example: 123e4567-e89b-12d3-a456-426614174000
     Ingest200:
       description: HTTP 200 success response

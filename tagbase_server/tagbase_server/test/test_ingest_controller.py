@@ -23,7 +23,7 @@ def test_ingest_get_rejects_netcdf_ingest_file_type(client):
     body = response.json()
     assert body["status"] == 400
     assert body["type"] == "urn:tagbase:problem:bad-request"
-    assert "traceId" in body
+    assert "trace_id" in body
     assert response.headers["content-type"].startswith("application/problem+json")
 
 
