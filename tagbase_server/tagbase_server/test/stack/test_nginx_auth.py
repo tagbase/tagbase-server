@@ -84,3 +84,16 @@ def test_docs_with_auth_reaches_upstream():
     with httpx.Client(verify=False, timeout=30.0) as client:
         response = client.get(_base() + "/docs", auth=_auth())
     assert response.status_code != 401
+
+
+def test_grafana_health_with_basic_auth_does_not_rechallenge():
+    """Nginx Basic Auth must not be forwarded to Grafana (no upstream 401)."""
+    with httpx.Client(verify=False, timeout=10.0) as client:
+        response = client.get(_base() + "/grafana/api/health", auth=_auth())
+    if response.status_code in (502, 503, 504):
+        pytest.skip("Grafana not reachable; start with --profile observability")
+    assert response.status_code == 200, (
+        f"expected 200 from Grafana health, got {response.status_code}: "
+        f"{response.text[:200]}"
+    )
+    assert "invalid username or password" not in response.text.lower()
