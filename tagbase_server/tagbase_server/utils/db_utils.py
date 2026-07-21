@@ -28,6 +28,8 @@ def assert_schema_ready(conn):
                 "(reset postgis-data and clear SCRIPTS_LOCKFILE_DIR / postgis-lockfiles "
                 "so kartoza does not skip init scripts)."
             )
+    # End the implicit transaction so callers can still set conn.autocommit.
+    conn.rollback()
     _SCHEMA_READY = True
 
 

@@ -97,5 +97,7 @@ def test_assert_schema_ready_caches_success():
 
     db_utils.assert_schema_ready(conn)
     assert db_utils._SCHEMA_READY is True
+    conn.rollback.assert_called_once()
     db_utils.assert_schema_ready(conn)
     assert conn.cursor.call_count == 1
+    assert conn.rollback.call_count == 1
