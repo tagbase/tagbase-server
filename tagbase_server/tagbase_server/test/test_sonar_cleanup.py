@@ -220,6 +220,25 @@ def test_build_proc_observations(mock_post):
     mock_post.assert_called_once()
 
 
+@mock.patch("tagbase_server.utils.processing_utils.post_msg")
+def test_build_proc_observations_skips_short_and_comment_lines(mock_post):
+    """Non-observation lines must not raise IndexError (verify-drop style fixtures)."""
+    cur = mock.Mock()
+    conn = mock.Mock()
+    cur.fetchone.return_value = (7,)
+    content = [
+        "",
+        "# verify 1784506712",
+        "2012-03-16 18:31:39,2,22.2,longitude,degree",
+        "only,two",
+        "   ",
+    ]
+    proc_obs, count = pu._build_proc_observations(cur, conn, content, "f.txt", 1, 2)
+    assert count == 1
+    assert len(proc_obs) == 1
+    mock_post.assert_not_called()
+
+
 def test_dataframe_to_buffer_and_migrate():
     proc_obs = [[timezone.utc, 1, "1.0", 2, 3]]
     buffer = pu._dataframe_to_buffer(proc_obs, 1)
@@ -381,14 +400,16 @@ def test_base_model_ne_and_to_dict_branches():
     assert not (a != a)
 
 
-def test_slack_utils_exception_paths():
-    with mock.patch.object(
-        slack_utils.client,
-        "chat_postMessage",
-        side_effect=SlackApiError("fail", response=mock.Mock()),
-    ):
-        slack_utils.post_msg("hi")
-    with mock.patch.object(
-        slack_utils.client, "chat_postMessage", side_effect=RuntimeError("boom")
-    ):
-        slack_utils.post_msg("hi")
+def test_slack_utils_exception_paths(monkeypatch):
+    import importlib
+
+    monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test-token")
+    su = importlib.reload(slack_utils)
+    client = mock.Mock()
+    with mock.patch.object(su, "WebClient", return_value=client):
+        client.chat_postMessage.side_effect = SlackApiError(
+            "fail", response=mock.Mock()
+        )
+        su.post_msg("hi")
+        client.chat_postMessage.side_effect = RuntimeError("boom")
+        su.post_msg("hi")

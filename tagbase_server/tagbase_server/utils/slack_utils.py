@@ -4,15 +4,25 @@ import os
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-slack_token = os.environ.get("SLACK_BOT_TOKEN", "")
-client = WebClient(token=slack_token)
 logger = logging.getLogger(__name__)
+
+
+def _slack_token():
+    return os.environ.get("SLACK_BOT_TOKEN", "").strip()
+
+
+def _slack_client(token=None):
+    return WebClient(token=token if token is not None else _slack_token())
 
 
 def post_msg(msg):
     logger.warning(msg)
+    token = _slack_token()
+    # Slack bot tokens are typically xoxb-...; anything else just spams errors.
+    if not token.startswith("xoxb-"):
+        return
     try:
-        client.chat_postMessage(
+        _slack_client(token).chat_postMessage(
             channel="metadata_ops", text="<!channel> :warning: " + msg
         )
     except SlackApiError:

@@ -73,7 +73,7 @@ tagbase_server/tagbase_server/coverage.xml
 services/postgis/lockfiles
 postgis-data
 dbbackups
-staging_data
+staging_data*
 
 .scratch*
 docs/
