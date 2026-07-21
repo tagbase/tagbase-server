@@ -168,9 +168,11 @@ services:
       # Tables-only SQL: kartoza already creates role/DB; full tagbase_schema.sql
       # aborts on CREATE ROLE/DATABASE and never creates submission/etc.
       - ./services/postgis/tagbase_schema_tables.sql:/docker-entrypoint-initdb.d/01-tagbase.sql
-      # Anonymous volume: host-mounted lockfiles survive postgis-data wipes and cause
-      # kartoza to skip init scripts (stale .entry_point.lock → no submission table).
-      - postgis-lockfiles:/opt/data/
+      # Ephemeral lock dir: a named volume survives `compose down` and can skip
+      # init scripts after postgis-data is wiped (stale .entry_point.lock).
+      - type: tmpfs
+        target: /opt/data
+
   slack_docker:
     environment:
       - webhook=${webhook:-}
@@ -299,6 +301,7 @@ services:
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_BASIC_ENABLED=false
       - GF_AUTH_DISABLE_LOGIN_FORM=true
       - GF_USERS_DEFAULT_THEME=dark
       - GF_SERVER_ROOT_URL=https://localhost/grafana/
@@ -321,7 +324,6 @@ networks:
   internal-network:
 
 volumes:
-  postgis-lockfiles:
   alloy-data:
   prometheus-data:
   loki-data:
