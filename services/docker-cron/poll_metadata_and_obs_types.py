@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import configparser
 import os
+import sys
+
 import pandas as pd
 import psycopg2
-import requests
 
 from io import StringIO
 
@@ -68,7 +69,7 @@ def pull_resource(connection=None, key=None, param=None):
                 connection.commit()
             except (Exception, psycopg2.DatabaseError) as error:
                 print("Error writing data to table:", param, error)
-                conn.rollback()
+                connection.rollback()
                 return 1
             print("Successfully updated table:", param)
 
@@ -79,16 +80,16 @@ def connect():
     :rtype: connection
     """
     try:
-        conn = psycopg2.connect(
+        return psycopg2.connect(
             dbname="tagbase",
             user="tagbase",
             host="postgis",
-            port=os.getenv("POSTGRES_PORT"),
-            password=os.getenv("POSTGRES_PASSWORD"),
+            port=os.getenv("POSTGRES_PORT", "5432"),
+            password=os.getenv("POSTGRES_PASSWORD", "tagbase"),
         )
     except psycopg2.OperationalError as poe:
         print("Error connecting to DB: ", poe)
-    return conn
+        sys.exit(1)
 
 
 def get_metadata(connection):

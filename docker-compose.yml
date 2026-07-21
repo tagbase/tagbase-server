@@ -141,11 +141,16 @@ services:
     expose:
       - ${POSTGRES_PORT:-5432}
     healthcheck:
-      test: "PGPASSWORD=${POSTGRES_PASSWORD:-tagbase} pg_isready -d tagbase -h postgis -U tagbase"
+      # Require tagbase schema (not just pg_isready) so dependents wait for 01-tagbase.sql.
+      test: >-
+        PGPASSWORD=${POSTGRES_PASSWORD:-tagbase}
+        psql -d tagbase -h localhost -U tagbase -tAc
+        "SELECT to_regclass('public.submission')"
+        | grep -q submission
       interval: 15s
       timeout: 5s
-      retries: 5
-      start_period: 15s
+      retries: 10
+      start_period: 30s
     hostname: postgis
     image: kartoza/postgis:15-3.3
     platform: linux/amd64
@@ -163,7 +168,9 @@ services:
       # Tables-only SQL: kartoza already creates role/DB; full tagbase_schema.sql
       # aborts on CREATE ROLE/DATABASE and never creates submission/etc.
       - ./services/postgis/tagbase_schema_tables.sql:/docker-entrypoint-initdb.d/01-tagbase.sql
-      - ./services/postgis/lockfiles:/opt/data/
+      # Anonymous volume: host-mounted lockfiles survive postgis-data wipes and cause
+      # kartoza to skip init scripts (stale .entry_point.lock → no submission table).
+      - postgis-lockfiles:/opt/data/
   slack_docker:
     environment:
       - webhook=${webhook:-}
@@ -314,6 +321,7 @@ networks:
   internal-network:
 
 volumes:
+  postgis-lockfiles:
   alloy-data:
   prometheus-data:
   loki-data:

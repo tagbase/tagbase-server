@@ -2,8 +2,6 @@ FROM python:3.14-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ARG POSTGRES_PASSWORD
-ARG POSTGRES_PORT
 
 WORKDIR /usr/src/app
 
@@ -26,9 +24,9 @@ COPY --chown=tagbase:tagbase . .
 RUN python3 -m pip install --no-cache-dir --upgrade pip && \
     python3 -m pip install -r requirements.txt --no-cache-dir
 
-RUN touch .env \
-    && echo "export POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> /usr/src/app/.env \
-    && echo "export POSTGRES_PORT=${POSTGRES_PORT}" >> /usr/src/app/.env
+# Credentials are written at container start from runtime env (see entrypoint.sh).
+# Do not bake POSTGRES_* from build ARGs — unset ARGs produce empty exports that
+# wipe compose-provided passwords when cron sources .env.
 
 RUN chmod 777 -R /usr/src/app
 
