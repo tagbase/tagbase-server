@@ -522,6 +522,20 @@ def _migrate_proc_observations(
     return sub_elapsed
 
 
+def _compute_submission_hashes(submission_filename, file_content, metadata_content):
+    content_hash = make_hash_sha256(file_content)
+    logger.debug("Content Hash: %s", content_hash)
+    metadata_hash = make_hash_sha256(metadata_content)
+    logger.debug("MD Hash: %s", metadata_hash)
+    entire_file_hash = compute_file_sha256(submission_filename)
+    logger.debug("File Hash: %s", entire_file_hash)
+    return (
+        content_hash,
+        metadata_hash,
+        entire_file_hash,
+    )
+
+
 def process_etuff_file(file, version=None, notes=None):
     start = time.perf_counter()
     submission_filename = file
@@ -548,12 +562,13 @@ def process_etuff_file(file, version=None, notes=None):
             metadata_content,
             number_global_attributes_lines,
         ) = get_dataset_properties(submission_filename)
-        content_hash = make_hash_sha256(file_content)
-        logger.debug("Content Hash: %s", content_hash)
-        metadata_hash = make_hash_sha256(metadata_content)
-        logger.debug("MD Hash: %s", metadata_hash)
-        entire_file_hash = compute_file_sha256(submission_filename)
-        logger.debug("File Hash: %s", entire_file_hash)
+        (
+            content_hash,
+            metadata_hash,
+            entire_file_hash,
+        ) = _compute_submission_hashes(
+            submission_filename, file_content, metadata_content
+        )
 
     with conn:
         with conn.cursor() as cur:
