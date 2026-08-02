@@ -21,6 +21,7 @@
     }
   ],
   "cursorSync": "Crosshair",
+  "description": "copy",
   "editable": true,
   "elements": {
     "panel-1": {
@@ -41,10 +42,8 @@
                     "group": "prometheus",
                     "kind": "DataQuery",
                     "spec": {
-                      "editorMode": "code",
                       "expr": "sum by (outcome) (rate(tagbase_ingest_requests_total[5m]))",
-                      "legendFormat": "{{outcome}}",
-                      "range": true
+                      "legendFormat": "{{outcome}}"
                     },
                     "version": "v0"
                   },
@@ -364,12 +363,16 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "green",
+                      "color": "red",
                       "value": 0
                     },
                     {
-                      "color": "red",
-                      "value": 80
+                      "color": "yellow",
+                      "value": 90
+                    },
+                    {
+                      "color": "green",
+                      "value": 99
                     }
                   ]
                 },
@@ -559,7 +562,7 @@
                     "kind": "DataQuery",
                     "spec": {
                       "editorMode": "code",
-                      "expr": "sum by (outcome) (tagbase_ingest_requests_total)",
+                      "expr": "sum(increase(tagbase_ingest_requests_total{outcome=\"success\"}[24h]))\n/\nsum(increase(tagbase_ingest_requests_total[24h]))\n* 100",
                       "legendFormat": "{{outcome}}",
                       "range": true
                     },
@@ -576,7 +579,103 @@
         "description": "",
         "id": 6,
         "links": [],
-        "title": "Files ingested",
+        "title": "File ingestion success rate",
+        "vizConfig": {
+          "group": "gauge",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "percent"
+              },
+              "overrides": []
+            },
+            "options": {
+              "barShape": "flat",
+              "barWidthFactor": 0.3,
+              "effects": {
+                "barGlow": false,
+                "centerGlow": false,
+                "gradient": true
+              },
+              "endpointMarker": "point",
+              "minVizHeight": 75,
+              "minVizWidth": 75,
+              "orientation": "auto",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "segmentCount": 1,
+              "segmentSpacing": 0.3,
+              "shape": "gauge",
+              "showThresholdLabels": false,
+              "showThresholdMarkers": false,
+              "sizing": "auto",
+              "sparkline": true,
+              "textMode": "auto"
+            }
+          },
+          "version": "13.1.0"
+        }
+      }
+    },
+    "panel-7": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "prometheus"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "editorMode": "code",
+                      "expr": "sum by (outcome) (tagbase_ingest_requests_total)",
+                      "legendFormat": "{{outcome}}",
+                      "range": true
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "",
+        "id": 7,
+        "links": [],
+        "title": "File ingestion",
         "vizConfig": {
           "group": "timeseries",
           "kind": "VizConfig",
@@ -595,7 +694,7 @@
                   "barAlignment": 0,
                   "barWidthFactor": 0.6,
                   "drawStyle": "line",
-                  "fillOpacity": 25,
+                  "fillOpacity": 0,
                   "gradientMode": "none",
                   "hideFrom": {
                     "legend": false,
@@ -614,7 +713,7 @@
                   "spanNulls": false,
                   "stacking": {
                     "group": "A",
-                    "mode": "normal"
+                    "mode": "none"
                   },
                   "thresholdsStyle": {
                     "mode": "off"
@@ -663,85 +762,121 @@
     }
   },
   "layout": {
-    "kind": "GridLayout",
+    "kind": "RowsLayout",
     "spec": {
-      "items": [
+      "rows": [
         {
-          "kind": "GridLayoutItem",
+          "kind": "RowsLayoutRow",
           "spec": {
-            "element": {
-              "kind": "ElementReference",
-              "name": "panel-1"
+            "collapse": false,
+            "layout": {
+              "kind": "GridLayout",
+              "spec": {
+                "items": [
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-1"
+                      },
+                      "height": 8,
+                      "width": 8,
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-2"
+                      },
+                      "height": 8,
+                      "width": 8,
+                      "x": 8,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-3"
+                      },
+                      "height": 8,
+                      "width": 8,
+                      "x": 16,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-7"
+                      },
+                      "height": 8,
+                      "width": 8,
+                      "x": 0,
+                      "y": 8
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-6"
+                      },
+                      "height": 8,
+                      "width": 8,
+                      "x": 8,
+                      "y": 8
+                    }
+                  }
+                ]
+              }
             },
-            "height": 8,
-            "width": 12,
-            "x": 0,
-            "y": 0
+            "title": "Server metrics"
           }
         },
         {
-          "kind": "GridLayoutItem",
+          "kind": "RowsLayoutRow",
           "spec": {
-            "element": {
-              "kind": "ElementReference",
-              "name": "panel-2"
+            "collapse": false,
+            "layout": {
+              "kind": "AutoGridLayout",
+              "spec": {
+                "columnWidthMode": "standard",
+                "items": [
+                  {
+                    "kind": "AutoGridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-5"
+                      }
+                    }
+                  },
+                  {
+                    "kind": "AutoGridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-4"
+                      }
+                    }
+                  }
+                ],
+                "maxColumnCount": 3,
+                "rowHeightMode": "standard"
+              }
             },
-            "height": 8,
-            "width": 12,
-            "x": 12,
-            "y": 0
-          }
-        },
-        {
-          "kind": "GridLayoutItem",
-          "spec": {
-            "element": {
-              "kind": "ElementReference",
-              "name": "panel-6"
-            },
-            "height": 8,
-            "width": 12,
-            "x": 0,
-            "y": 8
-          }
-        },
-        {
-          "kind": "GridLayoutItem",
-          "spec": {
-            "element": {
-              "kind": "ElementReference",
-              "name": "panel-3"
-            },
-            "height": 8,
-            "width": 12,
-            "x": 12,
-            "y": 8
-          }
-        },
-        {
-          "kind": "GridLayoutItem",
-          "spec": {
-            "element": {
-              "kind": "ElementReference",
-              "name": "panel-4"
-            },
-            "height": 8,
-            "width": 12,
-            "x": 0,
-            "y": 16
-          }
-        },
-        {
-          "kind": "GridLayoutItem",
-          "spec": {
-            "element": {
-              "kind": "ElementReference",
-              "name": "panel-5"
-            },
-            "height": 8,
-            "width": 12,
-            "x": 12,
-            "y": 16
+            "title": "Server logs"
           }
         }
       ]
@@ -750,13 +885,9 @@
   "links": [],
   "liveNow": false,
   "preload": false,
-  "tags": [
-    "tagbase",
-    "ingest",
-    "otel"
-  ],
+  "tags": [],
   "timeSettings": {
-    "autoRefresh": "1h",
+    "autoRefresh": "",
     "autoRefreshIntervals": [
       "5s",
       "10s",
@@ -770,10 +901,10 @@
       "1d"
     ],
     "fiscalYearStartMonth": 0,
-    "from": "now-1h",
+    "from": "2026-07-30T01:39:04.641Z",
     "hideTimepicker": false,
     "timezone": "browser",
-    "to": "now"
+    "to": "2026-08-02T13:37:27.125Z"
   },
   "title": "Tagbase Ingest",
   "variables": []
