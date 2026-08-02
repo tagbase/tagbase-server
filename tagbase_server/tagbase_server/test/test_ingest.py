@@ -86,7 +86,7 @@ class TestIngest(unittest.TestCase):
         with mock.patch.object(pu.logger, "error") as mock_error:
             pu.insert_metadata(
                 cur,
-                    [
+                [
                     ("1", "2", '"first value"'),
                     ("1", "3", '"second value"'),
                 ],
@@ -107,14 +107,14 @@ class TestIngest(unittest.TestCase):
         with mock.patch.object(pu.logger, "error") as mock_error:
             pu.update_submission_metadata(
                 cur,
-                tag_id = 10,
-                metadata = [
+                tag_id=10,
+                metadata=[
                     ("1", "2", '"first value"'),
                     ("1", "3", '"second value"'),
                 ],
-                submission_id = 1,
-                dataset_id = 20,
-                metadata_hash = "metadata-hash",
+                submission_id=1,
+                dataset_id=20,
+                metadata_hash="metadata-hash",
             )
         assert cur.execute.call_count == 3
         mock_error.assert_called_once()
