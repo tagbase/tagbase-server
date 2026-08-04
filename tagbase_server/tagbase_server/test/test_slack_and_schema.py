@@ -59,7 +59,7 @@ def test_post_msg_handles_slack_api_and_generic_errors(monkeypatch):
 
 
 def test_connect_reraises_when_schema_missing(monkeypatch):
-    db_utils._SCHEMA_READY = False
+    monkeypatch.setattr(db_utils, "_SCHEMA_READY", False)
     fake_conn = mock.Mock()
     cur = mock.Mock()
     cur.fetchone.return_value = (None,)
@@ -74,8 +74,8 @@ def test_connect_reraises_when_schema_missing(monkeypatch):
     db_utils.record_db_error.assert_called_with("schema")
 
 
-def test_assert_schema_ready_raises_when_missing():
-    db_utils._SCHEMA_READY = False
+def test_assert_schema_ready_raises_when_missing(monkeypatch):
+    monkeypatch.setattr(db_utils, "_SCHEMA_READY", False)
     cur = mock.Mock()
     cur.fetchone.return_value = (None,)
     conn = mock.Mock()
@@ -87,8 +87,8 @@ def test_assert_schema_ready_raises_when_missing():
     assert db_utils._SCHEMA_READY is False
 
 
-def test_assert_schema_ready_caches_success():
-    db_utils._SCHEMA_READY = False
+def test_assert_schema_ready_caches_success(monkeypatch):
+    monkeypatch.setattr(db_utils, "_SCHEMA_READY", False)
     cur = mock.Mock()
     cur.fetchone.return_value = ("submission",)
     conn = mock.Mock()

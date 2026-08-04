@@ -308,6 +308,7 @@ def insert_metadata(cur, metadata, tag_id):
             Exception,
             psycopg2.DatabaseError,
         ):
+            record_db_error("insert_metadata")
             logger.error("Error inserting metadata for tag %s", x)
     logger.debug("Inserted metadata attributes: %s", metadata)
 
@@ -350,6 +351,7 @@ def update_submission_metadata(
             Exception,
             psycopg2.DatabaseError,
         ):
+            record_db_error("update_metadata")
             logger.error("Error updating metadata for tag %s", x)
     logger.info("Updated metadata attributes: %s", metadata)
 
