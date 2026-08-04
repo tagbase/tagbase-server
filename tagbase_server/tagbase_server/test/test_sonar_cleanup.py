@@ -259,22 +259,10 @@ def test_dataframe_to_buffer_and_migrate():
 @mock.patch("tagbase_server.utils.processing_utils.compute_file_sha256")
 @mock.patch("tagbase_server.utils.processing_utils.make_hash_sha256")
 def test_compute_submission_hashes(mock_make, mock_file, mock_props):
-    mock_props.return_value = (
-        "inst",
-        "sn",
-        "ptt",
-        "plat",
-        0,
-        ["line"],
-        [":a = 1"],
-        0,
-    )
     mock_make.side_effect = ["content", "meta"]
     mock_file.return_value = "filehash"
-    result = pu._compute_submission_hashes("f.txt")
-    assert result[0] == "inst"
-    assert result[-1] == "filehash"
-    assert result[-2] == "meta"
+    result = pu._compute_submission_hashes("f.txt", "content", "meta")
+    assert result == ("content", "meta", "filehash")
 
 
 @mock.patch("tagbase_server.utils.processing_utils._migrate_proc_observations")
@@ -290,9 +278,11 @@ def test_compute_submission_hashes(mock_make, mock_file, mock_props):
 @mock.patch("tagbase_server.utils.processing_utils.get_dataset_id")
 @mock.patch("tagbase_server.utils.processing_utils.detect_duplicate_file")
 @mock.patch("tagbase_server.utils.processing_utils._compute_submission_hashes")
+@mock.patch("tagbase_server.utils.processing_utils.get_dataset_properties")
 @mock.patch("tagbase_server.utils.processing_utils.connect")
 def test_process_etuff_file_full_path(
     mock_connect,
+    mock_props,
     mock_hashes,
     mock_dup,
     mock_dataset,
@@ -312,15 +302,8 @@ def test_process_etuff_file_full_path(
     mock_connect.return_value = conn
     conn.__enter__.return_value = conn
     conn.cursor.return_value.__enter__.return_value = cur
+    mock_props.return_value = ("i", "s", "p", "pl", 1, ["line"], [":a = 1"], 0)
     mock_hashes.return_value = (
-        "i",
-        "s",
-        "p",
-        "pl",
-        1,
-        ["line"],
-        [":a = 1"],
-        0,
         "ch",
         "mh",
         "fh",
@@ -340,21 +323,15 @@ def test_process_etuff_file_full_path(
 
 @mock.patch("tagbase_server.utils.processing_utils.connect")
 @mock.patch("tagbase_server.utils.processing_utils._compute_submission_hashes")
-def test_process_etuff_file_duplicate(mock_hashes, mock_connect):
+@mock.patch("tagbase_server.utils.processing_utils.get_dataset_properties")
+def test_process_etuff_file_duplicate(mock_hashes, mock_connect, mock_props):
     conn = mock.MagicMock()
     cur = mock.MagicMock()
     mock_connect.return_value = conn
     conn.__enter__.return_value = conn
     conn.cursor.return_value.__enter__.return_value = cur
+    mock_props.return_value = ("i", "s", "p", "pl", 1, ["line"], [":a = 1"], 0)
     mock_hashes.return_value = (
-        "i",
-        "s",
-        "p",
-        "pl",
-        0,
-        [],
-        [],
-        0,
         "c",
         "m",
         "f",

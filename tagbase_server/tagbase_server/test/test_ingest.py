@@ -71,6 +71,60 @@ class TestIngest(unittest.TestCase):
         )
         assert obj_sha256 == expected_sha256
 
+    def test_insert_metadata_continues_after_database_error(self):
+        cur = mock.Mock()
+
+        cur.mogrify.side_effect = [
+            b"(1, 2, 'first value', 10)",
+            b"(1, 3, 'second value', 10)",
+        ]
+        cur.execute.side_effect = [
+            psycopg2.DatabaseError("insert failed"),
+            None,
+        ]
+
+        with mock.patch.object(pu.logger, "error") as mock_error, mock.patch.object(
+            pu, "record_db_error"
+        ) as mock_record_db_error:
+            pu.insert_metadata(
+                cur,
+                [
+                    ("1", "2", '"first value"'),
+                    ("1", "3", '"second value"'),
+                ],
+                10,
+            )
+        assert cur.execute.call_count == 2
+        mock_error.assert_called_once()
+        mock_record_db_error.assert_called_once_with("insert_metadata")
+
+    def test_update_metadata_continues_after_database_error(self):
+        cur = mock.Mock()
+
+        cur.execute.side_effect = [
+            None,  # submission update
+            psycopg2.DatabaseError("metadata update failed"),
+            None,  # second metadata update
+        ]
+
+        with mock.patch.object(pu.logger, "error") as mock_error, mock.patch.object(
+            pu, "record_db_error"
+        ) as mock_record_db_error:
+            pu.update_submission_metadata(
+                cur,
+                tag_id=10,
+                metadata=[
+                    ("1", "2", '"first value"'),
+                    ("1", "3", '"second value"'),
+                ],
+                submission_id=1,
+                dataset_id=20,
+                metadata_hash="metadata-hash",
+            )
+        assert cur.execute.call_count == 3
+        mock_error.assert_called_once()
+        mock_record_db_error.assert_called_once_with("update_metadata")
+
     @mock.patch("psycopg2.connect")
     def test_get_dataset_id(self, mock_connect):
         # result of psycopg2.connect(**connection_stuff)

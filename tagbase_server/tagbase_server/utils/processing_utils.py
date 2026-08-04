@@ -298,10 +298,19 @@ def insert_metadata(cur, metadata, tag_id):
         b = x[1]
         c = x[2]
         mog = cur.mogrify("(%s, %s, %s, %s)", (a, b, str(c).strip('"'), tag_id))
-        cur.execute(
-            "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES "
-            + mog.decode("utf-8")
-        )
+        try:
+            cur.execute(
+                "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES "
+                + mog.decode("utf-8")
+                + " ON CONFLICT (submission_id, attribute_id) DO NOTHING"
+            )
+        except (
+            Exception,
+            psycopg2.DatabaseError,
+        ):
+            record_db_error("insert_metadata")
+            logger.error("Error inserting metadata for tag %s", x)
+    logger.debug("Inserted metadata attributes: %s", metadata)
 
 
 def get_current_submission_id(cur):
@@ -332,11 +341,18 @@ def update_submission_metadata(
         attribute_id = x[1]
         attribute_value = x[2]
         attribute_value = str(attribute_value).strip('"')
-        cur.execute(
-            "UPDATE metadata SET attribute_value = '{}' WHERE submission_id = {} AND tag_id = {} AND attribute_id = {}".format(
-                attribute_value, submission_id, tag_id, attribute_id
+        try:
+            cur.execute(
+                "UPDATE metadata SET attribute_value = '{}' WHERE submission_id = {} AND tag_id = {} AND attribute_id = {}".format(
+                    attribute_value, submission_id, tag_id, attribute_id
+                )
             )
-        )
+        except (
+            Exception,
+            psycopg2.DatabaseError,
+        ):
+            record_db_error("update_metadata")
+            logger.error("Error updating metadata for tag %s", x)
     logger.info("Updated metadata attributes: %s", metadata)
 
 
@@ -508,17 +524,7 @@ def _migrate_proc_observations(
     return sub_elapsed
 
 
-def _compute_submission_hashes(submission_filename):
-    (
-        instrument_name,
-        serial_number,
-        ptt,
-        platform,
-        referencetrack_included,
-        file_content,
-        metadata_content,
-        number_global_attributes_lines,
-    ) = get_dataset_properties(submission_filename)
+def _compute_submission_hashes(submission_filename, file_content, metadata_content):
     content_hash = make_hash_sha256(file_content)
     logger.debug("Content Hash: %s", content_hash)
     metadata_hash = make_hash_sha256(metadata_content)
@@ -526,14 +532,6 @@ def _compute_submission_hashes(submission_filename):
     entire_file_hash = compute_file_sha256(submission_filename)
     logger.debug("File Hash: %s", entire_file_hash)
     return (
-        instrument_name,
-        serial_number,
-        ptt,
-        platform,
-        referencetrack_included,
-        file_content,
-        metadata_content,
-        number_global_attributes_lines,
         content_hash,
         metadata_hash,
         entire_file_hash,
@@ -565,10 +563,14 @@ def process_etuff_file(file, version=None, notes=None):
             file_content,
             metadata_content,
             number_global_attributes_lines,
+        ) = get_dataset_properties(submission_filename)
+        (
             content_hash,
             metadata_hash,
             entire_file_hash,
-        ) = _compute_submission_hashes(submission_filename)
+        ) = _compute_submission_hashes(
+            submission_filename, file_content, metadata_content
+        )
 
     with conn:
         with conn.cursor() as cur:
