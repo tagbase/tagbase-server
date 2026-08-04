@@ -4,8 +4,9 @@ import os
 import re
 import tempfile
 from time import time
-from pyunpack import Archive
 from urllib.request import urlopen
+
+from pyunpack import Archive
 
 logger = logging.getLogger(__name__)
 

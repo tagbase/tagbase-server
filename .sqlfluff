@@ -1,0 +1,20 @@
+[sqlfluff]
+dialect = postgres
+templater = raw
+max_line_length = 120
+# RF04: view output columns intentionally use names like `variable` / `depth`
+# LT02: CREATE MATERIALIZED VIEW … AS SELECT indent rules fight WITH/JOIN layout
+# L031/L034/L044: alias/join-key style noise on analytical views
+exclude_rules = RF04,LT02,L031,L034,L044
+
+[sqlfluff:indentation]
+tab_space_size = 2
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+extended_capitalisation_policy = lower

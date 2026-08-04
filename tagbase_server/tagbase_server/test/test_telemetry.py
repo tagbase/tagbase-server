@@ -75,18 +75,19 @@ def _stub_setup_dependencies(monkeypatch):
         "Psycopg2Instrumentor",
         mock.Mock(return_value=mock.Mock()),
     )
-    monkeypatch.setattr(telemetry, "_ensure_instruments", mock.Mock())
-    return otel_handler
+    ensure_instruments = mock.Mock()
+    monkeypatch.setattr(telemetry, "_ensure_instruments", ensure_instruments)
+    return otel_handler, ensure_instruments
 
 
 def test_setup_telemetry_initializes_and_is_idempotent(monkeypatch):
     monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
     monkeypatch.setenv("OTEL_SERVICE_NAME", "   ")  # blank → default SERVICE_NAME
-    _stub_setup_dependencies(monkeypatch)
+    _, ensure_instruments = _stub_setup_dependencies(monkeypatch)
 
     assert telemetry.setup_telemetry() is True
     assert telemetry.setup_telemetry() is True  # already initialized
-    telemetry._ensure_instruments.assert_called_once()
+    ensure_instruments.assert_called_once()
 
 
 def test_setup_telemetry_instruments_flask_app(monkeypatch):

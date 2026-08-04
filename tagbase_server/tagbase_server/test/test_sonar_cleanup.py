@@ -14,9 +14,8 @@ from tagbase_server.controllers import ingest_controller
 from tagbase_server.controllers.ingest_controller import _resolve_ingest_file_type
 from tagbase_server.models.base_model_ import Model
 from tagbase_server.models.ingest200 import Ingest200
-from tagbase_server.utils import io_utils
+from tagbase_server.utils import io_utils, slack_utils
 from tagbase_server.utils import processing_utils as pu
-from tagbase_server.utils import slack_utils
 
 
 def test_parse_cors_origins_empty_and_list():

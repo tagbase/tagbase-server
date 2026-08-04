@@ -1,0 +1,17 @@
+---
+extends: default
+rules:
+  document-start: disable
+  line-length:
+    max: 300
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+  indentation: disable
+  comments: disable
+  comments-indentation: disable
+  truthy: disable
+  new-line-at-end-of-file: enable

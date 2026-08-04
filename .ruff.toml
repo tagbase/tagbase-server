@@ -1,0 +1,16 @@
+line-length = 120
+exclude = [".tox", ".git", "__pycache__", "tagbase_server/.tox"]
+
+[lint]
+# I = isort-compatible import sorting (replaces PYTHON_ISORT).
+extend-select = ["I"]
+ignore = ["E501", "E721"]
+
+[lint.per-file-ignores]
+"tagbase_server/tagbase_server/models/*" = ["F401", "F811"]
+"tagbase_server/tagbase_server/utils/__init__.py" = ["F401", "F403"]
+"tagbase_server/tagbase_server/controllers/security_controller_.py" = ["F401"]
+"tagbase_server/tagbase_server/util.py" = ["F401", "E721"]
+
+[lint.isort]
+known-first-party = ["tagbase_server"]
