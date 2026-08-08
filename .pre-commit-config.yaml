@@ -4,3 +4,13 @@ repos:
     hooks:
       - id: hadolint
         args: ["--config", ".hadolint.yaml"]
+  # Full Super Linter suite (same image/env as CI), including SHELL_SHFMT.
+  # Requires Docker.
+  - repo: local
+    hooks:
+      - id: super-linter
+        name: Super-Linter
+        language: system
+        entry: scripts/run-super-linter-pre-commit.sh
+        pass_filenames: false
+        always_run: true
