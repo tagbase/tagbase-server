@@ -1,5 +1,6 @@
 # Test stack: PostGIS for integration tests; optional nginx/fswatch for stack markers;
 # optional Alloy + LGTM for observability smoke (profile: observability).
+# App path uses PgBouncer; host :5432 remains direct PostGIS for CI pytest.
 services:
   postgis:
     image: postgis/postgis:15-3.3
@@ -23,16 +24,53 @@ services:
     networks:
       - test-network
 
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.25.1-p0
+    depends_on:
+      postgis:
+        condition: service_healthy
+    environment:
+      - DB_USER=tagbase
+      - DB_PASSWORD=tagbase
+      - DB_HOST=postgis
+      - DB_PORT=5432
+      - DB_NAME=tagbase
+      # Plaintext in userlist so PgBouncer can SCRAM to postgis/postgis (PG15 default).
+      - AUTH_TYPE=scram-sha-256
+      - POOL_MODE=transaction
+      - SERVER_RESET_QUERY=DISCARD ALL
+      - MAX_CLIENT_CONN=100
+      - DEFAULT_POOL_SIZE=10
+      - RESERVE_POOL_SIZE=2
+      - RESERVE_POOL_TIMEOUT=3
+      - MAX_DB_CONNECTIONS=20
+      - MAX_USER_CONNECTIONS=20
+      - IGNORE_STARTUP_PARAMETERS=extra_float_digits
+      - ADMIN_USERS=tagbase
+      - STATS_USERS=tagbase
+    expose:
+      - "5432"
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U tagbase -d tagbase"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    hostname: pgbouncer
+    networks:
+      - test-network
+
   tagbase_server:
     profiles: ["stack", "observability"]
     build:
       context: ./tagbase_server
     depends_on:
-      postgis:
+      pgbouncer:
         condition: service_healthy
     environment:
       - PGADMIN_DEFAULT_EMAIL=test@example.com
-      - POSTGRES_HOST=postgis
+      - POSTGRES_HOST=pgbouncer
       - POSTGRES_PASSWORD=tagbase
       - POSTGRES_PORT=5432
       - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-true}

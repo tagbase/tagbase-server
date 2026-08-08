@@ -28,17 +28,18 @@ services:
     build:
       context: ./services/docker-cron
     depends_on:
-      postgis:
+      pgbouncer:
         condition: service_healthy
     environment:
+      - POSTGRES_HOST=pgbouncer
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-tagbase}
-      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_PORT=5432
     labels:
       "docker_compose_diagram.cluster": "Internal Network"
       "docker_compose_diagram.description": "'metadata_types' and\n'observation_types' synchronization"
       "docker_compose_diagram.icon": "python"
     links:
-      - postgis
+      - pgbouncer
     networks:
       - internal-network
     restart: unless-stopped
@@ -173,16 +174,61 @@ services:
       - type: tmpfs
         target: /opt/data
 
-  tagbase_server:
-    build:
-      context: ./tagbase_server
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.25.1-p0
     depends_on:
       postgis:
         condition: service_healthy
     environment:
+      - DB_USER=tagbase
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-tagbase}
+      - DB_HOST=postgis
+      - DB_PORT=${POSTGRES_PORT:-5432}
+      - DB_NAME=tagbase
+      # Plaintext in userlist so PgBouncer can auth to PostGIS (SCRAM or md5).
+      - AUTH_TYPE=scram-sha-256
+      - POOL_MODE=transaction
+      - SERVER_RESET_QUERY=DISCARD ALL
+      - MAX_CLIENT_CONN=100
+      - DEFAULT_POOL_SIZE=10
+      - RESERVE_POOL_SIZE=2
+      - RESERVE_POOL_TIMEOUT=3
+      - MAX_DB_CONNECTIONS=20
+      - MAX_USER_CONNECTIONS=20
+      - IGNORE_STARTUP_PARAMETERS=extra_float_digits
+      - ADMIN_USERS=tagbase
+      - STATS_USERS=tagbase
+    # edoburu listens on 5432 (Postgres-compatible). Distinct from host PostGIS via hostname.
+    expose:
+      - "5432"
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U tagbase -d tagbase"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    hostname: pgbouncer
+    labels:
+      "docker_compose_diagram.cluster": "Internal Network"
+      "docker_compose_diagram.description": "PgBouncer connection pooler"
+      "docker_compose_diagram.icon": "docker"
+    networks:
+      - internal-network
+    restart: unless-stopped
+    # No host ports: app/cron use internal DNS; host DB clients keep PostGIS :5432.
+
+  tagbase_server:
+    build:
+      context: ./tagbase_server
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+    environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
+      - POSTGRES_HOST=pgbouncer
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-tagbase}
-      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_PORT=5432
       - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-true}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-tagbase_server}
@@ -194,7 +240,7 @@ services:
       "docker_compose_diagram.description": "tagbase-server tag \ningestion and administration"
       "docker_compose_diagram.icon": "flask"
     links:
-      - postgis
+      - pgbouncer
     networks:
       - internal-network
     restart: unless-stopped
