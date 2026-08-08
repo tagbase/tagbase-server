@@ -152,6 +152,33 @@ jobs:
       - name: Stop stack
         if: always()
         run: docker compose -f docker-compose.test.yml --profile stack down -v
+  alloy_config:
+    name: Alloy fmt + validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Pin matches docker-compose.yml / docker-compose.test.yml (grafana/alloy).
+      # Validate each file separately — directory mode loads *.alloy as one config.
+      - name: Format check
+        run: |
+          for f in services/observability/config.local.alloy \
+                   services/observability/config.cloud.alloy; do
+            docker run --rm \
+              -v "${{ github.workspace }}/services/observability:/etc/alloy:ro" \
+              grafana/alloy:v1.18.1 \
+              fmt -t "/etc/alloy/$(basename "$f")"
+          done
+      - name: Validate
+        run: |
+          for f in services/observability/config.local.alloy \
+                   services/observability/config.cloud.alloy; do
+            docker run --rm \
+              -v "${{ github.workspace }}/services/observability:/etc/alloy:ro" \
+              grafana/alloy:v1.18.1 \
+              validate "/etc/alloy/$(basename "$f")"
+          done
   observability_smoke:
     name: Observability Smoke (OTel + Alloy + LGTM)
     runs-on: ubuntu-latest
