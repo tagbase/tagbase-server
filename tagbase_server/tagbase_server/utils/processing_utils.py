@@ -15,7 +15,6 @@ from tagbase_server.telemetry import (
 )
 from tagbase_server.utils.db_utils import connect
 from tagbase_server.utils.io_utils import compute_file_sha256, make_hash_sha256
-from tagbase_server.utils.slack_utils import post_msg
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +61,7 @@ def process_global_attributes_metadata(
             f"*{submission_filename}* _line:{line_counter}_ - "
             f"Unable to locate attribute_names *{not_found_attributes}* in _metadata_types_ table."
         )
-        post_msg(msg)
+        logger.warning(msg)
     return metadata
 
 
@@ -435,7 +434,7 @@ def _build_proc_observations(
         else:
             stripped_line = line.strip("\n")
             msg = f"*{submission_filename}* _line:{line_number}_ - No datetime... skipping line: {stripped_line}"
-            post_msg(msg)
+            logger.warning(msg)
             continue
         proc_obs.append(
             [
