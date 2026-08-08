@@ -137,8 +137,7 @@ def test_is_only_metadata_change_and_update(clean_db):
         metadata = [(str(submission_id), "1", '"new-value"')]
         # attribute_id 1 must exist from seed
         cur.execute(
-            "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) "
-            "VALUES (%s, %s, %s, %s)",
+            "INSERT INTO metadata (submission_id, attribute_id, attribute_value, tag_id) VALUES (%s, %s, %s, %s)",
             (submission_id, 1, "old-value", tag_id),
         )
         pu.update_submission_metadata(

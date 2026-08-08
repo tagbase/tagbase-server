@@ -1,0 +1,13 @@
+---
+# Markdownlint rules tuned for README + agent docs.
+MD013:
+  line_length: 1000
+  code_blocks: false
+  tables: false
+MD009: false
+MD022: false
+MD031: false
+MD032: false
+MD033: false
+MD041: false
+MD047: false

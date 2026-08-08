@@ -1,5 +1,4 @@
 import pprint
-
 import typing
 
 from tagbase_server import util

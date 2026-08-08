@@ -1,10 +1,9 @@
-from tagbase_server.utils.db_utils import connect
+import logging
 
 from tagbase_server.models.tag200 import Tag200  # noqa: E501
 from tagbase_server.models.tag_put200 import TagPut200  # noqa: E501
 from tagbase_server.problem import as_json
-
-import logging
+from tagbase_server.utils.db_utils import connect
 
 logger = logging.getLogger(__name__)
 

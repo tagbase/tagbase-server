@@ -2,11 +2,10 @@
 import configparser
 import os
 import sys
+from io import StringIO
 
 import pandas as pd
 import psycopg2
-
-from io import StringIO
 
 config = configparser.ConfigParser()
 workdir = os.path.dirname(os.path.abspath(__file__))

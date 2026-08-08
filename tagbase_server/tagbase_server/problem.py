@@ -134,8 +134,7 @@ def register_problem_handlers(flask_app):
             status=500,
             title="Internal Server Error",
             detail=(
-                "An unexpected error occurred while processing the request. "
-                f"Reference trace_id={trace_id}."
+                f"An unexpected error occurred while processing the request. Reference trace_id={trace_id}."
             ),
             type_=TYPE_INTERNAL,
             trace_id=trace_id,
