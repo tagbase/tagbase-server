@@ -45,8 +45,8 @@ def connect():
         conn = psycopg2.connect(
             dbname="tagbase",
             user="tagbase",
-            host=os.getenv("POSTGRES_HOST", "postgis"),
-            port=os.getenv("POSTGRES_PORT"),
+            host=os.getenv("POSTGRES_HOST", "pgbouncer"),
+            port=os.getenv("POSTGRES_PORT", "5432"),
             password=os.getenv("POSTGRES_PASSWORD"),
         )
     except psycopg2.OperationalError as poe:
