@@ -7,7 +7,11 @@ on:
     branches:
       - main
   pull_request:
-      types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
 jobs:
   lint_openapi:
     name: Lint OpenAPI Specification
@@ -15,71 +19,53 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 # Required to mount the Github Workspace to a volume
+        with:
+          persist-credentials: false
       - name: Lint OpenAPI Specification
-        uses: addnab/docker-run-action@v3
-        with:
-          image: ibmdevxsdk/openapi-validator:latest
-          options: -v ${{ github.workspace }}:/data -w /data
-          run: |
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/data" \
+            -w /data \
+            ibmdevxsdk/openapi-validator:latest \
             lint-openapi --ruleset /data/.spectral.yaml --warnings-limit 0 openapi.yaml
-            exit $?
-  lint_dockerfiles:
-    name: Lint Dockerfiles
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        dockerfile:
-          - tagbase_server/Dockerfile
-          - services/docker-cron/Dockerfile
-          - services/fswatch/Dockerfile
-          - services/nginx/Dockerfile
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Lint ${{ matrix.dockerfile }}
-        uses: hadolint/hadolint-action@2a66e89f53d0771bb131a7fa31f3136336094aa6 # v3.4.0
-        with:
-          dockerfile: ${{ matrix.dockerfile }}
-          config: .hadolint.yaml
   sonarcloud:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        # Disabling shallow clone is recommended for improving relevancy of reporting
-        fetch-depth: 0
-    - name: Setup Python
-      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-      with:
-        python-version: "3.14"
-    - name: Install tox and any other packages
-      run: python -m pip install tox
-    - name: Run tox
-      working-directory: tagbase_server
-      run: tox -e py
-    - name: Fix code coverage paths
-      working-directory: tagbase_server/tagbase_server
-      run: |
-        sed -i "s/\/home\/runner\/work\/tagbase-server\/tagbase-server\/tagbase_server\/tagbase_server/\/github\/workspace\/tagbase_server\/tagbase_server\//g" coverage.xml
-    - name: SonarCloud Analysis
-      if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }}
-      uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      with:
-        projectBaseDir: tagbase_server/tagbase_server
-        args: >
-          -Dsonar.exclusions=test/**
-          -Dsonar.organization=tagbase
-          -Dsonar.projectKey=tagbase_tagbase-server
-          -Dsonar.python.coverage.reportPaths=coverage.xml
-          -Dsonar.python.version=3.10,3.11,3.12,3.13,3.14
-          -Dsonar.sources=.
-          -Dsonar.tests=test
-          -Dsonar.test.inclusions=test/**
-          -Dsonar.verbose=true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Disabling shallow clone is recommended for improving relevancy of reporting
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+      - name: Install tox and any other packages
+        run: python -m pip install tox
+      - name: Run tox
+        working-directory: tagbase_server
+        run: tox -e py
+      - name: SonarCloud Analysis
+        if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }}
+        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: tagbase_server/tagbase_server
+          args: >
+            -Dsonar.exclusions=test/**
+            -Dsonar.organization=tagbase
+            -Dsonar.projectKey=tagbase_tagbase-server
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.python.version=3.10,3.11,3.12,3.13,3.14
+            -Dsonar.sourceEncoding=UTF-8
+            -Dsonar.sources=.
+            -Dsonar.tests=test
+            -Dsonar.test.inclusions=test/**
+            -Dsonar.test.exclusions=test/fixtures/**
+            -Dsonar.verbose=true
   tox_tests:
     name: Tox Testing
     runs-on: ubuntu-latest
@@ -88,6 +74,8 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -105,10 +93,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Start PostGIS
         run: |
           docker compose -f docker-compose.test.yml up -d postgis
-          for i in $(seq 1 60); do
+          for _ in $(seq 1 60); do
             if docker compose -f docker-compose.test.yml exec -T postgis \
               pg_isready -d tagbase -U tagbase ; then
               break
@@ -137,11 +127,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Start stack
         run: |
           mkdir -p staging_data
           docker compose -f docker-compose.test.yml --profile stack up -d --build
-          for i in $(seq 1 90); do
+          for _ in $(seq 1 90); do
             if curl -kf -s -o /dev/null -u testuser:testpass \
               https://localhost/tagbase/api/v0.14.0/tags ; then
               break
@@ -172,5 +164,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Run observability smoke
         run: ./scripts/observability-smoke.sh

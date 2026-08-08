@@ -175,7 +175,7 @@ services:
 
   slack_docker:
     environment:
-      - webhook=${webhook:-}
+      - webhook=${WEBHOOK:-}
     image: ghcr.io/int128/slack-docker
     labels:
       #"docker_compose_diagram.cluster": "Internal Network"

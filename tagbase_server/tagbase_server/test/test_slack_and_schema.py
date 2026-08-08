@@ -67,11 +67,12 @@ def test_connect_reraises_when_schema_missing(monkeypatch):
     fake_conn.cursor.return_value.__exit__ = mock.Mock(return_value=False)
 
     monkeypatch.setattr(db_utils.psycopg2, "connect", mock.Mock(return_value=fake_conn))
-    monkeypatch.setattr(db_utils, "record_db_error", mock.Mock())
+    record_db_error = mock.Mock()
+    monkeypatch.setattr(db_utils, "record_db_error", record_db_error)
 
     with pytest.raises(RuntimeError, match="submission"):
         db_utils.connect()
-    db_utils.record_db_error.assert_called_with("schema")
+    record_db_error.assert_called_with("schema")
 
 
 def test_assert_schema_ready_raises_when_missing(monkeypatch):

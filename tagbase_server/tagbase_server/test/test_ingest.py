@@ -4,8 +4,9 @@ import unittest
 from unittest import mock
 
 import psycopg2
-import tagbase_server.utils.processing_utils as pu
+
 import tagbase_server.utils.io_utils as io_utils
+import tagbase_server.utils.processing_utils as pu
 
 
 class TestIngest(unittest.TestCase):
@@ -83,9 +84,10 @@ class TestIngest(unittest.TestCase):
             None,
         ]
 
-        with mock.patch.object(pu.logger, "error") as mock_error, mock.patch.object(
-            pu, "record_db_error"
-        ) as mock_record_db_error:
+        with (
+            mock.patch.object(pu.logger, "error") as mock_error,
+            mock.patch.object(pu, "record_db_error") as mock_record_db_error,
+        ):
             pu.insert_metadata(
                 cur,
                 [
@@ -107,9 +109,10 @@ class TestIngest(unittest.TestCase):
             None,  # second metadata update
         ]
 
-        with mock.patch.object(pu.logger, "error") as mock_error, mock.patch.object(
-            pu, "record_db_error"
-        ) as mock_record_db_error:
+        with (
+            mock.patch.object(pu.logger, "error") as mock_error,
+            mock.patch.object(pu, "record_db_error") as mock_record_db_error,
+        ):
             pu.update_submission_metadata(
                 cur,
                 tag_id=10,

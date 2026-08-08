@@ -1,8 +1,8 @@
 import logging
+import time
 from datetime import datetime as dt
 from datetime import timezone
 from io import StringIO
-import time
 
 import pandas as pd
 import psycopg2.extras
@@ -41,9 +41,8 @@ def process_global_attributes_metadata(
     attributes_names = ", ".join(
         ["'{}'".format(attrib_name) for attrib_name in attributes_map.keys()]
     )
-    attribute_ids_query = (
-        "SELECT attribute_id, attribute_name FROM metadata_types "
-        "WHERE attribute_name IN ({})".format(attributes_names)
+    attribute_ids_query = "SELECT attribute_id, attribute_name FROM metadata_types WHERE attribute_name IN ({})".format(
+        attributes_names
     )
     logger.debug("Query=%s", attribute_ids_query)
     cur.execute(attribute_ids_query)
@@ -91,7 +90,7 @@ def get_tag_id(cur, dataset_id):
 
 def get_dataset_id(cur, instrument_name, serial_number, ptt, platform):
     """
-    Retreive or create a dataset entry for a submission. If a dataset entry exists then grab the existing
+    Retrieve or create a dataset entry for a submission. If a dataset entry exists then grab the existing
     id, if not, create a new one.
 
     :param cur: A database cursor
@@ -131,9 +130,9 @@ def get_dataset_id(cur, instrument_name, serial_number, ptt, platform):
 
 def get_submission_id(cur, tag_id, dataset_id, data_sha256):
     cur.execute(
-        "SELECT submission_id FROM submission"
-        " WHERE tag_id = '{}' AND dataset_id = '{}'"
-        " AND data_sha256 = '{}'".format(tag_id, dataset_id, data_sha256)
+        "SELECT submission_id FROM submission WHERE tag_id = '{}' AND dataset_id = '{}' AND data_sha256 = '{}'".format(
+            tag_id, dataset_id, data_sha256
+        )
     )
     db_results = cur.fetchone()
     if not db_results:
@@ -435,10 +434,7 @@ def _build_proc_observations(
             )
         else:
             stripped_line = line.strip("\n")
-            msg = (
-                f"*{submission_filename}* _line:{line_number}_ - "
-                f"No datetime... skipping line: {stripped_line}"
-            )
+            msg = f"*{submission_filename}* _line:{line_number}_ - No datetime... skipping line: {stripped_line}"
             post_msg(msg)
             continue
         proc_obs.append(

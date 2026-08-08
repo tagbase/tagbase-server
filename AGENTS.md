@@ -12,7 +12,7 @@ Default mattpocock triage vocabulary (`needs-triage`, `needs-info`, `ready-for-a
 
 ### Domain docs
 
-Single-context layout (`CONTEXT.md` + `docs/adr/` at repo root). See `docs/agents/domain.md`.
+Single-context layout (`CONTEXT.md` + `docs/adr/` at repository root). See `docs/agents/domain.md`.
 
 ### Ingest
 

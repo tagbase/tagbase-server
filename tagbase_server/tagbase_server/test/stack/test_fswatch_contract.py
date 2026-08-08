@@ -274,8 +274,7 @@ def test_fswatch_ingests_multiple_files_dropped_quickly(mock_ingest_server):
         else:
             got = [(r["query"].get("filename") or [None])[0] for r in handler.requests]
             pytest.fail(
-                f"expected POSTs for {names}, got {got}. "
-                f"post.sh output:\n{_read_log(log_path)}"
+                f"expected POSTs for {names}, got {got}. post.sh output:\n{_read_log(log_path)}"
             )
         by_name = {
             (r["query"].get("filename") or [None])[0]: r["body"]
