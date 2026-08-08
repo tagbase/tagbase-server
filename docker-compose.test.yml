@@ -51,7 +51,6 @@ services:
       - POSTGRES_HOST=postgis
       - POSTGRES_PASSWORD=tagbase
       - POSTGRES_PORT=5432
-      - SLACK_BOT_TOKEN=
       - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-true}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       - OTEL_SERVICE_NAME=tagbase_server
@@ -96,7 +95,7 @@ services:
 
   alloy:
     profiles: ["observability"]
-    image: grafana/alloy:v1.18.0
+    image: grafana/alloy:v1.18.1
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
@@ -137,7 +136,7 @@ services:
 
   loki:
     profiles: ["observability"]
-    image: grafana/loki:3.7.5
+    image: grafana/loki:3.7.6
     command: ["-config.file=/etc/loki/loki-config.yml"]
     volumes:
       - ./services/observability/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
@@ -149,7 +148,7 @@ services:
 
   tempo:
     profiles: ["observability"]
-    image: grafana/tempo:2.10.7
+    image: grafana/tempo:3.0.2
     command: ["-config.file=/etc/tempo/tempo-config.yml"]
     volumes:
       - ./services/observability/tempo/tempo-config.yml:/etc/tempo/tempo-config.yml:ro

@@ -172,17 +172,6 @@ services:
       # init scripts after postgis-data is wiped (stale .entry_point.lock).
       - type: tmpfs
         target: /opt/data
-
-  slack_docker:
-    environment:
-      - webhook=${WEBHOOK:-}
-    image: ghcr.io/int128/slack-docker:v2.2.0
-    labels:
-      #"docker_compose_diagram.cluster": "Internal Network"
-      "docker_compose_diagram.description": "Docker events management"
-      "docker_compose_diagram.icon": "docker"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
   tagbase_server:
     build:
       context: ./tagbase_server
@@ -193,7 +182,6 @@ services:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-tagbase}
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
-      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
       - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-true}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-tagbase_server}
@@ -217,7 +205,7 @@ services:
   # Set OTEL_SDK_DISABLED=false and OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
   alloy:
     profiles: ["observability"]
-    image: grafana/alloy:v1.18.0
+    image: grafana/alloy:v1.18.1
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
@@ -271,7 +259,7 @@ services:
 
   loki:
     profiles: ["observability"]
-    image: grafana/loki:3.7.5
+    image: grafana/loki:3.7.6
     command: ["-config.file=/etc/loki/loki-config.yml"]
     volumes:
       - ./services/observability/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
@@ -284,7 +272,7 @@ services:
 
   tempo:
     profiles: ["observability"]
-    image: grafana/tempo:2.10.7
+    image: grafana/tempo:3.0.2
     command: ["-config.file=/etc/tempo/tempo-config.yml"]
     volumes:
       - ./services/observability/tempo/tempo-config.yml:/etc/tempo/tempo-config.yml:ro
