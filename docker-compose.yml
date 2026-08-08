@@ -94,7 +94,7 @@ services:
     expose:
       - 5434
     hostname: pgadmin4
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4:9.17
     labels:
       "docker_compose_diagram.cluster": "Internal Network"
       "docker_compose_diagram.description": "PostgreSQL administration"
@@ -176,7 +176,7 @@ services:
   slack_docker:
     environment:
       - webhook=${WEBHOOK:-}
-    image: ghcr.io/int128/slack-docker
+    image: ghcr.io/int128/slack-docker:v2.2.0
     labels:
       #"docker_compose_diagram.cluster": "Internal Network"
       "docker_compose_diagram.description": "Docker events management"
