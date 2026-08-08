@@ -452,14 +452,6 @@ url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496a
 [packages.wheels.hashes]
 sha256 = "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274"
 
-[[packages]]
-name = "slack-sdk"
-version = "3.22.0"
-
-[[packages.wheels]]
-name = "slack_sdk-3.22.0-py2.py3-none-any.whl"
-url = "https://files.pythonhosted.org/packages/75/9d/67de8defc6aa0799893d048686b771de0b7f077e568a2cc5186b49b75cea/slack_sdk-3.22.0-py2.py3-none-any.whl"
-
 [packages.wheels.hashes]
 sha256 = "f102a4902115dff3b97c3e8883ad4e22d54732221886fc5ef29bfc290f063b4a"
 

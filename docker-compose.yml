@@ -174,16 +174,6 @@ services:
       - type: tmpfs
         target: /opt/data
 
-  slack_docker:
-    environment:
-      - webhook=${WEBHOOK:-}
-    image: ghcr.io/int128/slack-docker
-    labels:
-      #"docker_compose_diagram.cluster": "Internal Network"
-      "docker_compose_diagram.description": "Docker events management"
-      "docker_compose_diagram.icon": "docker"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
   pgbouncer:
     image: edoburu/pgbouncer:v1.25.1-p0
     depends_on:
@@ -239,7 +229,6 @@ services:
       - POSTGRES_HOST=pgbouncer
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-tagbase}
       - POSTGRES_PORT=5432
-      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
       - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-true}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-tagbase_server}

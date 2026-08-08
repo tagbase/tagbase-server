@@ -73,7 +73,6 @@ services:
       - POSTGRES_HOST=pgbouncer
       - POSTGRES_PASSWORD=tagbase
       - POSTGRES_PORT=5432
-      - SLACK_BOT_TOKEN=
       - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-true}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       - OTEL_SERVICE_NAME=tagbase_server
