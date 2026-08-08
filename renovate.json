@@ -1,4 +1,54 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":dependencyDashboard"]
+  "extends": ["config:best-practices", ":separateMultipleMajorReleases"],
+  "timezone": "America/Los_Angeles",
+  "schedule": ["before 9am on Monday"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "description": "Quarantine new PyPI releases; pin ranges for reproducible deploys",
+      "matchManagers": ["pip_requirements", "pep621"],
+      "minimumReleaseAge": "3 days",
+      "rangeStrategy": "pin"
+    },
+    {
+      "description": "OpenTelemetry Python SDK + instrumentations",
+      "matchPackageNames": ["opentelemetry-*"],
+      "groupName": "opentelemetry"
+    },
+    {
+      "description": "Grafana observability stack images",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": [
+        "grafana/alloy",
+        "grafana/loki",
+        "grafana/tempo",
+        "grafana/grafana",
+        "prom/prometheus"
+      ],
+      "groupName": "observability stack"
+    },
+    {
+      "description": "Keep PostGIS-related images in lockstep",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["kartoza/postgis", "kartoza/pg-backup"],
+      "groupName": "postgis"
+    },
+    {
+      "description": "Group and automerge low-risk GitHub Actions patch/digest updates",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["patch", "digest"],
+      "groupName": "github-actions",
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "Require Dependency Dashboard approval for major updates",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    }
+  ]
 }

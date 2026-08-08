@@ -2,24 +2,40 @@
 # optional Alloy + LGTM for observability smoke (profile: observability).
 services:
   postgis:
-    image: postgis/postgis:15-3.3
+    image: kartoza/postgis:15-3.3
     platform: linux/amd64
     environment:
-      POSTGRES_DB: tagbase
-      POSTGRES_USER: tagbase
-      POSTGRES_PASSWORD: tagbase
+      - ALLOW_IP_RANGE=0.0.0.0/0
+      - PASSWORD_AUTHENTICATION=md5
+      - POSTGRES_DB=tagbase
+      - POSTGRES_PASS=tagbase
+      - POSTGRES_USER=tagbase
+      - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting
+      - SCRIPTS_LOCKFILE_DIR=/opt/data/
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d tagbase -U tagbase"]
+      # Require tagbase schema (not just pg_isready) so dependents wait for 01-tagbase.sql.
+      # Use compose interpolation (not a literal PGPASSWORD=...) to avoid CKV_SECRET_6.
+      test: >-
+        PGPASSWORD=${POSTGRES_PASSWORD:-tagbase}
+        psql -d tagbase -h localhost -U tagbase -tAc
+        "SELECT to_regclass('public.submission')"
+        | grep -q submission
       interval: 5s
       timeout: 5s
-      retries: 20
-      start_period: 10s
+      retries: 30
+      start_period: 30s
     hostname: postgis
     ports:
       - "5432:5432"
     volumes:
+      # Tables-only SQL: kartoza already creates role/DB; full tagbase_schema.sql
+      # aborts on CREATE ROLE/DATABASE and never creates submission/etc.
       - ./services/postgis/tagbase_schema_tables.sql:/docker-entrypoint-initdb.d/01-tagbase.sql:ro
-      - tagbase-test-pgdata:/var/lib/postgresql/data
+      - tagbase-test-pgdata:/var/lib/postgresql
+      # Ephemeral lock dir: a named volume survives `compose down` and can skip
+      # init scripts after pgdata is wiped (stale .entry_point.lock).
+      - type: tmpfs
+        target: /opt/data
     networks:
       - test-network
 

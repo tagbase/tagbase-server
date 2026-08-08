@@ -94,7 +94,7 @@ services:
     expose:
       - 5434
     hostname: pgadmin4
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4:9.17
     labels:
       "docker_compose_diagram.cluster": "Internal Network"
       "docker_compose_diagram.description": "PostgreSQL administration"
@@ -172,7 +172,6 @@ services:
       # init scripts after postgis-data is wiped (stale .entry_point.lock).
       - type: tmpfs
         target: /opt/data
-
   tagbase_server:
     build:
       context: ./tagbase_server
