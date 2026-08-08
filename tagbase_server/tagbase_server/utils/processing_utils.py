@@ -11,6 +11,7 @@ from tzlocal import get_localzone
 from tagbase_server.telemetry import (
     get_tracer,
     record_db_error,
+    record_ingest_request,
     record_rows_written,
 )
 from tagbase_server.utils.db_utils import connect
@@ -545,27 +546,33 @@ def process_etuff_file(file, version=None, notes=None):
     conn = connect()
     if not hasattr(conn, "cursor"):
         record_db_error("connect")
+        record_ingest_request("error", round(time.perf_counter() - start, 2))
         return 1
     conn.autocommit = True
 
     with tracer.start_as_current_span("ingest.parse_etuff"):
-        (
-            instrument_name,
-            serial_number,
-            ptt,
-            platform,
-            referencetrack_included,
-            file_content,
-            metadata_content,
-            number_global_attributes_lines,
-        ) = get_dataset_properties(submission_filename)
-        (
-            content_hash,
-            metadata_hash,
-            entire_file_hash,
-        ) = _compute_submission_hashes(
-            submission_filename, file_content, metadata_content
-        )
+        try:
+            (
+                instrument_name,
+                serial_number,
+                ptt,
+                platform,
+                referencetrack_included,
+                file_content,
+                metadata_content,
+                number_global_attributes_lines,
+            ) = get_dataset_properties(submission_filename)
+            (
+                content_hash,
+                metadata_hash,
+                entire_file_hash,
+            ) = _compute_submission_hashes(
+                submission_filename, file_content, metadata_content
+            )
+        except Exception:
+            logger.exception("Error parsing etuff file: %s", submission_filename)
+            record_ingest_request("error", round(time.perf_counter() - start, 2))
+            raise
 
     with conn:
         with conn.cursor() as cur:
@@ -576,6 +583,9 @@ def process_etuff_file(file, version=None, notes=None):
                             "Data file '%s' with SHA256 hash '%s' identified as exact duplicate. No ingestion performed.",
                             submission_filename,
                             entire_file_hash,
+                        )
+                        record_ingest_request(
+                            "duplicate", round(time.perf_counter() - start, 2)
                         )
                         return 1
 
@@ -624,6 +634,9 @@ def process_etuff_file(file, version=None, notes=None):
                             dataset_id,
                             metadata_hash,
                         )
+                        record_ingest_request(
+                            "metadata_only", round(time.perf_counter() - start, 2)
+                        )
                         return 1
 
                     proc_obs, len_proc_obs = _build_proc_observations(
@@ -641,6 +654,9 @@ def process_etuff_file(file, version=None, notes=None):
                     )
                     if sub_elapsed is False:
                         record_db_error("migrate_proc_observations")
+                        record_ingest_request(
+                            "error", round(time.perf_counter() - start, 2)
+                        )
                         return 1
                     record_rows_written(len_proc_obs)
                     logger.info(
@@ -650,6 +666,9 @@ def process_etuff_file(file, version=None, notes=None):
                     )
                 except Exception:
                     record_db_error("persist")
+                    record_ingest_request(
+                        "error", round(time.perf_counter() - start, 2)
+                    )
                     raise
 
     conn.commit()
@@ -659,6 +678,7 @@ def process_etuff_file(file, version=None, notes=None):
 
     finish = time.perf_counter()
     elapsed = round(finish - start, 2)
+    record_ingest_request("success", elapsed)
     logger.info(
         "Data file %s successfully ingested into Tagbase DB. Total time: %s second(s)",
         submission_filename,
