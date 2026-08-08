@@ -1,127 +1,212 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Upload data | Tagbase</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-  <style>
-    .upload-drop-zone { border: 2px dashed var(--bs-border-color); cursor: pointer; transition: background-color .15s, border-color .15s; }
-    .upload-drop-zone:hover, .upload-drop-zone.is-dragging, .upload-drop-zone:focus-within { background: var(--bs-tertiary-bg); border-color: var(--bs-primary); }
-    #file { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
-    #status { white-space: pre-wrap; }
-  </style>
-</head>
-<body class="bg-body-tertiary">
-  <main class="container py-5" style="max-width: 42rem">
-  <p><a href="./">← Home</a></p>
-  <h1 class="mb-2">Upload data</h1>
-  <p>Select eTUFF text files or supported compressed files to ingest.</p>
-  <form id="upload-form" class="vstack gap-3">
-    <label for="file" id="drop-zone" class="upload-drop-zone d-block rounded p-4 text-center">
-      <span class="d-block fw-semibold">Drop files here</span>
-      <span class="d-block text-body-secondary small">or click to browse</span>
-      <span id="file-name" class="d-block mt-2 small text-primary fw-medium"></span>
-      <!-- Added multiple attribute -->
-      <input id="file" type="file" multiple required>
-    </label>
-    <div><label for="version" class="form-label">Version <span class="text-body-secondary">(optional)</span></label><input id="version" class="form-control" type="text"></div>
-    <div><label for="notes" class="form-label">Notes <span class="text-body-secondary">(optional)</span></label><textarea id="notes" class="form-control" rows="4"></textarea></div>
-    <button id="submit" class="btn btn-primary align-self-start" type="submit">Upload</button>
-  </form>
-  <div id="status" class="alert d-none mt-4" role="status" aria-live="polite"></div>
-  </main>
-  <script>
-    const form = document.querySelector('#upload-form');
-    const dropZone = document.querySelector('#drop-zone');
-    const fileInput = document.querySelector('#file');
-    const fileName = document.querySelector('#file-name');
-    const status = document.querySelector('#status');
-    const submit = document.querySelector('#submit');
-
-    function showStatus(type, message) {
-      status.className = `alert alert-${type} mt-4`;
-      status.textContent = message;
-    }
-
-    function updateFileListDisplay() {
-      const files = Array.from(fileInput.files);
-      if (files.length === 0) {
-        fileName.textContent = '';
-      } else if (files.length === 1) {
-        fileName.textContent = files[0].name;
-      } else {
-        fileName.textContent = `${files.length} files selected:\n` + files.map(f => f.name).join(', ');
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Upload data | Tagbase</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <style>
+      .upload-drop-zone {
+        border: 2px dashed var(--bs-border-color);
+        cursor: pointer;
+        transition:
+          background-color 0.15s,
+          border-color 0.15s;
       }
-    }
-
-    function setFiles(files) {
-      if (!files || !files.length) return;
-      const transfer = new DataTransfer();
-      for (const file of files) {
-        transfer.items.add(file);
+      .upload-drop-zone:hover,
+      .upload-drop-zone.is-dragging,
+      .upload-drop-zone:focus-within {
+        background: var(--bs-tertiary-bg);
+        border-color: var(--bs-primary);
       }
-      fileInput.files = transfer.files;
-      updateFileListDisplay();
-    }
+      #file {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+      }
+      #status {
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body class="bg-body-tertiary">
+    <main class="container py-5" style="max-width: 42rem">
+      <p><a href="./">← Home</a></p>
+      <h1 class="mb-2">Upload data</h1>
+      <p>Select eTUFF text files or supported compressed files to ingest.</p>
+      <form id="upload-form" class="vstack gap-3">
+        <label
+          for="file"
+          id="drop-zone"
+          class="upload-drop-zone d-block rounded p-4 text-center"
+        >
+          <span class="d-block fw-semibold">Drop files here</span>
+          <span class="d-block text-body-secondary small"
+            >or click to browse</span
+          >
+          <span
+            id="file-name"
+            class="d-block mt-2 small text-primary fw-medium"
+          ></span>
+          <input id="file" type="file" multiple required />
+        </label>
+        <div>
+          <label for="version" class="form-label"
+            >Version <span class="text-body-secondary">(optional)</span></label
+          ><input id="version" class="form-control" type="text" />
+        </div>
+        <div>
+          <label for="notes" class="form-label"
+            >Notes <span class="text-body-secondary">(optional)</span></label
+          ><textarea id="notes" class="form-control" rows="4"></textarea>
+        </div>
+        <button
+          id="submit"
+          class="btn btn-primary align-self-start"
+          type="submit"
+        >
+          Upload
+        </button>
+      </form>
+      <div
+        id="status"
+        class="alert d-none mt-4"
+        role="status"
+        aria-live="polite"
+      ></div>
+    </main>
+    <script>
+      const form = document.querySelector("#upload-form");
+      const dropZone = document.querySelector("#drop-zone");
+      const fileInput = document.querySelector("#file");
+      const fileName = document.querySelector("#file-name");
+      const status = document.querySelector("#status");
+      const submit = document.querySelector("#submit");
 
-    ['dragenter', 'dragover'].forEach((name) => dropZone.addEventListener(name, (event) => { event.preventDefault(); dropZone.classList.add('is-dragging'); }));
-    ['dragleave', 'drop'].forEach((name) => dropZone.addEventListener(name, (event) => { event.preventDefault(); dropZone.classList.remove('is-dragging'); }));
+      function showStatus(type, message) {
+        status.className = `alert alert-${type} mt-4`;
+        status.textContent = message;
+      }
 
-    dropZone.addEventListener('drop', (event) => setFiles(event.dataTransfer.files));
-    fileInput.addEventListener('change', updateFileListDisplay);
-
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const files = Array.from(fileInput.files);
-      if (!files.length) return;
-
-      const version = document.querySelector('#version').value.trim();
-      const notes = document.querySelector('#notes').value.trim();
-
-      submit.disabled = true;
-      showStatus('info', `Uploading ${files.length} file(s)…`);
-
-      const results = [];
-      let successCount = 0;
-
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const params = new URLSearchParams({ filename: file.name });
-        if (version) params.set('version', version);
-        if (notes) params.set('notes', notes);
-
-        showStatus('info', `Uploading file ${i + 1} of ${files.length}: ${file.name}…`);
-
-        try {
-          const response = await fetch(`/tagbase/api/v0.14.0/ingest?${params}`, {
-            method: 'POST',
-            headers: { 'Content-Type': file.type || 'application/octet-stream' },
-            body: file
-          });
-          const text = await response.text();
-          let result;
-          try { result = JSON.stringify(JSON.parse(text), null, 2); } catch { result = text; }
-
-          if (!response.ok) throw new Error(`${response.status} ${response.statusText}\n${result}`);
-
-          successCount++;
-          results.push(`✓ ${file.name}: ${result}`);
-        } catch (error) {
-          results.push(`✗ ${file.name}: ${error.message}`);
+      function updateFileListDisplay() {
+        const files = Array.from(fileInput.files);
+        if (files.length === 0) {
+          fileName.textContent = "";
+        } else if (files.length === 1) {
+          fileName.textContent = files[0].name;
+        } else {
+          fileName.textContent =
+            `${files.length} files selected:\n` +
+            files.map((f) => f.name).join(", ");
         }
       }
 
-      if (successCount === files.length) {
-        showStatus('success', `All ${files.length} uploads completed.\n\n` + results.join('\n\n'));
-        form.reset();
-        fileName.textContent = '';
-      } else {
-        showStatus('warning', `Completed with errors (${successCount}/${files.length} succeeded):\n\n` + results.join('\n\n'));
+      function setFiles(files) {
+        if (!files || !files.length) return;
+        const transfer = new DataTransfer();
+        for (const file of files) {
+          transfer.items.add(file);
+        }
+        fileInput.files = transfer.files;
+        updateFileListDisplay();
       }
 
-      submit.disabled = false;
-    });
-  </script>
-</body>
+      ["dragenter", "dragover"].forEach((name) =>
+        dropZone.addEventListener(name, (event) => {
+          event.preventDefault();
+          dropZone.classList.add("is-dragging");
+        })
+      );
+      ["dragleave", "drop"].forEach((name) =>
+        dropZone.addEventListener(name, (event) => {
+          event.preventDefault();
+          dropZone.classList.remove("is-dragging");
+        })
+      );
+
+      dropZone.addEventListener("drop", (event) =>
+        setFiles(event.dataTransfer.files)
+      );
+      fileInput.addEventListener("change", updateFileListDisplay);
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const files = Array.from(fileInput.files);
+        if (!files.length) return;
+
+        const version = document.querySelector("#version").value.trim();
+        const notes = document.querySelector("#notes").value.trim();
+
+        submit.disabled = true;
+        showStatus("info", `Uploading ${files.length} file(s)…`);
+
+        const results = [];
+        let successCount = 0;
+
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const params = new URLSearchParams({ filename: file.name });
+          if (version) params.set("version", version);
+          if (notes) params.set("notes", notes);
+
+          showStatus(
+            "info",
+            `Uploading file ${i + 1} of ${files.length}: ${file.name}…`
+          );
+
+          try {
+            const response = await fetch(
+              `/tagbase/api/v0.14.0/ingest?${params}`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": file.type || "application/octet-stream",
+                },
+                body: file,
+              }
+            );
+            const text = await response.text();
+            let result;
+            try {
+              result = JSON.stringify(JSON.parse(text), null, 2);
+            } catch {
+              result = text;
+            }
+
+            if (!response.ok)
+              throw new Error(`${response.status} ${response.statusText}\n${result}`);
+
+            successCount++;
+            results.push(`✓ ${file.name}: ${result}`);
+          } catch (error) {
+            results.push(`✗ ${file.name}: ${error.message}`);
+          }
+        }
+
+        if (successCount === files.length) {
+          showStatus(
+            "success",
+            `All ${files.length} uploads completed.\n\n` + results.join("\n\n")
+          );
+          form.reset();
+          fileName.textContent = "";
+        } else {
+          showStatus(
+            "warning",
+            `Completed with errors (${successCount}/${files.length} succeeded):\n\n` +
+              results.join("\n\n")
+          );
+        }
+
+        submit.disabled = false;
+      });
+    </script>
+  </body>
 </html>
