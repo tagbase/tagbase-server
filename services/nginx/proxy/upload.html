@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -122,17 +122,17 @@
         dropZone.addEventListener(name, (event) => {
           event.preventDefault();
           dropZone.classList.add("is-dragging");
-        })
+        }),
       );
       ["dragleave", "drop"].forEach((name) =>
         dropZone.addEventListener(name, (event) => {
           event.preventDefault();
           dropZone.classList.remove("is-dragging");
-        })
+        }),
       );
 
       dropZone.addEventListener("drop", (event) =>
-        setFiles(event.dataTransfer.files)
+        setFiles(event.dataTransfer.files),
       );
       fileInput.addEventListener("change", updateFileListDisplay);
 
@@ -158,7 +158,7 @@
 
           showStatus(
             "info",
-            `Uploading file ${i + 1} of ${files.length}: ${file.name}…`
+            `Uploading file ${i + 1} of ${files.length}: ${file.name}…`,
           );
 
           try {
@@ -170,7 +170,7 @@
                   "Content-Type": file.type || "application/octet-stream",
                 },
                 body: file,
-              }
+              },
             );
             const text = await response.text();
             let result;
@@ -181,7 +181,9 @@
             }
 
             if (!response.ok)
-              throw new Error(`${response.status} ${response.statusText}\n${result}`);
+              throw new Error(
+                `${response.status} ${response.statusText}\n${result}`,
+              );
 
             successCount++;
             results.push(`✓ ${file.name}: ${result}`);
@@ -193,7 +195,7 @@
         if (successCount === files.length) {
           showStatus(
             "success",
-            `All ${files.length} uploads completed.\n\n` + results.join("\n\n")
+            `All ${files.length} uploads completed.\n\n` + results.join("\n\n"),
           );
           form.reset();
           fileName.textContent = "";
@@ -201,7 +203,7 @@
           showStatus(
             "warning",
             `Completed with errors (${successCount}/${files.length} succeeded):\n\n` +
-              results.join("\n\n")
+              results.join("\n\n"),
           );
         }
 
