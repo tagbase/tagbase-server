@@ -15,7 +15,6 @@ from tagbase_server.telemetry import (
 )
 from tagbase_server.utils.db_utils import connect
 from tagbase_server.utils.io_utils import compute_file_sha256, make_hash_sha256
-from tagbase_server.utils.slack_utils import post_msg
 
 logger = logging.getLogger(__name__)
 

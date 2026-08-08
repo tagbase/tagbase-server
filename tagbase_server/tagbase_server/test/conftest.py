@@ -92,19 +92,6 @@ def etuff_zip_bytes():
     return ETUFF_ZIP_FIXTURE.read_bytes()
 
 
-@pytest.fixture(autouse=True)
-def mute_slack(monkeypatch):
-    monkeypatch.setenv("SLACK_BOT_TOKEN", "")
-    monkeypatch.setattr(
-        "tagbase_server.utils.slack_utils.post_msg",
-        mock.Mock(return_value=None),
-    )
-    monkeypatch.setattr(
-        "tagbase_server.utils.processing_utils.post_msg",
-        mock.Mock(return_value=None),
-    )
-
-
 @pytest.fixture(scope="session")
 def postgres_env():
     """Point the app at the test database (host default localhost for CI/local)."""

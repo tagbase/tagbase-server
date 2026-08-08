@@ -1,11 +1,9 @@
 import logging
 from multiprocessing import cpu_count
-import os
 import time
 from functools import partial
 import parmap
 from tqdm import tqdm as std_tqdm
-from tqdm.contrib.slack import tqdm as slack_tqdm
 
 from tagbase_server.models.ingest200 import Ingest200  # noqa: E501
 from tagbase_server.problem import TagbaseClientError, as_json
@@ -33,16 +31,7 @@ def _resolve_ingest_file_type(type):
 
 
 def _ingest_progress_bar(data_file):
-    """Use Slack tqdm only with a plausible bot token; otherwise stdout."""
-    token = os.environ.get("SLACK_BOT_TOKEN", "").strip()
-    # Slack bot tokens are typically xoxb-...; anything else just spams errors.
-    if token.startswith("xoxb-"):
-        return partial(
-            slack_tqdm,
-            desc=f"Ingesting: {data_file}",
-            token=token,
-            channel="ingest_ops",
-        )
+    """Create a standard stdout progress bar for ingestio]n."""
     return partial(std_tqdm, desc=f"Ingesting: {data_file}")
 
 
