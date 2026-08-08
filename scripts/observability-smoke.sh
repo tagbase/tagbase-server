@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Bring up the test observability stack, ingest a minimal eTUFF, assert
-# Prometheus metrics and Tempo spans on the Docker network, plus one
+# Prometheus metrics, Loki logs, and Tempo spans on the Docker network, plus one
 # authenticated HTTPS check through the nginx gateway.
 set -euo pipefail
 
@@ -13,6 +13,8 @@ GATEWAY_USER="${GATEWAY_USER:-testuser}"
 GATEWAY_PASS="${GATEWAY_PASS:-testpass}"
 FIXTURE="${FIXTURE:-tagbase_server/tagbase_server/test/fixtures/etuff/minimal-etuff.txt}"
 TIMEOUT_SECS="${TIMEOUT_SECS:-240}"
+# LogQL for OTLP app logs (service.name → service_name via otelcol.exporter.loki).
+LOKI_QUERY_ENC='%7Bservice_name%3D%22tagbase_server%22%7D'
 
 cleanup() {
 	"${COMPOSE[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
@@ -26,6 +28,21 @@ docker_http_get() {
 		python -c "import urllib.request; print(urllib.request.urlopen('${url}', timeout=30).read().decode())"
 }
 
+# True when a Loki streams query returned at least one stream.
+loki_has_streams() {
+	local body="$1"
+	echo "$body" | grep -Eq '"result":\[\{'
+}
+
+# Log stream selectors must use query_range (instant /query returns HTTP 400).
+loki_query_range_url() {
+	local base="$1"
+	local end_ns start_ns
+	end_ns=$(($(date +%s) * 1000000000))
+	start_ns=$((end_ns - 3600 * 1000000000))
+	echo "${base}/api/v1/query_range?query=${LOKI_QUERY_ENC}&start=${start_ns}&end=${end_ns}&limit=50"
+}
+
 echo "==> Starting observability test stack"
 mkdir -p staging_data
 export OTEL_SDK_DISABLED=false
@@ -36,14 +53,18 @@ export OTEL_SERVICE_NAME=tagbase_server
 
 # Prometheus serves under --web.route-prefix=/prometheus/
 PROM_BASE="http://prometheus:9090/prometheus"
+# Loki path_prefix=/loki (see services/observability/loki/loki-config.yml)
+LOKI_BASE="http://loki:3100/loki"
 # Grafana serve_from_sub_path + ROOT_URL=/grafana/
 GRAFANA_BASE="http://grafana:3000/grafana"
 
-echo "==> Waiting for Prometheus / Tempo / Grafana / tagbase_server / nginx"
+echo "==> Waiting for Prometheus / Loki / Tempo / Grafana / tagbase_server / nginx"
 deadline=$((SECONDS + TIMEOUT_SECS))
 ready=0
 while ((SECONDS < deadline)); do
 	if docker_http_get "${PROM_BASE}/-/ready" >/dev/null 2>&1 &&
+		{ docker_http_get "${LOKI_BASE}/ready" >/dev/null 2>&1 ||
+			docker_http_get "http://loki:3100/ready" >/dev/null 2>&1; } &&
 		docker_http_get "http://tempo:3200/ready" >/dev/null 2>&1 &&
 		docker_http_get "${GRAFANA_BASE}/api/health" >/dev/null 2>&1 &&
 		docker_http_get "http://127.0.0.1:5433/tagbase/api/v0.14.0/tags" >/dev/null 2>&1 &&
@@ -57,7 +78,7 @@ done
 if [[ "$ready" -ne 1 ]]; then
 	echo "ERROR: stack not ready within ${TIMEOUT_SECS}s" >&2
 	"${COMPOSE[@]}" ps >&2 || true
-	"${COMPOSE[@]}" logs --tail=80 tagbase_server alloy prometheus tempo grafana nginx >&2 || true
+	"${COMPOSE[@]}" logs --tail=80 tagbase_server alloy prometheus loki tempo grafana nginx >&2 || true
 	exit 1
 fi
 
@@ -104,6 +125,26 @@ if [[ "$metric_ok" -ne 1 ]]; then
 fi
 echo "OK: Prometheus has tagbase_ingest_requests_total"
 
+echo "==> Waiting for tagbase_server logs in Loki"
+logs_ok=0
+deadline=$((SECONDS + TIMEOUT_SECS))
+while ((SECONDS < deadline)); do
+	body="$(docker_http_get "$(loki_query_range_url "${LOKI_BASE}")" || true)"
+	if loki_has_streams "$body"; then
+		logs_ok=1
+		break
+	fi
+	sleep 5
+done
+if [[ "$logs_ok" -ne 1 ]]; then
+	echo "ERROR: no {service_name=\"tagbase_server\"} logs found in Loki" >&2
+	docker_http_get "${LOKI_BASE}/api/v1/label/service_name/values" >&2 || true
+	docker_http_get "$(loki_query_range_url "${LOKI_BASE}")" >&2 || true
+	"${COMPOSE[@]}" logs --tail=80 alloy loki tagbase_server >&2 || true
+	exit 1
+fi
+echo "OK: Loki has tagbase_server logs"
+
 echo "==> Searching Tempo for ingest spans"
 trace_ok=0
 deadline=$((SECONDS + TIMEOUT_SECS))
@@ -124,8 +165,9 @@ if [[ "$trace_ok" -ne 1 ]]; then
 fi
 echo "OK: Tempo has ingest spans"
 
-echo "==> Checking Grafana datasource proxy (Prometheus + Tempo)"
+echo "==> Checking Grafana datasource proxy (Prometheus + Loki + Tempo)"
 grafana_prom_ok=0
+grafana_loki_ok=0
 grafana_tempo_ok=0
 deadline=$((SECONDS + TIMEOUT_SECS))
 while ((SECONDS < deadline)); do
@@ -135,13 +177,19 @@ while ((SECONDS < deadline)); do
 	if echo "$prom_body" | grep -Eq '"value":\[[0-9.]+,"[0-9.]+"\]'; then
 		grafana_prom_ok=1
 	fi
+	loki_body="$(docker_http_get \
+		"$(loki_query_range_url "${GRAFANA_BASE}/api/datasources/proxy/uid/loki/loki")" ||
+		true)"
+	if loki_has_streams "$loki_body"; then
+		grafana_loki_ok=1
+	fi
 	tempo_body="$(docker_http_get \
 		"${GRAFANA_BASE}/api/datasources/proxy/uid/tempo/api/search?q=%7B%20resource.service.name%3D%22tagbase_server%22%20%26%26%20name%3D~%22ingest.%2A%22%20%7D&limit=20" ||
 		true)"
 	if echo "$tempo_body" | grep -q '"traceID"'; then
 		grafana_tempo_ok=1
 	fi
-	if [[ "$grafana_prom_ok" -eq 1 && "$grafana_tempo_ok" -eq 1 ]]; then
+	if [[ "$grafana_prom_ok" -eq 1 && "$grafana_loki_ok" -eq 1 && "$grafana_tempo_ok" -eq 1 ]]; then
 		break
 	fi
 	sleep 5
@@ -154,6 +202,14 @@ if [[ "$grafana_prom_ok" -ne 1 ]]; then
 	"${COMPOSE[@]}" logs --tail=80 grafana prometheus >&2 || true
 	exit 1
 fi
+if [[ "$grafana_loki_ok" -ne 1 ]]; then
+	echo "ERROR: Grafana Loki datasource proxy failed" >&2
+	docker_http_get \
+		"$(loki_query_range_url "${GRAFANA_BASE}/api/datasources/proxy/uid/loki/loki")" \
+		>&2 || true
+	"${COMPOSE[@]}" logs --tail=80 grafana loki >&2 || true
+	exit 1
+fi
 if [[ "$grafana_tempo_ok" -ne 1 ]]; then
 	echo "ERROR: Grafana Tempo datasource proxy failed" >&2
 	docker_http_get \
@@ -162,7 +218,7 @@ if [[ "$grafana_tempo_ok" -ne 1 ]]; then
 	"${COMPOSE[@]}" logs --tail=80 grafana tempo >&2 || true
 	exit 1
 fi
-echo "OK: Grafana can query Prometheus and Tempo datasources"
+echo "OK: Grafana can query Prometheus, Loki, and Tempo datasources"
 
 echo "==> Checking nginx gateway (/grafana/)"
 if ! curl -kf -s -o /dev/null -u "${GATEWAY_USER}:${GATEWAY_PASS}" \
