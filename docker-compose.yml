@@ -11,7 +11,7 @@ services:
       - POSTGRES_HOST=postgis
       - REMOVE_BEFORE=30
     hostname: pg-backups
-    image: kartoza/pg-backup:15-3.3
+    image: kartoza/pg-backup:15-3.3@sha256:07c5b1baede9b648561c998b72cb12ffae38c48be590953196d5b1302a7884f6
     platform: linux/amd64
     labels:
       "docker_compose_diagram.cluster": "Internal Network"
@@ -152,7 +152,7 @@ services:
       retries: 10
       start_period: 30s
     hostname: postgis
-    image: kartoza/postgis:15-3.3
+    image: kartoza/postgis:15-3.3@sha256:ae31fad95957dd70fa65fe521f7b129f67f4dfd1131048fd1200c250a3750263
     platform: linux/amd64
     labels:
       "docker_compose_diagram.cluster": "Internal Network"
