@@ -271,7 +271,7 @@ services:
 
   loki:
     profiles: ["observability"]
-    image: grafana/loki:3.7.4
+    image: grafana/loki:3.7.5
     command: ["-config.file=/etc/loki/loki-config.yml"]
     volumes:
       - ./services/observability/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
@@ -297,7 +297,7 @@ services:
 
   grafana:
     profiles: ["observability"]
-    image: grafana/grafana:13.1.1
+    image: grafana/grafana:13.1.3
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
