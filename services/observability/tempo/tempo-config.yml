@@ -1,3 +1,5 @@
+# Tempo 3 monolithic (-target=all). No Kafka.
+# Migration: https://grafana.com/docs/tempo/latest/set-up-for-tracing/setup-tempo/migrate-to-3/
 server:
   http_listen_port: 3200
 
@@ -10,12 +12,16 @@ distributor:
         http:
           endpoint: 0.0.0.0:4318
 
-ingester:
+# Replaces removed `ingester` (max_block_duration carried over).
+live_store:
   max_block_duration: 5m
 
-compactor:
-  compaction:
-    block_retention: 48h
+# Replaces removed `compactor` (48h retention carried over).
+backend_scheduler:
+  provider:
+    compaction:
+      compaction:
+        block_retention: 48h
 
 storage:
   trace:
