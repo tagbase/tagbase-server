@@ -1,0 +1,12 @@
+# Trivy config for Super Linter — skip intentional local TLS fixtures.
+scan:
+  skip-files:
+    - "**/ssl/key.pem"
+    - "**/ssl/cert.pem"
+    - "**/fixtures/nginx/key.pem"
+    - "**/fixtures/nginx/cert.pem"
+    - "**/staging_data/**"
+    - "**/staging_data.bk/**"
+severity:
+  exit-code: 1
+  ignore-unfixed: true

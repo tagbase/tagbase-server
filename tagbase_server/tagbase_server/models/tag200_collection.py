@@ -1,14 +1,12 @@
 # coding: utf-8
 
 from __future__ import absolute_import
+
 from datetime import date, datetime  # noqa: F401
+from typing import Dict, List  # noqa: F401
 
-from typing import List, Dict  # noqa: F401
-
-from tagbase_server.models.base_model_ import Model
-from tagbase_server.models.tag200_summary import Tag200Summary
 from tagbase_server import util
-
+from tagbase_server.models.base_model_ import Model
 from tagbase_server.models.tag200_summary import Tag200Summary  # noqa: E501
 
 

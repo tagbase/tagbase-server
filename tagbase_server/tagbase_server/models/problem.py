@@ -2,8 +2,8 @@
 
 from __future__ import absolute_import
 
-from tagbase_server.models.base_model_ import Model
 from tagbase_server import util
+from tagbase_server.models.base_model_ import Model
 
 
 class Problem(Model):

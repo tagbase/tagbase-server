@@ -1,0 +1,8 @@
+{
+  "doctype-first": true,
+  "title-require": false,
+  "attr-lowercase": true,
+  "tag-pair": true,
+  "space-tab-mixed-disabled": "space",
+  "id-unique": true
+}

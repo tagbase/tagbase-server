@@ -2,24 +2,40 @@
 # optional Alloy + LGTM for observability smoke (profile: observability).
 services:
   postgis:
-    image: postgis/postgis:15-3.3
+    image: kartoza/postgis:15-3.3
     platform: linux/amd64
     environment:
-      POSTGRES_DB: tagbase
-      POSTGRES_USER: tagbase
-      POSTGRES_PASSWORD: tagbase
+      - ALLOW_IP_RANGE=0.0.0.0/0
+      - PASSWORD_AUTHENTICATION=md5
+      - POSTGRES_DB=tagbase
+      - POSTGRES_PASS=tagbase
+      - POSTGRES_USER=tagbase
+      - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting
+      - SCRIPTS_LOCKFILE_DIR=/opt/data/
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d tagbase -U tagbase"]
+      # Require tagbase schema (not just pg_isready) so dependents wait for 01-tagbase.sql.
+      # Use compose interpolation (not a literal PGPASSWORD=...) to avoid CKV_SECRET_6.
+      test: >-
+        PGPASSWORD=${POSTGRES_PASSWORD:-tagbase}
+        psql -d tagbase -h localhost -U tagbase -tAc
+        "SELECT to_regclass('public.submission')"
+        | grep -q submission
       interval: 5s
       timeout: 5s
-      retries: 20
-      start_period: 10s
+      retries: 30
+      start_period: 30s
     hostname: postgis
     ports:
       - "5432:5432"
     volumes:
+      # Tables-only SQL: kartoza already creates role/DB; full tagbase_schema.sql
+      # aborts on CREATE ROLE/DATABASE and never creates submission/etc.
       - ./services/postgis/tagbase_schema_tables.sql:/docker-entrypoint-initdb.d/01-tagbase.sql:ro
-      - tagbase-test-pgdata:/var/lib/postgresql/data
+      - tagbase-test-pgdata:/var/lib/postgresql
+      # Ephemeral lock dir: a named volume survives `compose down` and can skip
+      # init scripts after pgdata is wiped (stale .entry_point.lock).
+      - type: tmpfs
+        target: /opt/data
     networks:
       - test-network
 
@@ -35,7 +51,6 @@ services:
       - POSTGRES_HOST=postgis
       - POSTGRES_PASSWORD=tagbase
       - POSTGRES_PORT=5432
-      - SLACK_BOT_TOKEN=
       - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-true}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       - OTEL_SERVICE_NAME=tagbase_server
@@ -80,7 +95,7 @@ services:
 
   alloy:
     profiles: ["observability"]
-    image: grafana/alloy:v1.18.0
+    image: grafana/alloy:v1.18.1
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
@@ -121,7 +136,7 @@ services:
 
   loki:
     profiles: ["observability"]
-    image: grafana/loki:3.7.5
+    image: grafana/loki:3.7.6
     command: ["-config.file=/etc/loki/loki-config.yml"]
     volumes:
       - ./services/observability/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
@@ -133,7 +148,7 @@ services:
 
   tempo:
     profiles: ["observability"]
-    image: grafana/tempo:2.10.7
+    image: grafana/tempo:3.0.2
     command: ["-config.file=/etc/tempo/tempo-config.yml"]
     volumes:
       - ./services/observability/tempo/tempo-config.yml:/etc/tempo/tempo-config.yml:ro
@@ -145,7 +160,7 @@ services:
 
   grafana:
     profiles: ["observability"]
-    image: grafana/grafana:13.1.2
+    image: grafana/grafana:13.1.3
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin

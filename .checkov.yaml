@@ -1,0 +1,9 @@
+---
+# Checkov skips for intentional local-dev / OpenAPI design choices.
+# Auth is enforced at nginx (basic auth), not in the OpenAPI document.
+skip-check:
+  - CKV_DOCKER_2 # HEALTHCHECK optional for short-lived local compose services
+  - CKV_DOCKER_3 # non-root USER deferred; compose network is private
+  - CKV_OPENAPI_4 # security schemes declared at operation / gateway layer
+  - CKV_OPENAPI_5
+  - CKV2_GHA_1 # workflow permissions set per-job, not write-all globally

@@ -1,11 +1,10 @@
 import logging
-from multiprocessing import cpu_count
-import os
 import time
 from functools import partial
+from multiprocessing import cpu_count
+
 import parmap
 from tqdm import tqdm as std_tqdm
-from tqdm.contrib.slack import tqdm as slack_tqdm
 
 from tagbase_server.models.ingest200 import Ingest200  # noqa: E501
 from tagbase_server.problem import TagbaseClientError, as_json
@@ -13,8 +12,8 @@ from tagbase_server.telemetry import get_tracer, record_ingest_request
 from tagbase_server.utils.io_utils import (
     process_get_input_data,
     process_post_input_data,
+    unpack_compressed_binary,
 )
-from tagbase_server.utils.io_utils import unpack_compressed_binary
 from tagbase_server.utils.processing_utils import process_etuff_file
 
 logger = logging.getLogger(__name__)
@@ -26,23 +25,13 @@ def _resolve_ingest_file_type(type):
     ingest_file_type = type if type is not None else SUPPORTED_INGEST_FILE_TYPE
     if ingest_file_type != SUPPORTED_INGEST_FILE_TYPE:
         raise TagbaseClientError(
-            f"Unsupported ingest file type '{ingest_file_type}'; "
-            f"only '{SUPPORTED_INGEST_FILE_TYPE}' is supported."
+            f"Unsupported ingest file type '{ingest_file_type}'; only '{SUPPORTED_INGEST_FILE_TYPE}' is supported."
         )
     return ingest_file_type
 
 
 def _ingest_progress_bar(data_file):
-    """Use Slack tqdm only with a plausible bot token; otherwise stdout."""
-    token = os.environ.get("SLACK_BOT_TOKEN", "").strip()
-    # Slack bot tokens are typically xoxb-...; anything else just spams errors.
-    if token.startswith("xoxb-"):
-        return partial(
-            slack_tqdm,
-            desc=f"Ingesting: {data_file}",
-            token=token,
-            channel="ingest_ops",
-        )
+    """Create a standard stdout progress bar for ingestio]n."""
     return partial(std_tqdm, desc=f"Ingesting: {data_file}")
 
 

@@ -8,8 +8,8 @@
   <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
     <img alt="Code Smells" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=code_smells">
   </a>
-  <a href="https://github.com/psf/black">
-    <img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg">
+  <a href="https://github.com/tagbase/tagbase-server/actions/workflows/super-linter.yml">
+    <img alt="Super-Linter" src="https://github.com/tagbase/tagbase-server/actions/workflows/super-linter.yml/badge.svg">
   </a>
   <a href="https://github.com/tagbase/tagbase-server/actions">
     <img alt="CI/CD" src="https://github.com/tagbase/tagbase-server/actions/workflows/build.yml/badge.svg">
@@ -56,15 +56,18 @@ tagbase-server facilitates ingestion operations via REST courtesy of the [OpenAP
 
 ## Documentation
 
-See the [project wiki](https://github.com/tagbase/tagbase-server/wiki) for guidance on 
-* [Installation](https://github.com/tagbase/tagbase-server/wiki/Installation)
-* [Operations](https://github.com/tagbase/tagbase-server/wiki/Operations)
-* [Release Management](https://github.com/tagbase/tagbase-server/wiki/Release-Management-Guide)
-* [System Architecture](https://github.com/tagbase/tagbase-server/wiki/Systems-Architecture)
-* [Working with OpenAPI](https://github.com/tagbase/tagbase-server/wiki/Working-with-the-OpenAPI-Specification-a.k.a-openapi.yaml)
+See the [project wiki](https://github.com/tagbase/tagbase-server/wiki) for guidance on
+
+- [Installation](https://github.com/tagbase/tagbase-server/wiki/Installation)
+- [Operations](https://github.com/tagbase/tagbase-server/wiki/Operations)
+- [Release Management](https://github.com/tagbase/tagbase-server/wiki/Release-Management-Guide)
+- [System Architecture](https://github.com/tagbase/tagbase-server/wiki/Systems-Architecture)
+- [Working with OpenAPI](https://github.com/tagbase/tagbase-server/wiki/Working-with-the-OpenAPI-Specification-a.k.a-openapi.yaml)
 
 ## Development, Support and Community
+
 Please create a [issue](https://github.com/tagbase/tagbase-server/issues).
 
 ## License
+
 Licensed permissively under the Apache License v2.0, a copy of which ships with this software.

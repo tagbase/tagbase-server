@@ -1,0 +1,12 @@
+{
+  "threshold": 25,
+  "reporters": ["consoleFull"],
+  "ignore": [
+    "**/__snapshots__/**",
+    "**/node_modules/**",
+    "**/.tox/**",
+    "**/openapi.yaml",
+    "**/docker-compose.test.yml"
+  ],
+  "absolute": true
+}

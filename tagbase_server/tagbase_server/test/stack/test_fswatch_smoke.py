@@ -43,8 +43,7 @@ def _stack_ready():
 def require_full_stack():
     if not _stack_ready():
         pytest.skip(
-            "full stack not ready; "
-            "docker compose -f docker-compose.test.yml --profile stack up -d --build"
+            "full stack not ready; docker compose -f docker-compose.test.yml --profile stack up -d --build"
         )
 
 
