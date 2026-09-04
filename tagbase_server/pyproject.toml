@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools==84.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,7 +7,7 @@ name = "tagbase_server"
 version = "v0.14.0"
 description = "tagbase-server API"
 readme = "README.md"
-requires-python = ">=3.10,<3.15"
+requires-python = "==3.14.7"
 authors = [{ name = "Tagbase Dev Team", email = "tagtuna@gmail.com" }]
 keywords = ["OpenAPI", "tagbase-server API"]
 classifiers = [
