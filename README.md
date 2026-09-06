@@ -3,10 +3,7 @@
 
 <p align="center">
   <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
-    <img alt="Bugs" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=bugs">
-  </a>
-  <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
-    <img alt="Code Smells" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=code_smells">
+    <img alt="Quality Gate Status" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=alert_status">
   </a>
   <a href="https://github.com/tagbase/tagbase-server/actions/workflows/super-linter.yml">
     <img alt="Super-Linter" src="https://github.com/tagbase/tagbase-server/actions/workflows/super-linter.yml/badge.svg">
@@ -14,25 +11,30 @@
   <a href="https://github.com/tagbase/tagbase-server/actions">
     <img alt="CI/CD" src="https://github.com/tagbase/tagbase-server/actions/workflows/build.yml/badge.svg">
   </a>
+  <a href="https://www.apache.org/licenses/LICENSE-2.0">
+    <img alt="License" src="https://img.shields.io/github/license/tagbase/tagbase-server.svg?maxAge=2592000">
+  </a>
+</p>
+<details>
+<summary>SonarCloud details</summary>
+<p align="center">
+  <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
+    <img alt="Bugs" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=bugs">
+  </a>
+  <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
+    <img alt="Code Smells" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=code_smells">
+  </a>
   <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
     <img alt="Coverage" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=coverage">
   </a>
   <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
     <img alt="Duplicated Lines (%)" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=duplicated_lines_density">
   </a>
-  <a href="https://www.apache.org/licenses/LICENSE-2.0">
-    <img alt="License" src="https://img.shields.io/github/license/tagbase/tagbase-server.svg?maxAge=2592000">
-  </a>
-</p>
-<p align="center">
   <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
     <img alt="Lines of Code" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=ncloc">
   </a>
   <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
     <img alt="Maintainability Rating" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=sqale_rating">
-  </a>
-  <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
-    <img alt="Quality Gate Status" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=alert_status">
   </a>
   <a href="https://sonarcloud.io/summary/new_code?id=tagbase_tagbase-server">
     <img alt="Reliability Rating" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=reliability_rating">
@@ -47,6 +49,7 @@
     <img alt="Vulnerabilities" src="https://sonarcloud.io/api/project_badges/measure?project=tagbase_tagbase-server&metric=vulnerabilities">
   </a>
 </p>
+</details>
 
 ## Overview
 

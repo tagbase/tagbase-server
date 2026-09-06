@@ -31,10 +31,12 @@
       "groupName": "observability stack"
     },
     {
-      "description": "Keep PostGIS-related images in lockstep",
+      "description": "Keep PostGIS-related images in lockstep; floating PG-PostGIS tags only",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["kartoza/postgis", "kartoza/pg-backup"],
-      "groupName": "postgis"
+      "groupName": "postgis",
+      "versioning": "regex:^(?<major>\\d+)-(?<minor>\\d+)\\.(?<patch>\\d+)$",
+      "allowedVersions": "/^\\d+-\\d+\\.\\d+$/"
     },
     {
       "description": "Group and automerge low-risk GitHub Actions patch/digest updates",
@@ -44,11 +46,6 @@
       "automerge": true,
       "automergeType": "pr",
       "platformAutomerge": true
-    },
-    {
-      "description": "Require Dependency Dashboard approval for major updates",
-      "matchUpdateTypes": ["major"],
-      "dependencyDashboardApproval": true
     }
   ]
 }
