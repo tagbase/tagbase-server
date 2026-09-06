@@ -7,3 +7,4 @@ skip-check:
   - CKV_OPENAPI_4 # security schemes declared at operation / gateway layer
   - CKV_OPENAPI_5
   - CKV2_GHA_1 # workflow permissions set per-job, not write-all globally
+  - CKV_GHA_7 # release.yml workflow_dispatch inputs are the maintainer API (version + phase)

@@ -60,7 +60,7 @@ See the [project wiki](https://github.com/tagbase/tagbase-server/wiki) for guida
 
 - [Installation](https://github.com/tagbase/tagbase-server/wiki/Installation)
 - [Operations](https://github.com/tagbase/tagbase-server/wiki/Operations)
-- [Release Management](https://github.com/tagbase/tagbase-server/wiki/Release-Management-Guide)
+- [Release Management](https://github.com/tagbase/tagbase-server/wiki/Release-Management-Guide) ([Actions workflow](https://github.com/tagbase/tagbase-server/actions/workflows/release.yml))
 - [System Architecture](https://github.com/tagbase/tagbase-server/wiki/Systems-Architecture)
 - [Working with OpenAPI](https://github.com/tagbase/tagbase-server/wiki/Working-with-the-OpenAPI-Specification-a.k.a-openapi.yaml)
 

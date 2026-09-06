@@ -1,0 +1,193 @@
+# Ad-hoc tagbase-server release (wiki Release Management Guide).
+#
+# Actions → Release → Run workflow, or:
+#   gh workflow run release.yml -f version=v0.15.0 -f phase=bump
+#   gh workflow run release.yml -f version=v0.15.0 -f phase=publish
+#
+# bump: open a version-bump PR from latest main.
+# publish: after that PR is merged, tag main and create the GitHub Release.
+# Nothing runs on push, PR merge, or tag by itself.
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version (e.g. v0.15.0)
+        required: true
+        type: string
+      phase:
+        description: bump opens a PR; publish tags main and creates the GitHub Release
+        required: true
+        type: choice
+        options:
+          - bump
+          - publish
+
+permissions: {}
+
+concurrency:
+  group: tagbase-release
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    name: Open version-bump PR
+    if: ${{ inputs.phase == 'bump' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Validate version and bump files
+        id: bump
+        env:
+          NEW: ${{ inputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "${NEW}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "version must match vMAJOR.MINOR.PATCH, got: ${NEW}" >&2
+            exit 1
+          fi
+
+          OLD="$(sed -n 's/^version = "\(v[^"]*\)"/\1/p' tagbase_server/pyproject.toml | head -n 1)"
+          if [[ -z "${OLD}" ]]; then
+            echo "Could not read version from tagbase_server/pyproject.toml" >&2
+            exit 1
+          fi
+          if [[ "${OLD}" == "${NEW}" ]]; then
+            echo "Repository is already at ${NEW}" >&2
+            exit 1
+          fi
+
+          git fetch --tags origin
+          if git ls-remote --exit-code --tags origin "refs/tags/${NEW}" >/dev/null; then
+            echo "Tag ${NEW} already exists on origin" >&2
+            exit 1
+          fi
+          if git ls-remote --exit-code origin "refs/heads/release/${NEW}" >/dev/null; then
+            echo "Branch release/${NEW} already exists on origin" >&2
+            exit 1
+          fi
+
+          git checkout -b "release/${NEW}"
+
+          mapfile -t files < <(git grep -l --fixed-strings -- "${OLD}" || true)
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "No files contain ${OLD}" >&2
+            exit 1
+          fi
+          python3 - "${OLD}" "${NEW}" "${files[@]}" <<'PY'
+          import pathlib
+          import sys
+
+          old, new, *paths = sys.argv[1:]
+          for path in paths:
+              p = pathlib.Path(path)
+              text = p.read_text(encoding="utf-8")
+              if old not in text:
+                  raise SystemExit(f"{path} no longer contains {old}")
+              p.write_text(text.replace(old, new), encoding="utf-8")
+          PY
+
+          git add -u -- "${files[@]}"
+          if git diff --cached --quiet; then
+            echo "Bump produced no changes" >&2
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Release ${NEW}"
+
+          git push -u origin "HEAD:release/${NEW}"
+
+          {
+            echo "## Release ${NEW}"
+            echo
+            echo "Bumps version strings from \`${OLD}\` to \`${NEW}\`."
+            echo
+            echo "### Changed files"
+            echo
+            git diff --name-only HEAD~1 HEAD | sed 's/^/- /'
+            echo
+            echo "### After merge"
+            echo
+            echo "Dispatch **Release** with \`phase: publish\` and the same version (merge does not create the tag or GitHub Release):"
+            echo
+            echo "\`\`\`"
+            echo "gh workflow run release.yml -f version=${NEW} -f phase=publish"
+            echo "\`\`\`"
+            echo
+            echo "CI may not start on this PR until it is closed and reopened (\`GITHUB_TOKEN\` does not trigger other workflows)."
+          } > /tmp/pr-body.md
+
+          label_args=()
+          if gh label list --json name --jq '.[].name' | grep -Fxq release; then
+            label_args+=(--label release)
+          fi
+
+          gh pr create \
+            --base main \
+            --head "release/${NEW}" \
+            --title "Release ${NEW}" \
+            --body-file /tmp/pr-body.md \
+            "${label_args[@]}"
+
+  publish:
+    name: Tag and GitHub Release
+    if: ${{ inputs.phase == 'publish' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Tag and publish
+        env:
+          NEW: ${{ inputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "${NEW}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "version must match vMAJOR.MINOR.PATCH, got: ${NEW}" >&2
+            exit 1
+          fi
+
+          CURRENT="$(sed -n 's/^version = "\(v[^"]*\)"/\1/p' tagbase_server/pyproject.toml | head -n 1)"
+          if [[ "${CURRENT}" != "${NEW}" ]]; then
+            echo "main is at ${CURRENT:-<unknown>}, expected ${NEW}. Merge the bump PR first." >&2
+            exit 1
+          fi
+
+          git fetch --tags origin
+          if git ls-remote --exit-code --tags origin "refs/tags/${NEW}" >/dev/null; then
+            echo "Tag ${NEW} already exists on origin" >&2
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${NEW}" -m "Tag tagbase-server ${NEW}"
+          git push origin "refs/tags/${NEW}"
+
+          gh release create "${NEW}" \
+            --generate-notes \
+            --title "${NEW}" \
+            --verify-tag
