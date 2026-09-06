@@ -20,7 +20,7 @@
     },
     {
       "description": "OpenTelemetry Python SDK + instrumentations",
-      "matchPackageNames": ["opentelemetry-*"],
+      "matchPackageNames": ["/^opentelemetry-/"],
       "groupName": "opentelemetry"
     },
     {
