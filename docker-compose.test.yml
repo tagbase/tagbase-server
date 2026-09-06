@@ -87,7 +87,7 @@ services:
     depends_on:
       - tagbase_server
     environment:
-      - TAGBASE_INGEST_BASE=tagbase_server:5433/tagbase/api/v0.14.0
+      - TAGBASE_INGEST_BASE=tagbase_server:5433/tagbase/api/v0
     volumes:
       - ./staging_data:/usr/src/app/staging_data:ro
     networks:

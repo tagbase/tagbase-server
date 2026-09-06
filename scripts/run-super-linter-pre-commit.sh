@@ -5,6 +5,9 @@
 # CI uses VALIDATE_ALL_CODEBASE=true from the env file (full workspace).
 # This wrapper lints only staged paths passed by pre-commit, and disables
 # Checkov, JSCPD, and Trivy (they ignore include filters and scan everything).
+# Super Linter builds its file list from git *commit* data, not the index, so
+# brand-new files are skipped if we mount the working tree. Lint a throwaway
+# snapshot that has those paths committed instead.
 # If Docker is missing or the daemon is down, skip (CI still lints) unless
 # SUPER_LINTER_REQUIRE_DOCKER=1.
 set -euo pipefail
@@ -73,6 +76,10 @@ fi
 if ! docker info >/dev/null 2>&1; then
 	docker_unavailable "docker daemon not running"
 fi
+if ! command -v git >/dev/null 2>&1; then
+	echo "super-linter pre-commit: git not on PATH" >&2
+	exit 1
+fi
 
 include_parts=()
 for rel in "${lintable[@]}"; do
@@ -86,8 +93,35 @@ include_joined="$(
 # tagbase_server/README.md.
 FILTER_REGEX_INCLUDE="^(/tmp/lint/)?(${include_joined})$"
 
-# -e after --env-file wins
-exec docker run --rm \
+snap="$(mktemp -d "${TMPDIR:-/tmp}/super-linter-snap.XXXXXX")"
+cleanup() {
+	rm -rf "${snap}"
+}
+trap cleanup EXIT
+
+# Index first (pre-commit's staged tree), then overlay requested working-tree
+# files so untracked paths and hand-invoked unstaged edits are present.
+git -C "${ROOT}" checkout-index --all --prefix="${snap}/"
+for rel in "${lintable[@]}"; do
+	src="${ROOT}/${rel}"
+	if [[ -f "${src}" ]]; then
+		mkdir -p "${snap}/$(dirname "${rel}")"
+		cp -p "${src}" "${snap}/${rel}"
+	fi
+done
+
+GIT_TERMINAL_PROMPT=0 git -C "${snap}" \
+	-c init.defaultBranch=main \
+	init -q
+GIT_TERMINAL_PROMPT=0 git -C "${snap}" add -A
+GIT_TERMINAL_PROMPT=0 git -C "${snap}" \
+	-c user.email=super-linter@local \
+	-c user.name=super-linter \
+	-c commit.gpgsign=false \
+	commit -qm "super-linter snapshot"
+
+# -e after --env-file wins. Do not exec: the EXIT trap must remove the snapshot.
+docker run --rm \
 	--platform "${PLATFORM}" \
 	-e RUN_LOCAL=true \
 	--env-file "${ENV_FILE}" \
@@ -96,5 +130,5 @@ exec docker run --rm \
 	-e VALIDATE_CHECKOV=false \
 	-e VALIDATE_JSCPD=false \
 	-e VALIDATE_TRIVY=false \
-	-v "${ROOT}:/tmp/lint" \
+	-v "${snap}:/tmp/lint" \
 	"${IMAGE}"

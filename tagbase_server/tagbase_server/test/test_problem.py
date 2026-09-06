@@ -13,6 +13,7 @@ from tagbase_server.problem import (
     as_json,
     problem_body,
 )
+from tagbase_server.test.helpers import API_PREFIX
 
 
 def test_problem_body_includes_required_fields():
@@ -54,14 +55,14 @@ def test_problem_model_round_trip():
         title="Bad Request",
         status=400,
         detail="missing file",
-        instance="/tagbase/api/v0.14.0/ingest",
+        instance=f"{API_PREFIX}/ingest",
         trace_id="abc-123",
     )
     assert problem.type == TYPE_BAD_REQUEST
     assert problem.title == "Bad Request"
     assert problem.status == 400
     assert problem.detail == "missing file"
-    assert problem.instance == "/tagbase/api/v0.14.0/ingest"
+    assert problem.instance == f"{API_PREFIX}/ingest"
     assert problem.trace_id == "abc-123"
 
     problem.type = TYPE_INTERNAL

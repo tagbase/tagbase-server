@@ -19,6 +19,8 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 
+from tagbase_server.test.helpers import API_PREFIX
+
 pytestmark = pytest.mark.stack
 
 POST_SH = Path(__file__).resolve().parents[4] / "services" / "fswatch" / "post.sh"
@@ -95,7 +97,7 @@ def mock_ingest_server():
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     host, port = server.server_address
-    yield f"http://{host}:{port}/tagbase/api/v0.14.0", _IngestHandler
+    yield f"http://{host}:{port}{API_PREFIX}", _IngestHandler
     server.shutdown()
 
 

@@ -1,0 +1,66 @@
+{
+  "branches": ["main"],
+  "tagFormat": "v${version}",
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "angular",
+        "releaseRules": [
+          { "breaking": true, "release": "major" },
+          { "type": "feat", "release": "minor" },
+          { "type": "fix", "release": "patch" },
+          { "type": "perf", "release": "patch" },
+          { "type": "chore", "release": "patch" },
+          { "type": "docs", "release": "patch" },
+          { "type": "style", "release": "patch" },
+          { "type": "refactor", "release": "patch" },
+          { "type": "test", "release": "patch" },
+          { "type": "ci", "release": "patch" },
+          { "type": "build", "release": "patch" }
+        ]
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "angular"
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "python3 scripts/set-release-version.py ${nextRelease.version}"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "CHANGELOG.md",
+          "openapi.yaml",
+          "docker-compose.test.yml",
+          ".github/workflows/build.yml",
+          "services/nginx/config/nginx.conf",
+          "services/nginx/config/nginx.test.conf",
+          "services/nginx/proxy/index.html",
+          "services/nginx/proxy/upload.html",
+          "tagbase_server/pyproject.toml",
+          "tagbase_server/setup.py",
+          "tagbase_server/README.md",
+          "tagbase_server/tagbase_server/api_prefix.py",
+          "tagbase_server/tagbase_server/telemetry.py",
+          "tagbase_server/tagbase_server/openapi/openapi.yaml"
+        ],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    "@semantic-release/github"
+  ]
+}

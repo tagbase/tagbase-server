@@ -1,0 +1,60 @@
+# Semantic-release: Monday 15:00 UTC with a 14-day-since-last-tag gate, or
+# workflow_dispatch (no gate). See wiki/Release-Management.md. Does not run on push.
+#
+#   gh workflow run semantic-release.yml --ref main
+
+name: Semantic Release
+
+on:
+  schedule:
+    - cron: "0 15 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: tagbase-semantic-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: semantic-release
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: true
+          ref: main
+
+      - name: Fortnight gate (schedule only)
+        id: gate
+        run: |
+          set -euo pipefail
+          skip="$(bash scripts/semantic-release-fortnight-gate.sh "${{ github.event_name }}")"
+          echo "${skip}"
+          echo "${skip}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        if: ${{ steps.gate.outputs.skip != 'true' }}
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+
+      - name: Run semantic-release
+        if: ${{ steps.gate.outputs.skip != 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx --yes \
+            --package semantic-release@25.0.9 \
+            --package @semantic-release/changelog@7.0.0 \
+            --package @semantic-release/exec@7.1.0 \
+            --package @semantic-release/git@11.0.1 \
+            semantic-release
