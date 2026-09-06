@@ -24,7 +24,7 @@ OpenTelemetry + Alloy + LGTM runbook: `docs/observability.md`. Browser UIs are o
 
 ### Commits
 
-[Conventional Commits](https://www.conventionalcommits.org/). CI lints the PR title **and** every commit (`@commitlint/config-conventional`). Use `feat` / `fix` / `BREAKING CHANGE` for version bumps; `chore`, `docs`, `ci`, and similar are patch when a release runs. Do not commit unless the user asks. See [wiki/Release-Management.md](wiki/Release-Management.md).
+[Conventional Commits](https://www.conventionalcommits.org/). CI lints the PR title **and** every commit (`@commitlint/config-conventional`). Use `feat` / `fix` / `BREAKING CHANGE` for version bumps; `chore`, `docs`, `ci`, and similar are patch when a release runs. Do not commit unless the user asks. See [wiki/Release-Management.md](wiki/Release-Management.md). Do not “fix” a failed semantic-release by granting the default `GITHUB_TOKEN` write: `main` is PR-protected and `github-actions[bot]` cannot push to it. Releases need repo secret `RELEASE_TOKEN` (classic PAT).
 
 ### Super Linter
 
