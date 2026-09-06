@@ -67,9 +67,9 @@ while ((SECONDS < deadline)); do
 			docker_http_get "http://loki:3100/ready" >/dev/null 2>&1; } &&
 		docker_http_get "http://tempo:3200/ready" >/dev/null 2>&1 &&
 		docker_http_get "${GRAFANA_BASE}/api/health" >/dev/null 2>&1 &&
-		docker_http_get "http://127.0.0.1:5433/tagbase/api/v0.14.0/tags" >/dev/null 2>&1 &&
+		docker_http_get "http://127.0.0.1:5433/tagbase/api/v0/tags" >/dev/null 2>&1 &&
 		curl -kf -s -o /dev/null -u "${GATEWAY_USER}:${GATEWAY_PASS}" \
-			"${GATEWAY_URL}/tagbase/api/v0.14.0/tags"; then
+			"${GATEWAY_URL}/tagbase/api/v0/tags"; then
 		ready=1
 		break
 	fi
@@ -95,7 +95,7 @@ import urllib.parse
 import urllib.request
 
 params = urllib.parse.urlencode({"file": "file:///tmp/minimal-etuff.txt", "type": "etuff"})
-url = f"http://127.0.0.1:5433/tagbase/api/v0.14.0/ingest?{params}"
+url = f"http://127.0.0.1:5433/tagbase/api/v0/ingest?{params}"
 try:
     with urllib.request.urlopen(url, timeout=120) as resp:
         print(resp.status)

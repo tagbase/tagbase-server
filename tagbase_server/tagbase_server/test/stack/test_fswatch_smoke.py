@@ -10,11 +10,9 @@ from pathlib import Path
 import httpx
 import pytest
 
-from tagbase_server.test.helpers import ETUFF_FIXTURE
+from tagbase_server.test.helpers import API_PREFIX, ETUFF_FIXTURE
 
 pytestmark = pytest.mark.stack
-
-API = "/tagbase/api/v0.14.0"
 REPO_ROOT = Path(__file__).resolve().parents[4]
 STAGING = REPO_ROOT / "staging_data"
 
@@ -33,7 +31,7 @@ def _auth():
 def _stack_ready():
     try:
         with httpx.Client(verify=False, timeout=2.0) as client:
-            r = client.get(_base() + f"{API}/tags", auth=_auth())
+            r = client.get(_base() + f"{API_PREFIX}/tags", auth=_auth())
         return r.status_code == 200
     except Exception:
         return False
@@ -54,7 +52,7 @@ def test_staging_drop_ingests_etuff_visible_via_api():
         stale.unlink()
 
     with httpx.Client(verify=False, timeout=30.0) as client:
-        client.delete(_base() + f"{API}/tags", auth=_auth())
+        client.delete(_base() + f"{API_PREFIX}/tags", auth=_auth())
 
     dest = STAGING / "stack-smoke-etuff.txt"
     shutil.copyfile(ETUFF_FIXTURE, dest)
@@ -63,7 +61,7 @@ def test_staging_drop_ingests_etuff_visible_via_api():
     last = None
     while time.time() < deadline:
         with httpx.Client(verify=False, timeout=30.0) as client:
-            last = client.get(_base() + f"{API}/tags", auth=_auth())
+            last = client.get(_base() + f"{API_PREFIX}/tags", auth=_auth())
         if last.status_code == 200 and last.json().get("count", 0) >= 1:
             break
         time.sleep(2)

@@ -132,7 +132,7 @@ jobs:
           docker compose -f docker-compose.test.yml --profile stack up -d --build
           for _ in $(seq 1 90); do
             if curl -kf -s -o /dev/null -u testuser:testpass \
-              https://localhost/tagbase/api/v0.14.0/tags ; then
+              https://localhost/tagbase/api/v0/tags ; then
               break
             fi
             sleep 5
