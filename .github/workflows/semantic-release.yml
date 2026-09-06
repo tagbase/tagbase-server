@@ -2,6 +2,9 @@
 # workflow_dispatch (no gate). See wiki/Release-Management.md. Does not run on push.
 #
 #   gh workflow run semantic-release.yml --ref main
+#
+# Git push and GitHub Release use secrets.RELEASE_TOKEN (classic PAT, repo
+# scope). Default GITHUB_TOKEN cannot push to PR-protected main.
 
 name: Semantic Release
 
@@ -21,9 +24,6 @@ jobs:
     name: semantic-release
     if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      issues: write
     steps:
       - name: Checkout main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -32,6 +32,7 @@ jobs:
           fetch-tags: true
           persist-credentials: true
           ref: main
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Fortnight gate (schedule only)
         id: gate
@@ -40,6 +41,12 @@ jobs:
           skip="$(bash scripts/semantic-release-fortnight-gate.sh "${{ github.event_name }}")"
           echo "${skip}"
           echo "${skip}" >> "$GITHUB_OUTPUT"
+
+      - name: Release auth preflight
+        if: ${{ steps.gate.outputs.skip != 'true' }}
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: bash scripts/semantic-release-auth-preflight.sh
 
       - name: Setup Node
         if: ${{ steps.gate.outputs.skip != 'true' }}
@@ -50,7 +57,7 @@ jobs:
       - name: Run semantic-release
         if: ${{ steps.gate.outputs.skip != 'true' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           npx --yes \
             --package semantic-release@25.0.9 \

@@ -82,6 +82,7 @@ Agents: see [AGENTS.md](../AGENTS.md) Commits. Do not commit unless the user ask
 .github/workflows/commitlint.yml         # PR title + commits
 .releaserc.json                          # plugins, releaseRules, git assets, tagFormat
 scripts/semantic-release-fortnight-gate.sh
+scripts/semantic-release-auth-preflight.sh # RELEASE_TOKEN must be a human PAT
 scripts/set-release-version.py           # package version + major-only URL prefix
 tagbase_server/tagbase_server/api_prefix.py
 CHANGELOG.md
@@ -113,11 +114,21 @@ python3 scripts/set-release-version.py 0.14.0
 
 ### Auth and CI
 
-`GITHUB_TOKEN` only (job `contents: write` and `issues: write`). No PAT or GitHub App. Checkout uses `persist-credentials: true`, `fetch-depth: 0`, `fetch-tags: true`, `ref: main`.
+`main` requires a pull request (one approving review, code-owner review). The default Actions `GITHUB_TOKEN` (`github-actions[bot]`) **cannot** push to it. That bot is not a valid “bypass required pull requests” actor (the list only accepts people, teams, and installed Apps). Job `contents: write` does not change this. `git push --dry-run` does **not** hit GH006; do not treat a dry-run as proof the real push will work.
 
-The release commit does not start other workflows (`GITHUB_TOKEN` push + `[skip ci]` in the message). Branch protection on `main` may still block the git plugin; if a release job fails on push, that is the first place to look.
+Releases use a **classic PAT** (`repo` scope) owned by `lewismc`, stored as repo secret `RELEASE_TOKEN`. Checkout sets `token: ${{ secrets.RELEASE_TOKEN }}` and `persist-credentials: true` so git’s extraheader is the PAT, not the bot. semantic-release’s `GITHUB_TOKEN` env is the same secret (GitHub Release + issue/PR comments). The job does not grant the default token write. [`scripts/semantic-release-auth-preflight.sh`](../scripts/semantic-release-auth-preflight.sh) fails if the secret is empty or authenticates as `github-actions[bot]`.
+
+`enforce_admins` is off, so an admin PAT bypasses the PR rule. Turning on “Do not allow bypassing the above settings” breaks releases. Rotate by creating a new classic PAT as `lewismc` and `gh secret set RELEASE_TOKEN --repo tagbase/tagbase-server`.
+
+The release commit still does not start other workflows (`[skip ci]` in the message). Checkout also uses `fetch-depth: 0`, `fetch-tags: true`, `ref: main`.
 
 ## Maintainer commands
+
+Create a classic PAT (`repo` scope) as `lewismc` and set the secret once (or after rotation):
+
+```bash
+gh secret set RELEASE_TOKEN --repo tagbase/tagbase-server
+```
 
 Release now (skips the 14-day gate; still no-ops if there is nothing to release):
 
@@ -148,7 +159,7 @@ Do not run `release.yml`. Do not open `release/v*` bump PRs.
 | Scheduled job green, no tag             | Gate skipped (`< 14` days) or no releasable commits.                                      |
 | Dispatch green, no tag                  | No Conventional Commits since last tag that match `releaseRules`.                         |
 | `set-release-version.py` exits non-zero | A listed file no longer matches the expected pattern (URL or version string).             |
-| Git plugin cannot push                  | `main` protection or missing `contents: write`.                                           |
+| GH006 (PR required to push `main`)      | `RELEASE_TOKEN` missing/expired or Actions bot; not a missing `contents: write`.          |
 | commitlint red on this PR               | Title or a commit is not Conventional (squash-merge still needs a Conventional PR title). |
 
 ## Related CI (not the releaser)
