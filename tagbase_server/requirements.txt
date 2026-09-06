@@ -5,9 +5,9 @@ gunicorn==26.2.0
 opentelemetry-api==1.44.0
 opentelemetry-sdk==1.44.0
 opentelemetry-exporter-otlp==1.44.0
-opentelemetry-instrumentation-flask==0.60b1
-opentelemetry-instrumentation-logging==0.60b1
-opentelemetry-instrumentation-psycopg2==0.60b1
+opentelemetry-instrumentation-flask==0.65b0
+opentelemetry-instrumentation-logging==0.65b0
+opentelemetry-instrumentation-psycopg2==0.65b0
 pandas==3.0.5
 parmap>=1.7.0
 patool>=1.12
