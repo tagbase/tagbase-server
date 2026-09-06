@@ -14,9 +14,9 @@ import os
 import httpx
 import pytest
 
-pytestmark = pytest.mark.stack
+from tagbase_server.test.helpers import API_PREFIX
 
-API = "/tagbase/api/v0.14.0"
+pytestmark = pytest.mark.stack
 
 
 def _base():
@@ -49,7 +49,7 @@ def require_stack():
 
 def test_unauthenticated_api_returns_401():
     with httpx.Client(verify=False, timeout=10.0) as client:
-        response = client.get(_base() + f"{API}/tags")
+        response = client.get(_base() + f"{API_PREFIX}/tags")
     assert response.status_code == 401
     assert "Basic" in response.headers.get("WWW-Authenticate", "")
 
@@ -57,7 +57,7 @@ def test_unauthenticated_api_returns_401():
 def test_wrong_password_returns_401():
     with httpx.Client(verify=False, timeout=10.0) as client:
         response = client.get(
-            _base() + f"{API}/tags",
+            _base() + f"{API_PREFIX}/tags",
             auth=(_auth()[0], "wrong-password"),
         )
     assert response.status_code == 401
@@ -65,7 +65,7 @@ def test_wrong_password_returns_401():
 
 def test_valid_basic_auth_proxies_tags_api():
     with httpx.Client(verify=False, timeout=30.0) as client:
-        response = client.get(_base() + f"{API}/tags", auth=_auth())
+        response = client.get(_base() + f"{API_PREFIX}/tags", auth=_auth())
     assert response.status_code == 200
     body = response.json()
     assert "count" in body
@@ -74,7 +74,7 @@ def test_valid_basic_auth_proxies_tags_api():
 
 def test_http_port_redirects_to_https():
     with httpx.Client(verify=False, timeout=10.0, follow_redirects=False) as client:
-        response = client.get("http://localhost:81/tagbase/api/v0.14.0/tags")
+        response = client.get(f"http://localhost:81{API_PREFIX}/tags")
     assert response.status_code in (301, 302)
     location = response.headers.get("Location", "")
     assert location.startswith("https://")

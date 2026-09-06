@@ -16,9 +16,9 @@ info:
   version: v0.14.0
 servers:
   - description: Local development tagbase-server
-    url: https://localhost/tagbase/api/v0.14.0
+    url: https://localhost/tagbase/api/v0
   - description: ICCAT Test tagbase-server
-    url: https://162.13.162.49/tagbase/api/v0.14.0
+    url: https://162.13.162.49/tagbase/api/v0
 tags:
   - description: Ingestion operations.
     name: ingest
@@ -344,7 +344,7 @@ components:
           minLength: 1
           maxLength: 2048
           pattern: ^(?!\s*$).+$
-          example: /tagbase/api/v0.14.0/ingest
+          example: /tagbase/api/v0/ingest
         trace_id:
           description: Correlation id for matching this error to server logs
           type: string

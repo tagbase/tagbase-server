@@ -8,6 +8,11 @@
   "labels": ["dependencies"],
   "packageRules": [
     {
+      "description": "Drop the abandonmentThreshold inherited from config:best-practices (abandonments:recommended); release inactivity is not a signal we act on",
+      "matchPackageNames": ["*"],
+      "abandonmentThreshold": null
+    },
+    {
       "description": "Quarantine new PyPI releases; pin ranges for reproducible deploys",
       "matchManagers": ["pip_requirements", "pep621"],
       "minimumReleaseAge": "3 days",

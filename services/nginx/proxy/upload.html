@@ -162,16 +162,13 @@
           );
 
           try {
-            const response = await fetch(
-              `/tagbase/api/v0.14.0/ingest?${params}`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": file.type || "application/octet-stream",
-                },
-                body: file,
+            const response = await fetch(`/tagbase/api/v0/ingest?${params}`, {
+              method: "POST",
+              headers: {
+                "Content-Type": file.type || "application/octet-stream",
               },
-            );
+              body: file,
+            });
             const text = await response.text();
             let result;
             try {
