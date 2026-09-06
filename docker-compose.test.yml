@@ -2,7 +2,7 @@
 # optional Alloy + LGTM for observability smoke (profile: observability).
 services:
   postgis:
-    image: kartoza/postgis:15-3.3@sha256:ae31fad95957dd70fa65fe521f7b129f67f4dfd1131048fd1200c250a3750263
+    image: kartoza/postgis:17-3.5@sha256:75202dd963e40cf3c075ac41073a350082c5bce0b9a55c6e445ae19c19249d1b
     platform: linux/amd64
     environment:
       - ALLOW_IP_RANGE=0.0.0.0/0
