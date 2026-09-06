@@ -44,6 +44,8 @@ PREFIX_FILES = (
     ROOT / "docker-compose.test.yml",
     ROOT / ".github" / "workflows" / "build.yml",
     ROOT / "tagbase_server" / "README.md",
+    ROOT / "services" / "fswatch" / "post.sh",
+    ROOT / "scripts" / "observability-smoke.sh",
 )
 
 

@@ -103,7 +103,7 @@ The default npm plugin is **not** used (this is a Python repo). Versions are pin
 
 - Argument: `MAJOR.MINOR.PATCH` or `vMAJOR.MINOR.PATCH`.
 - Writes `v…` into the package-version files (exactly one match per pattern).
-- Sets `API_PREFIX` and replaces `/tagbase/api/vN` or `/tagbase/api/vN.N.N` in the prefix file list (nginx, OpenAPI servers/examples, compose, build.yml stack probe, package README). Does **not** rewrite this wiki page or `CHANGELOG.md` history.
+- Sets `API_PREFIX` and replaces `/tagbase/api/vN` or `/tagbase/api/vN.N.N` in the prefix file list (nginx, OpenAPI servers/examples, compose, build.yml stack probe, package README, the fswatch `TAGBASE_INGEST_BASE` default, and the observability smoke probes). Does **not** rewrite this wiki page or `CHANGELOG.md` history.
 
 Local check (does not commit):
 

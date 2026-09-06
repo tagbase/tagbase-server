@@ -2,7 +2,7 @@
 set -eu
 
 PATH_TO_CHECK=${PATH_TO_CHECK:-/usr/src/app/staging_data/}
-TAGBASE_INGEST_BASE=${TAGBASE_INGEST_BASE:-http://tagbase_server:5433/tagbase/api/v0.14.0}
+TAGBASE_INGEST_BASE=${TAGBASE_INGEST_BASE:-http://tagbase_server:5433/tagbase/api/v0}
 
 # Last successfully ingested path+size (file so it survives the fswatch|while subshell).
 DEDUPE_STATE=${DEDUPE_STATE:-/tmp/fswatch-ingest-dedupe-$$}

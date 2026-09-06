@@ -51,6 +51,8 @@
           "services/nginx/config/nginx.test.conf",
           "services/nginx/proxy/index.html",
           "services/nginx/proxy/upload.html",
+          "services/fswatch/post.sh",
+          "scripts/observability-smoke.sh",
           "tagbase_server/pyproject.toml",
           "tagbase_server/setup.py",
           "tagbase_server/README.md",

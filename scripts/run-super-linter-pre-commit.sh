@@ -81,6 +81,28 @@ if ! command -v git >/dev/null 2>&1; then
 	exit 1
 fi
 
+# BASH_EXEC cannot fail inside the container on a macOS bind mount: the linter
+# runs as root, where test -x passes even on mode 644. Check the committed mode
+# here instead so a non-executable shell script fails locally, not on CI.
+exec_bit_errors=0
+for rel in "${lintable[@]}"; do
+	src="${ROOT}/${rel}"
+	[[ -f "${src}" ]] || continue
+	if [[ "${rel}" != *.sh ]] && ! head -c 2 "${src}" | grep -q '^#!'; then
+		continue
+	fi
+	if [[ "${rel}" == *.sh ]] || head -n 1 "${src}" | grep -qE '^#!.*\b(ba)?sh$'; then
+		if [[ ! -x "${src}" ]]; then
+			echo "super-linter pre-commit: ${rel} is not executable (BASH_EXEC fails on CI)" >&2
+			echo "  fix: chmod +x ${rel} && git update-index --chmod=+x ${rel}" >&2
+			exec_bit_errors=1
+		fi
+	fi
+done
+if [[ "${exec_bit_errors}" == "1" ]]; then
+	exit 1
+fi
+
 include_parts=()
 for rel in "${lintable[@]}"; do
 	include_parts+=("$(escape_regex "${rel}")")
