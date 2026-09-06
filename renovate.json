@@ -14,9 +14,24 @@
     },
     {
       "description": "Quarantine new PyPI releases; pin ranges for reproducible deploys",
-      "matchManagers": ["pip_requirements", "pep621"],
+      "matchManagers": ["pip_requirements"],
       "minimumReleaseAge": "3 days",
-      "rangeStrategy": "pin"
+      "rangeStrategy": "pin",
+      "constraintsFiltering": "strict"
+    },
+    {
+      "description": "Do not pin requires-python; the range is owned with the CI matrix",
+      "matchManagers": ["pep621"],
+      "matchDepNames": ["python"],
+      "enabled": false
+    },
+    {
+      "description": "Keep setuptools as a lower bound, not an exact pin",
+      "matchManagers": ["pep621"],
+      "matchDepTypes": ["build-system.requires"],
+      "rangeStrategy": "bump",
+      "minimumReleaseAge": "3 days",
+      "constraintsFiltering": "strict"
     },
     {
       "description": "OpenTelemetry Python SDK + instrumentations",
