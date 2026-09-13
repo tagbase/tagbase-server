@@ -1,3 +1,10 @@
+# [0.16.0](https://github.com/tagbase/tagbase-server/compare/v0.15.0...v0.16.0) (2026-09-13)
+
+
+### Features
+
+* publish Compose OCI stack with runtime TLS ([#427](https://github.com/tagbase/tagbase-server/issues/427)) ([0ed74a1](https://github.com/tagbase/tagbase-server/commit/0ed74a1a1c6911f5355e5ef2cd70848b32d75dcb))
+
 # [0.15.0](https://github.com/tagbase/tagbase-server/compare/v0.14.0...v0.15.0) (2026-09-06)
 
 
