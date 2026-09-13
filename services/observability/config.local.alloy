@@ -107,3 +107,15 @@ loki.process "stack_logs" {
 	}
 	forward_to = [loki.write.local.receiver]
 }
+
+// Host syslog (published compose logging driver). Git compose also listens
+// so operators can point SYSLOG_ADDRESS here without a second config.
+loki.source.syslog "incoming" {
+	listener {
+		address  = "0.0.0.0:1514"
+		protocol = "udp"
+		labels   = { job = "syslog" }
+	}
+
+	forward_to = [loki.write.local.receiver]
+}

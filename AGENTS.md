@@ -1,30 +1,61 @@
 # Agent notes
 
+Operator documentation is the [GitHub wiki](https://github.com/tagbase/tagbase-server/wiki). Do not add a `docs/` tree or ADRs. Compose files, OpenAPI, and application code win if a wiki page is stale.
+
 ## Agent skills
 
 ### Issue tracker
 
-GitHub Issues on `tagbase/tagbase-server` via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+GitHub Issues on `tagbase/tagbase-server` via the `gh` CLI.
+
+- **Create**: `gh issue create --repository tagbase/tagbase-server --title "..." --body "..."` (heredoc for multi-line bodies).
+- **Read**: `gh issue view <number> --repository tagbase/tagbase-server --comments`
+- **List**: `gh issue list --repository tagbase/tagbase-server --state open` with `--label` / `--json` as needed
+- **Comment**: `gh issue comment <number> --body "..."`
+- **Labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
+- **Close**: `gh issue close <number> --comment "..."`
+
+`gh` infers the repo from `git remote` inside a clone. **PRs as a request surface: no.** GitHub shares one number space across issues and PRs — try `gh pr view 42` then `gh issue view 42`.
+
+When a skill says “publish to the issue tracker”, create a GitHub issue. When it says “fetch the relevant ticket”, run `gh issue view <number> --comments`.
+
+Wayfinder: map issue labelled `wayfinder:map`; children as sub-issues (or task-list + `Part of #<map>`); native issue dependencies when available; claim with `gh issue edit <n> --add-assignee @me`.
 
 ### Triage labels
 
-Default mattpocock triage vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+| Label in mattpocock/skills | Label in our tracker | Meaning                                  |
+| -------------------------- | -------------------- | ---------------------------------------- |
+| `needs-triage`             | `needs-triage`       | Maintainer needs to evaluate this issue  |
+| `needs-info`               | `needs-info`         | Waiting on reporter for more information |
+| `ready-for-agent`          | `ready-for-agent`    | Fully specified, ready for an AFK agent  |
+| `ready-for-human`          | `ready-for-human`    | Requires human implementation            |
+| `wontfix`                  | `wontfix`            | Will not be actioned                     |
 
 ### Domain docs
 
-Single-context layout (`CONTEXT.md` + `docs/adr/` at repository root). See `docs/agents/domain.md`.
+Read `CONTEXT.md` for domain language. Operator how-to lives on the wiki, not in-repo markdown trees. Do not create `docs/` or `docs/adr/`.
 
 ### Ingest
 
-Operator patterns (API, rsync, `staging_data/` drop-folder): [Ingestion and Access Patterns](https://github.com/tagbase/tagbase-server/wiki/Ingestion-and-Access-Patterns). Errors use RFC7807 `application/problem+json` (ADR-0003).
+[Ingestion and Access Patterns](https://github.com/tagbase/tagbase-server/wiki/Ingestion-and-Access-Patterns). Errors use RFC7807 `application/problem+json`.
 
 ### Observability
 
-OpenTelemetry + Alloy + LGTM runbook: `docs/observability.md`. Browser UIs are only via the nginx gateway (`https://localhost/...`); see ADR-0002. Windows + Docker Desktop: `docs/windows.md`.
+LGTM/Alloy is part of the default stack. Browser UIs only via nginx (`https://localhost/...`): [Installation](https://github.com/tagbase/tagbase-server/wiki/Installation), [Security](https://github.com/tagbase/tagbase-server/wiki/Security). Windows: Docker Desktop Linux containers + WSL2 (clone on the Linux filesystem, not `/mnt/c`).
+
+### Branches
+
+Do not implement on `main` (or `master`). Before the first file change, create or switch to a local topic branch (`git checkout -b …` / `git switch -c …`). If the working tree is already dirty on `main`, stop and tell the user rather than committing there. The human adds and commits locally unless they explicitly ask the agent to commit.
 
 ### Commits
 
-[Conventional Commits](https://www.conventionalcommits.org/). CI lints the PR title **and** every commit (`@commitlint/config-conventional`). Use `feat` / `fix` / `BREAKING CHANGE` for version bumps; `chore`, `docs`, `ci`, and similar are patch when a release runs. Do not commit unless the user asks. See [wiki/Release-Management.md](wiki/Release-Management.md). Do not “fix” a failed semantic-release by granting the default `GITHUB_TOKEN` write: `main` is PR-protected and `github-actions[bot]` cannot push to it. Releases need repo secret `RELEASE_TOKEN` (classic PAT).
+When the work is ready, **recommend one Conventional Commit** (subject + short body) and stop. Do not `git add` or `git commit` unless the user asks. Default is **one commit for the whole change**; split only if they ask.
+
+[Conventional Commits](https://www.conventionalcommits.org/). CI lints the PR title **and** every commit (`@commitlint/config-conventional`). Use `feat` / `fix` for version bumps. `chore`, `docs`, `ci`, and similar are patch when a release runs.
+
+Do **not** use a `BREAKING CHANGE` footer or `feat!:` / `fix!:` on `0.x` unless the user explicitly wants **1.0.0**. That rewrite changes the public API prefix from `/tagbase/api/v0` to `/tagbase/api/v1`. Operator-facing breaks (ports, env) go in the commit **body**, not the footer.
+
+See [Release Management](https://github.com/tagbase/tagbase-server/wiki/Release-Management). Do not “fix” a failed semantic-release by granting the default `GITHUB_TOKEN` write: `main` is PR-protected and `github-actions[bot]` cannot push to it. Releases need repo secret `RELEASE_TOKEN` (classic PAT).
 
 ### Super Linter
 

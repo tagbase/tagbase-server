@@ -74,7 +74,7 @@ def test_valid_basic_auth_proxies_tags_api():
 
 def test_http_port_redirects_to_https():
     with httpx.Client(verify=False, timeout=10.0, follow_redirects=False) as client:
-        response = client.get(f"http://localhost:81{API_PREFIX}/tags")
+        response = client.get(f"http://localhost:80{API_PREFIX}/tags")
     assert response.status_code in (301, 302)
     location = response.headers.get("Location", "")
     assert location.startswith("https://")

@@ -1,0 +1,98 @@
+# Push first-party images and the Compose OCI artifact after a v* tag
+# (created by semantic-release). Uses GITHUB_TOKEN, not RELEASE_TOKEN.
+
+name: Publish GHCR images and Compose OCI
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions: {}
+
+jobs:
+  publish:
+    name: buildx bake and compose publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      REGISTRY: ghcr.io/tagbase
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Version tags
+        id: ver
+        run: |
+          set -euo pipefail
+          raw="${GITHUB_REF_NAME}"
+          {
+            echo "tag=${raw}"
+            echo "major_minor=${raw%.*}"
+            echo "major=${raw%%.*}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bake and push images
+        uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
+        with:
+          files: docker-bake.hcl
+          push: true
+          provenance: false
+          source: .
+        env:
+          REGISTRY: ghcr.io/tagbase
+          VERSION: ${{ steps.ver.outputs.tag }}
+
+      - name: Extra image tags (latest, major, minor)
+        env:
+          TAG: ${{ steps.ver.outputs.tag }}
+          MAJOR_MINOR: ${{ steps.ver.outputs.major_minor }}
+          MAJOR: ${{ steps.ver.outputs.major }}
+        run: |
+          set -euo pipefail
+          images="tagbase-server tagbase-nginx tagbase-fswatch tagbase-docker-cron tagbase-lego tagbase-postgis tagbase-alloy tagbase-prometheus tagbase-loki tagbase-tempo tagbase-grafana"
+          for img in ${images}; do
+            src="${REGISTRY}/${img}:${TAG}"
+            docker buildx imagetools create \
+              -t "${REGISTRY}/${img}:latest" \
+              -t "${REGISTRY}/${img}:${MAJOR_MINOR}" \
+              -t "${REGISTRY}/${img}:${MAJOR}" \
+              "${src}"
+          done
+
+      - name: Publish Compose OCI artifact
+        env:
+          TAG: ${{ steps.ver.outputs.tag }}
+          MAJOR_MINOR: ${{ steps.ver.outputs.major_minor }}
+          MAJOR: ${{ steps.ver.outputs.major }}
+          TAGBASE_VERSION: ${{ steps.ver.outputs.tag }}
+          POSTGRES_PASSWORD: ci-placeholder-not-for-operators
+          NGINX_PASS: ci-placeholder-not-for-operators
+          PGADMIN_DEFAULT_PASSWORD: ci-placeholder-not-for-operators
+        run: |
+          set -euo pipefail
+          docker compose -f docker-compose.publish.yml publish -y --resolve-image-digests \
+            "${REGISTRY}/tagbase-stack:${TAG}"
+          docker compose -f docker-compose.publish.yml publish -y --resolve-image-digests \
+            "${REGISTRY}/tagbase-stack:latest"
+          docker compose -f docker-compose.publish.yml publish -y --resolve-image-digests \
+            "${REGISTRY}/tagbase-stack:${MAJOR_MINOR}"
+          docker compose -f docker-compose.publish.yml publish -y --resolve-image-digests \
+            "${REGISTRY}/tagbase-stack:${MAJOR}"

@@ -17,6 +17,31 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  publish_compose_config:
+    name: Publish compose config (no binds)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: docker compose config
+        env:
+          POSTGRES_PASSWORD: ci-dummy
+          NGINX_PASS: ci-dummy
+          PGADMIN_DEFAULT_PASSWORD: ci-dummy
+        run: |
+          set -euo pipefail
+          rendered="$(docker compose -f docker-compose.publish.yml config)"
+          if echo "${rendered}" | grep -qE 'type: bind'; then
+            echo "ERROR: docker-compose.publish.yml must not contain bind mounts" >&2
+            exit 1
+          fi
+          if echo "${rendered}" | grep -qE '^[[:space:]]+build:'; then
+            echo "ERROR: docker-compose.publish.yml must not contain build:" >&2
+            exit 1
+          fi
+          echo "publish compose config ok"
   lint_openapi:
     name: Lint OpenAPI Specification
     runs-on: ubuntu-latest
@@ -168,19 +193,21 @@ jobs:
       - name: Format check
         run: |
           for f in services/observability/config.local.alloy \
-                   services/observability/config.cloud.alloy; do
+                   services/observability/config.cloud.alloy \
+                   services/observability/config.publish.alloy; do
             docker run --rm \
               -v "${{ github.workspace }}/services/observability:/etc/alloy:ro" \
-              grafana/alloy:v1.18.1 \
+              grafana/alloy:v1.19.2 \
               fmt -t "/etc/alloy/$(basename "$f")"
           done
       - name: Validate
         run: |
           for f in services/observability/config.local.alloy \
-                   services/observability/config.cloud.alloy; do
+                   services/observability/config.cloud.alloy \
+                   services/observability/config.publish.alloy; do
             docker run --rm \
               -v "${{ github.workspace }}/services/observability:/etc/alloy:ro" \
-              grafana/alloy:v1.18.1 \
+              grafana/alloy:v1.19.2 \
               validate "/etc/alloy/$(basename "$f")"
           done
   observability_smoke:
