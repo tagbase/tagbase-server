@@ -1,3 +1,13 @@
+# Bind-mount-free compose for GHCR Compose OCI publish.
+# Operators: docker compose -f oci://ghcr.io/tagbase/tagbase-stack:vX.Y.Z up -d
+# Required: POSTGRES_PASSWORD, NGINX_PASS, PGADMIN_DEFAULT_PASSWORD
+# Optional Let's Encrypt: --profile letsencrypt plus TLS_DOMAIN and ACME_EMAIL
+x-syslog: &syslog
+  driver: syslog
+  options:
+    syslog-address: "udp://${SYSLOG_ADDRESS:-host.docker.internal:514}"
+    tag: "tagbase-{{.Name}}"
+
 services:
   dbbackups:
     depends_on:
@@ -6,69 +16,50 @@ services:
     environment:
       - DUMPPREFIX=PG_db
       - POSTGRES_USER=tagbase
-      - POSTGRES_PASS=${POSTGRES_PASSWORD:-tagbase}
+      - POSTGRES_PASS=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
       - POSTGRES_HOST=postgis
       - REMOVE_BEFORE=30
     hostname: pg-backups
     image: kartoza/pg-backup:18-3.6@sha256:42672c4aa6c6683216aac44107247ba900d999e5b528af3f022879242218442b
     platform: linux/amd64
-    labels:
-      "docker_compose_diagram.cluster": "Internal Network"
-      "docker_compose_diagram.description": "Docker PostGIS backup"
-      "docker_compose_diagram.icon": "docker"
-    links:
-      - postgis
+    logging: *syslog
     networks:
       - internal-network
     volumes:
-      - ./dbbackups:/backups
+      - dbbackups:/backups
     restart: on-failure
+
   docker-cron:
-    build:
-      context: ./services/docker-cron
+    image: ghcr.io/tagbase/tagbase-docker-cron:${TAGBASE_VERSION:-latest}
     depends_on:
       postgis:
         condition: service_healthy
     environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-tagbase}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
-    labels:
-      "docker_compose_diagram.cluster": "Internal Network"
-      "docker_compose_diagram.description": "'metadata_types' and\n'observation_types' synchronization"
-      "docker_compose_diagram.icon": "python"
-    links:
-      - postgis
+    logging: *syslog
     networks:
       - internal-network
     restart: unless-stopped
+
   fswatch:
-    build:
-      context: ./services/fswatch
+    image: ghcr.io/tagbase/tagbase-fswatch:${TAGBASE_VERSION:-latest}
     environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-tagbase}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
-    labels:
-      "docker_compose_diagram.cluster": "Internal Network"
-      "docker_compose_diagram.description": "Automatic file ingestion"
-      "docker_compose_diagram.icon": "go"
-    links:
-      - tagbase_server
+    logging: *syslog
     networks:
       - internal-network
     restart: unless-stopped
     volumes:
-      - ./staging_data:/usr/src/app/staging_data:ro
+      - staging-data:/usr/src/app/staging_data:ro
+
   nginx:
-    build:
-      context: ./services/nginx
+    image: ghcr.io/tagbase/tagbase-nginx:${TAGBASE_VERSION:-latest}
     environment:
       - NGINX_USER=${NGINX_USER:-tagbase}
-      - NGINX_PASS=${NGINX_PASS:-tagbase}
-    labels:
-      #"docker_compose_diagram.cluster": "Internal Network"
-      "docker_compose_diagram.description": "Reverse proxy \n and authentication."
-      "docker_compose_diagram.icon": "nginx"
+      - NGINX_PASS=${NGINX_PASS:?set NGINX_PASS}
     depends_on:
       - pgadmin4
       - tagbase_server
@@ -81,22 +72,21 @@ services:
       interval: 10s
       timeout: 5s
       retries: 6
-      start_period: 10s
+      start_period: 15s
+    logging: *syslog
     networks:
       - internal-network
     ports:
-      - 80:80
-      - 443:443
+      - "80:80"
+      - "443:443"
     volumes:
-      - ./services/nginx/config/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./services/nginx/proxy/:/usr/share/nginx/html/:ro
       - nginx-certs:/etc/nginx/certs
       - acme-www:/var/www/acme
     restart: unless-stopped
+
   lego:
     profiles: ["letsencrypt"]
-    build:
-      context: ./services/lego
+    image: ghcr.io/tagbase/tagbase-lego:${TAGBASE_VERSION:-latest}
     depends_on:
       nginx:
         condition: service_healthy
@@ -104,9 +94,6 @@ services:
       - TLS_DOMAIN=${TLS_DOMAIN:-}
       - ACME_EMAIL=${ACME_EMAIL:-}
       - ACME_DIRECTORY=${ACME_DIRECTORY:-https://acme-v02.api.letsencrypt.org/directory}
-    labels:
-      "docker_compose_diagram.description": "Let's Encrypt HTTP-01 (opt-in)"
-      "docker_compose_diagram.icon": "lock"
     networks:
       - internal-network
     restart: unless-stopped
@@ -114,67 +101,38 @@ services:
       - lego-data:/lego
       - nginx-certs:/etc/nginx/certs
       - acme-www:/var/www/acme
+
   pgadmin4:
     depends_on:
       postgis:
         condition: service_healthy
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD:-tagbase}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD:?set PGADMIN_DEFAULT_PASSWORD}
       - PGADMIN_LISTEN_PORT=5434
     expose:
       - 5434
     hostname: pgadmin4
     image: dpage/pgadmin4:9.17@sha256:2f4ce946ddf8360680d7eff4eaba1d91859eb6b4003e6623bad5c63a322c2f4d
-    labels:
-      "docker_compose_diagram.cluster": "Internal Network"
-      "docker_compose_diagram.description": "PostgreSQL administration"
-      "docker_compose_diagram.icon": "docker"
-    links:
-      - postgis
+    logging: *syslog
     networks:
       - internal-network
     restart: unless-stopped
-  # postgres:
-  #   build:
-  #     context: ./services/postgres
-  #   environment:
-  #     - PGDATA=/var/lib/postgresql/data/pgdata
-  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-  #   expose:
-  #     - ${POSTGRES_PORT}
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -d tagbase -h postgres -U tagbase"]
-  #     interval: 15s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 15s
-  #   hostname: postgres
-  #   labels:
-  #     "docker_compose_diagram.cluster": "Internal Network"
-  #     "docker_compose_diagram.description": "Tagbase PostgreSQL server"
-  #   networks:
-  #     - internal-network
-  #   ports:
-  #     - ${POSTGRES_PORT}:${POSTGRES_PORT}
-  #   restart: unless-stopped
-  #   volumes:
-  #     - ./postgres-data:/var/lib/postgresql/data
+
   postgis:
     environment:
       - ALLOW_IP_RANGE=0.0.0.0/0
       - PASSWORD_AUTHENTICATION=md5
       - POSTGRES_DB=tagbase
-      - POSTGRES_PASS=${POSTGRES_PASSWORD:-tagbase}
+      - POSTGRES_PASS=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
       - POSTGRES_USER=tagbase
       - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting
       - SCRIPTS_LOCKFILE_DIR=/opt/data/
     expose:
       - ${POSTGRES_PORT:-5432}
     healthcheck:
-      # Require tagbase schema (not just pg_isready) so dependents wait for 01-tagbase.sql.
       test: >-
-        PGPASSWORD=${POSTGRES_PASSWORD:-tagbase}
+        PGPASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
         psql -d tagbase -h localhost -U tagbase -tAc
         "SELECT to_regclass('public.submission')"
         | grep -q submission
@@ -183,35 +141,26 @@ services:
       retries: 10
       start_period: 30s
     hostname: postgis
-    image: kartoza/postgis:18-3.6@sha256:51252babeb0e30a0a51fd208ebe07284827798c0fc8fc945adbece45b340b86d
+    image: ghcr.io/tagbase/tagbase-postgis:${TAGBASE_VERSION:-latest}
     platform: linux/amd64
-    labels:
-      "docker_compose_diagram.cluster": "Internal Network"
-      "docker_compose_diagram.description": "Tagbase PostGIS server"
+    logging: *syslog
     networks:
       - internal-network
-    ports:
-      - "5432:5432"
     restart: unless-stopped
     volumes:
-      - ./dbbackups:/backups
-      - ./postgis-data:/var/lib/postgresql
-      # Tables-only SQL: kartoza already creates role/DB; full tagbase_schema.sql
-      # aborts on CREATE ROLE/DATABASE and never creates submission/etc.
-      - ./services/postgis/tagbase_schema_tables.sql:/docker-entrypoint-initdb.d/01-tagbase.sql
-      # Ephemeral lock dir: a named volume survives `compose down` and can skip
-      # init scripts after postgis-data is wiped (stale .entry_point.lock).
+      - dbbackups:/backups
+      - postgis-data:/var/lib/postgresql
       - type: tmpfs
         target: /opt/data
+
   tagbase_server:
-    build:
-      context: ./tagbase_server
+    image: ghcr.io/tagbase/tagbase-server:${TAGBASE_VERSION:-latest}
     depends_on:
       postgis:
         condition: service_healthy
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-tagbase}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
       - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://alloy:4317}
@@ -219,21 +168,15 @@ services:
     expose:
       - 5433
     hostname: tagbase_server
-    labels:
-      "docker_compose_diagram.cluster": "Internal Network"
-      "docker_compose_diagram.description": "tagbase-server tag \ningestion and administration"
-      "docker_compose_diagram.icon": "flask"
-    links:
-      - postgis
+    logging: *syslog
     networks:
       - internal-network
     restart: unless-stopped
     volumes:
-      - ./logs:/usr/src/app/logs
+      - tagbase-logs:/usr/src/app/logs
 
-  # Alloy + LGTM (always on). Optional Let's Encrypt: --profile letsencrypt
   alloy:
-    image: grafana/alloy:v1.19.2@sha256:b8ec653c44235fbe910879145dac3597d66b0aaecf60bcbbe82580767771a839
+    image: ghcr.io/tagbase/tagbase-alloy:${TAGBASE_VERSION:-latest}
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
@@ -250,10 +193,9 @@ services:
       - TEMPO_USERNAME=${TEMPO_USERNAME:-}
       - TEMPO_PASSWORD=${TEMPO_PASSWORD:-}
     volumes:
-      - ./services/observability/${ALLOY_CONFIG_FILE:-config.local.alloy}:/etc/alloy/config.alloy:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - alloy-data:/var/lib/alloy/data
-    # UI + OTLP only on the Docker network; browsers use https://localhost/alloy/
+    ports:
+      - "514:1514/udp"
     expose:
       - "12345"
       - "4317"
@@ -268,7 +210,7 @@ services:
       - tempo
 
   prometheus:
-    image: prom/prometheus:v3.14.0@sha256:5ce7540c3c00ef4ab0c9d2c995c6a5b9c421f44b4a115d97a2c7af3b1c21cbb0
+    image: ghcr.io/tagbase/tagbase-prometheus:${TAGBASE_VERSION:-latest}
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -276,8 +218,8 @@ services:
       - --web.enable-lifecycle
       - --web.external-url=/prometheus/
       - --web.route-prefix=/prometheus/
+    logging: *syslog
     volumes:
-      - ./services/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
     expose:
       - "9090"
@@ -286,10 +228,10 @@ services:
     restart: unless-stopped
 
   loki:
-    image: grafana/loki:3.7.7@sha256:d70e4659623f3e109af669cae76fe2a5dd5be54e2298fe8aed380d982fbc2500
+    image: ghcr.io/tagbase/tagbase-loki:${TAGBASE_VERSION:-latest}
     command: ["-config.file=/etc/loki/loki-config.yml"]
+    logging: *syslog
     volumes:
-      - ./services/observability/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
       - loki-data:/loki
     expose:
       - "3100"
@@ -298,10 +240,10 @@ services:
     restart: unless-stopped
 
   tempo:
-    image: grafana/tempo:3.0.3@sha256:0296560ac66f8a3600d7fb3014a52c189d4d9c3549ad6ff441bf2409855d68d5
+    image: ghcr.io/tagbase/tagbase-tempo:${TAGBASE_VERSION:-latest}
     command: ["-config.file=/etc/tempo/tempo-config.yml"]
+    logging: *syslog
     volumes:
-      - ./services/observability/tempo/tempo-config.yml:/etc/tempo/tempo-config.yml:ro
       - tempo-data:/var/tempo
     expose:
       - "3200"
@@ -310,7 +252,7 @@ services:
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:13.2.1@sha256:f772d434e8fab0049deb2b1b30abd43342bcfca1537614aa8d36080232cf4283
+    image: ghcr.io/tagbase/tagbase-grafana:${TAGBASE_VERSION:-latest}
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
@@ -320,8 +262,8 @@ services:
       - GF_SERVER_ROOT_URL=https://localhost/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/json/tagbase-ingest.json
+    logging: *syslog
     volumes:
-      - ./services/observability/grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana-data:/var/lib/grafana
     expose:
       - "3000"
@@ -345,3 +287,7 @@ volumes:
   nginx-certs:
   acme-www:
   lego-data:
+  postgis-data:
+  staging-data:
+  dbbackups:
+  tagbase-logs:

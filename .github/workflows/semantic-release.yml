@@ -1,5 +1,5 @@
 # Semantic-release: Monday 15:00 UTC with a 14-day-since-last-tag gate, or
-# workflow_dispatch (no gate). See wiki/Release-Management.md. Does not run on push.
+# workflow_dispatch (no gate). See https://github.com/tagbase/tagbase-server/wiki/Release-Management. Does not run on push.
 #
 #   gh workflow run semantic-release.yml --ref main
 #

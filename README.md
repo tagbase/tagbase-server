@@ -59,11 +59,12 @@ tagbase-server facilitates ingestion operations via REST courtesy of the [OpenAP
 
 ## Documentation
 
-See the [project wiki](https://github.com/tagbase/tagbase-server/wiki) for guidance on
+See the [wiki](https://github.com/tagbase/tagbase-server/wiki):
 
 - [Installation](https://github.com/tagbase/tagbase-server/wiki/Installation)
+- [Security](https://github.com/tagbase/tagbase-server/wiki/Security)
 - [Operations](https://github.com/tagbase/tagbase-server/wiki/Operations)
-- [Release Management](wiki/Release-Management.md) ([Actions workflow](https://github.com/tagbase/tagbase-server/actions/workflows/semantic-release.yml))
+- [Release Management](https://github.com/tagbase/tagbase-server/wiki/Release-Management) ([Actions workflow](https://github.com/tagbase/tagbase-server/actions/workflows/semantic-release.yml))
 - [System Architecture](https://github.com/tagbase/tagbase-server/wiki/Systems-Architecture)
 - [Working with OpenAPI](https://github.com/tagbase/tagbase-server/wiki/Working-with-the-OpenAPI-Specification-a.k.a-openapi.yaml)
 

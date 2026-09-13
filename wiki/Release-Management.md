@@ -1,8 +1,6 @@
 # Release management
 
-Canonical release process for tagbase-server. This file in git is the source of truth. The GitHub wiki [Release Management Guide](https://github.com/tagbase/tagbase-server/wiki/Release-Management-Guide) is stale; do not follow bump/publish dispatch instructions there.
-
-Installation, Operations, System Architecture, and OpenAPI still live on the [project wiki](https://github.com/tagbase/tagbase-server/wiki). Only release management moved in-tree (the `docs/` directory is gitignored).
+Canonical release process for tagbase-server. Operator install and security: [Installation](https://github.com/tagbase/tagbase-server/wiki/Installation), [Security](https://github.com/tagbase/tagbase-server/wiki/Security). Ignore any older “Release Management Guide” wiki page that describes bump/publish `workflow_dispatch`.
 
 ## What replaced the old workflow
 
@@ -13,20 +11,46 @@ Until this change, [`.github/workflows/release.yml`](https://github.com/tagbase/
 
 Nothing ran on a schedule. The human picked the version. Merge of the bump PR did **not** create the GitHub Release.
 
-That path is gone. There is no version-bump PR. [semantic-release](https://github.com/semantic-release/semantic-release) analyzes Conventional Commits on `main`, chooses the next version, rewrites an **explicit** file list, appends [`CHANGELOG.md`](../CHANGELOG.md), commits, tags `vMAJOR.MINOR.PATCH`, and publishes a GitHub Release.
+That path is gone. There is no version-bump PR. [semantic-release](https://github.com/semantic-release/semantic-release) analyzes Conventional Commits on `main`, chooses the next version, rewrites an **explicit** file list, appends [`CHANGELOG.md`](https://github.com/tagbase/tagbase-server/blob/main/CHANGELOG.md), commits, tags `vMAJOR.MINOR.PATCH`, and publishes a GitHub Release.
 
 ## What a release contains
 
-- Annotated Git tag `vMAJOR.MINOR.PATCH` on `main` (`tagFormat`: `v${version}` in [`.releaserc.json`](../.releaserc.json)).
+- Annotated Git tag `vMAJOR.MINOR.PATCH` on `main` (`tagFormat`: `v${version}` in [`.releaserc.json`](https://github.com/tagbase/tagbase-server/blob/main/.releaserc.json)).
 - A GitHub Release whose body is generated from Conventional Commits since the previous tag (not GitHub’s `--generate-notes`).
-- Root [`CHANGELOG.md`](../CHANGELOG.md): seeded from historical GitHub Releases, then owned by `@semantic-release/changelog`. Do not edit it by hand.
+- Root [`CHANGELOG.md`](https://github.com/tagbase/tagbase-server/blob/main/CHANGELOG.md): seeded from historical GitHub Releases, then owned by `@semantic-release/changelog`. Do not edit it by hand.
 - Package/service version strings set to that tag (`v` prefix, same as today):
-  - [`tagbase_server/pyproject.toml`](../tagbase_server/pyproject.toml)
-  - [`tagbase_server/setup.py`](../tagbase_server/setup.py)
-  - OpenAPI `info.version` in root [`openapi.yaml`](../openapi.yaml) and [`tagbase_server/tagbase_server/openapi/openapi.yaml`](../tagbase_server/tagbase_server/openapi/openapi.yaml)
-  - [`tagbase_server/tagbase_server/telemetry.py`](../tagbase_server/tagbase_server/telemetry.py) `SERVICE_VERSION`
+  - [`tagbase_server/pyproject.toml`](https://github.com/tagbase/tagbase-server/blob/main/tagbase_server/pyproject.toml)
+  - [`tagbase_server/setup.py`](https://github.com/tagbase/tagbase-server/blob/main/tagbase_server/setup.py)
+  - OpenAPI `info.version` in root [`openapi.yaml`](https://github.com/tagbase/tagbase-server/blob/main/openapi.yaml) and [`tagbase_server/tagbase_server/openapi/openapi.yaml`](https://github.com/tagbase/tagbase-server/blob/main/tagbase_server/tagbase_server/openapi/openapi.yaml)
+  - [`tagbase_server/tagbase_server/telemetry.py`](https://github.com/tagbase/tagbase-server/blob/main/tagbase_server/tagbase_server/telemetry.py) `SERVICE_VERSION`
+- After the tag exists, [`.github/workflows/publish-ghcr.yml`](https://github.com/tagbase/tagbase-server/blob/main/.github/workflows/publish-ghcr.yml) builds/pushes GHCR images and `docker compose publish` of [`docker-compose.publish.yml`](https://github.com/tagbase/tagbase-server/blob/main/docker-compose.publish.yml) as `ghcr.io/tagbase/tagbase-stack` (tags `vX.Y.Z`, `X.Y`, `X`, `latest`). First package push is often **private**; set each GHCR package public and link it to `tagbase/tagbase-server` once.
 
-The **HTTP API prefix is not the package version.** It is major-only, from [`tagbase_server/tagbase_server/api_prefix.py`](../tagbase_server/tagbase_server/api_prefix.py):
+## Clone-free operator install (Compose OCI)
+
+Operator-facing steps (secrets, TLS, UIs, drop-folder override): [Installation](https://github.com/tagbase/tagbase-server/wiki/Installation). Security model: [Security](https://github.com/tagbase/tagbase-server/wiki/Security).
+
+Requires Docker Engine and Compose **2.34+**. No git clone. Digest-pinned images; compose interpolation still requires secrets at `up` time.
+
+```bash
+export POSTGRES_PASSWORD=...
+export NGINX_PASS=...
+export PGADMIN_DEFAULT_PASSWORD=...
+docker compose -f oci://ghcr.io/tagbase/tagbase-stack:vX.Y.Z up -d
+```
+
+HTTPS is self-signed until you have a public DNS name. Then:
+
+```bash
+export TLS_DOMAIN=tagbase.example.org
+export ACME_EMAIL=ops@example.org   # operator inbox; no Let's Encrypt signup
+docker compose --profile letsencrypt -f oci://ghcr.io/tagbase/tagbase-stack:vX.Y.Z up -d
+```
+
+Postgres is not published on the host in this artifact. HTTP **80** and HTTPS **443** are. Optional `SYSLOG_ADDRESS` (default `host.docker.internal:514`) for Docker log scrape. Drop-folder ingest: add a local compose override that bind-mounts `STAGING_DATA_DIR` onto `fswatch` (binds cannot live in the OCI artifact).
+
+Do **not** pass `--with-env` when publishing; operator secrets must not be baked into the artifact.
+
+The **HTTP API prefix is not the package version.** It is major-only, from [`tagbase_server/tagbase_server/api_prefix.py`](https://github.com/tagbase/tagbase-server/blob/main/tagbase_server/tagbase_server/api_prefix.py):
 
 | Package version       | Public prefix     |
 | --------------------- | ----------------- |
@@ -39,14 +63,14 @@ Old `/tagbase/api/v0.14.0` is not redirected; it 404s. Tests, nginx `/docs` prox
 
 ## When a release runs
 
-Workflow: [`.github/workflows/semantic-release.yml`](../.github/workflows/semantic-release.yml) ([Actions](https://github.com/tagbase/tagbase-server/actions/workflows/semantic-release.yml)).
+Workflow: [`.github/workflows/semantic-release.yml`](https://github.com/tagbase/tagbase-server/blob/main/.github/workflows/semantic-release.yml) ([Actions](https://github.com/tagbase/tagbase-server/actions/workflows/semantic-release.yml)).
 
 It does **not** run on push to `main` (avoids a tag per merge and a loop when the bot commits the changelog). The job only runs if `github.ref == refs/heads/main`.
 
-| Trigger                              | Behavior                                                                                                                                                                                                                                                                                                                               |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cron `0 15 * * 1` (Monday 15:00 UTC) | Run [scripts/semantic-release-fortnight-gate.sh](../scripts/semantic-release-fortnight-gate.sh). If the newest `v*` tag is **fewer than 14 days** old, print `skip=true` and stop (job still green). Otherwise run semantic-release. GitHub cron cannot express “every other Monday”; the weekly cron plus this gate is the fortnight. |
-| `workflow_dispatch`                  | Same job, **no** 14-day gate. “Release now” if there are releasable commits.                                                                                                                                                                                                                                                           |
+| Trigger                              | Behavior                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cron `0 15 * * 1` (Monday 15:00 UTC) | Run [scripts/semantic-release-fortnight-gate.sh](https://github.com/tagbase/tagbase-server/blob/main/scripts/semantic-release-fortnight-gate.sh). If the newest `v*` tag is **fewer than 14 days** old, print `skip=true` and stop (job still green). Otherwise run semantic-release. GitHub cron cannot express “every other Monday”; the weekly cron plus this gate is the fortnight. |
+| `workflow_dispatch`                  | Same job, **no** 14-day gate. “Release now” if there are releasable commits.                                                                                                                                                                                                                                                                                                            |
 
 Empty windows: if semantic-release finds no commits that map to a bump, it exits 0 with **no** tag and **no** GitHub Release.
 
@@ -54,7 +78,7 @@ Concurrency group `tagbase-semantic-release` does not cancel in-progress runs.
 
 ## Version mapping (Conventional Commits)
 
-Analyzer: Angular preset plus extra `releaseRules` in [`.releaserc.json`](../.releaserc.json).
+Analyzer: Angular preset plus extra `releaseRules` in [`.releaserc.json`](https://github.com/tagbase/tagbase-server/blob/main/.releaserc.json).
 
 | Commit                                                                     | Bump                    |
 | -------------------------------------------------------------------------- | ----------------------- |
@@ -66,20 +90,21 @@ Renovate titles such as `chore(deps): …` are patches when a release actually r
 
 ## Pull request lint (commitlint)
 
-[`.github/workflows/commitlint.yml`](../.github/workflows/commitlint.yml) runs on `opened` / `synchronize` / `reopened` / `edited`. It fails if:
+[`.github/workflows/commitlint.yml`](https://github.com/tagbase/tagbase-server/blob/main/.github/workflows/commitlint.yml) runs on `opened` / `synchronize` / `reopened` / `edited`. It fails if:
 
 - any commit from the PR base SHA to the head SHA is not Conventional, or
 - the **PR title** is not Conventional (`@commitlint/config-conventional`).
 
-Pinned in the workflow via `npx` (no root `package.json`): `@commitlint/cli@21.2.2` and `@commitlint/config-conventional@21.2.2`. Config: [`commitlint.config.cjs`](../commitlint.config.cjs). There is no Husky hook; CI is the gate.
+Pinned in the workflow via `npx` (no root `package.json`): `@commitlint/cli@21.2.2` and `@commitlint/config-conventional@21.2.2`. Config: [`commitlint.config.cjs`](https://github.com/tagbase/tagbase-server/blob/main/commitlint.config.cjs). There is no Husky hook; CI is the gate.
 
-Agents: see [AGENTS.md](../AGENTS.md) Commits. Do not commit unless the user asks.
+Agents: see [AGENTS.md](https://github.com/tagbase/tagbase-server/blob/main/AGENTS.md) Commits. Do not commit unless the user asks.
 
 ## Tooling map
 
 ```text
 .github/workflows/semantic-release.yml   # cron + dispatch; Node 24; npx semantic-release
-.github/workflows/commitlint.yml         # PR title + commits
+.github/workflows/publish-ghcr.yml         # v* tags: bake GHCR images + compose publish
+.github/workflows/commitlint.yml          # PR title + commits
 .releaserc.json                          # plugins, releaseRules, git assets, tagFormat
 scripts/semantic-release-fortnight-gate.sh
 scripts/semantic-release-auth-preflight.sh # RELEASE_TOKEN must be a human PAT
@@ -116,7 +141,7 @@ python3 scripts/set-release-version.py 0.14.0
 
 `main` requires a pull request (one approving review, code-owner review). The default Actions `GITHUB_TOKEN` (`github-actions[bot]`) **cannot** push to it. That bot is not a valid “bypass required pull requests” actor (the list only accepts people, teams, and installed Apps). Job `contents: write` does not change this. `git push --dry-run` does **not** hit GH006; do not treat a dry-run as proof the real push will work.
 
-Releases use a **classic PAT** (`repo` scope) owned by `lewismc`, stored as repo secret `RELEASE_TOKEN`. Checkout sets `token: ${{ secrets.RELEASE_TOKEN }}` and `persist-credentials: true` so git’s extraheader is the PAT, not the bot. semantic-release’s `GITHUB_TOKEN` env is the same secret (GitHub Release + issue/PR comments). The job does not grant the default token write. [`scripts/semantic-release-auth-preflight.sh`](../scripts/semantic-release-auth-preflight.sh) fails if the secret is empty or authenticates as `github-actions[bot]`.
+Releases use a **classic PAT** (`repo` scope) owned by `lewismc`, stored as repo secret `RELEASE_TOKEN`. Checkout sets `token: ${{ secrets.RELEASE_TOKEN }}` and `persist-credentials: true` so git’s extraheader is the PAT, not the bot. semantic-release’s `GITHUB_TOKEN` env is the same secret (GitHub Release + issue/PR comments). The job does not grant the default token write. [`scripts/semantic-release-auth-preflight.sh`](https://github.com/tagbase/tagbase-server/blob/main/scripts/semantic-release-auth-preflight.sh) fails if the secret is empty or authenticates as `github-actions[bot]`.
 
 `enforce_admins` is off, so an admin PAT bypasses the PR rule. Turning on “Do not allow bypassing the above settings” breaks releases. Rotate by creating a new classic PAT as `lewismc` and `gh secret set RELEASE_TOKEN --repo tagbase/tagbase-server`.
 
@@ -164,4 +189,4 @@ Do not run `release.yml`. Do not open `release/v*` bump PRs.
 
 ## Related CI (not the releaser)
 
-[Super Linter](../.github/workflows/super-linter.yml) runs on pull requests and on push to `main` only (not on every feature-branch push), so same-repo PRs get one lint job.
+[Super Linter](https://github.com/tagbase/tagbase-server/blob/main/.github/workflows/super-linter.yml) runs on pull requests and on push to `main` only (not on every feature-branch push), so same-repo PRs get one lint job.

@@ -64,19 +64,29 @@ services:
     profiles: ["stack", "observability"]
     build:
       context: ./services/nginx
-      args:
-        NGINX_USER: testuser
-        NGINX_PASS: testpass
+    environment:
+      - NGINX_USER=testuser
+      - NGINX_PASS=testpass
     depends_on:
       - tagbase_server
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1/ | grep -q 301",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
     ports:
-      - "81:81"
+      - "80:80"
       - "443:443"
     volumes:
       - ./services/nginx/config/nginx.test.conf:/etc/nginx/nginx.conf:ro
       - ./services/nginx/proxy/:/usr/share/nginx/html/:ro
-      - ./services/nginx/ssl/cert.pem:/etc/nginx/certs/cert.pem:ro
-      - ./services/nginx/ssl/key.pem:/etc/nginx/certs/key.pem:ro
+      - tagbase-test-nginx-certs:/etc/nginx/certs
+      - tagbase-test-acme-www:/var/www/acme
     networks:
       - test-network
 
@@ -191,3 +201,5 @@ volumes:
   tagbase-test-loki:
   tagbase-test-tempo:
   tagbase-test-grafana:
+  tagbase-test-nginx-certs:
+  tagbase-test-acme-www:
