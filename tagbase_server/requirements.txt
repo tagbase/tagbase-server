@@ -11,7 +11,7 @@ opentelemetry-instrumentation-psycopg2==0.65b0
 pandas==3.0.5
 parmap==1.7.0
 patool==4.1.0
-psycopg2-binary==2.9.12
+psycopg2-binary==2.9.13
 python_dateutil==2.9.0.post0
 pyunpack==0.3
 tqdm==4.70.0
