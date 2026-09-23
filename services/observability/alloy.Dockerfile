@@ -2,6 +2,7 @@ FROM grafana/alloy:v1.19.2@sha256:b8ec653c44235fbe910879145dac3597d66b0aaecf60bc
 
 # Named-volume WAL is often root-owned (git compose runs upstream Alloy as
 # root). Stay root for COPY + entrypoint chown, then drop to uid 473.
+# checkov:skip=CKV_DOCKER_8: entrypoint must be root to chown the named-volume WAL, then setpriv-drop to alloy (473)
 # hadolint ignore=DL3002
 USER root
 COPY config.publish.alloy /etc/alloy/config.alloy
