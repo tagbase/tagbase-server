@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tagbase_server"
-version = "v0.16.1"
+version = "v0.16.2"
 description = "tagbase-server API"
 readme = "README.md"
 requires-python = ">=3.12,<3.15"

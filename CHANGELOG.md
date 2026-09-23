@@ -1,3 +1,10 @@
+## [0.16.2](https://github.com/tagbase/tagbase-server/compare/v0.16.1...v0.16.2) (2026-09-23)
+
+
+### Bug Fixes
+
+* keep Alloy running on reused data volumes ([#435](https://github.com/tagbase/tagbase-server/issues/435)) ([33234d2](https://github.com/tagbase/tagbase-server/commit/33234d2d746ea9ed9521aeb61fc05543c172b724))
+
 ## [0.16.1](https://github.com/tagbase/tagbase-server/compare/v0.16.0...v0.16.1) (2026-09-23)
 
 # [0.16.0](https://github.com/tagbase/tagbase-server/compare/v0.15.0...v0.16.0) (2026-09-13)

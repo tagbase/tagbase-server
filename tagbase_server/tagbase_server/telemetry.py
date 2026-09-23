@@ -27,7 +27,7 @@ from opentelemetry.sdk.trace.sampling import ALWAYS_ON
 logger = logging.getLogger(__name__)
 
 SERVICE_NAME = "tagbase_server"
-SERVICE_VERSION = "v0.16.1"
+SERVICE_VERSION = "v0.16.2"
 METER_NAME = "tagbase_server"
 TRACER_NAME = "tagbase_server"
 

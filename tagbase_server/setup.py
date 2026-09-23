@@ -4,6 +4,6 @@
 from setuptools import setup
 
 # Kept for callers that import setup.VERSION.
-VERSION = "v0.16.1"
+VERSION = "v0.16.2"
 
 setup()
