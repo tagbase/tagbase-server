@@ -183,7 +183,7 @@ services:
       retries: 10
       start_period: 30s
     hostname: postgis
-    image: kartoza/postgis:18-3.6@sha256:51252babeb0e30a0a51fd208ebe07284827798c0fc8fc945adbece45b340b86d
+    image: kartoza/postgis:18-3.6@sha256:69c86f07ff80ac8c852f4303ea6542a46de15b047cf8692465f752905f2b1979
     platform: linux/amd64
     labels:
       "docker_compose_diagram.cluster": "Internal Network"
