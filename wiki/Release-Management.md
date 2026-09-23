@@ -23,7 +23,7 @@ That path is gone. There is no version-bump PR. [semantic-release](https://githu
   - [`tagbase_server/setup.py`](https://github.com/tagbase/tagbase-server/blob/main/tagbase_server/setup.py)
   - OpenAPI `info.version` in root [`openapi.yaml`](https://github.com/tagbase/tagbase-server/blob/main/openapi.yaml) and [`tagbase_server/tagbase_server/openapi/openapi.yaml`](https://github.com/tagbase/tagbase-server/blob/main/tagbase_server/tagbase_server/openapi/openapi.yaml)
   - [`tagbase_server/tagbase_server/telemetry.py`](https://github.com/tagbase/tagbase-server/blob/main/tagbase_server/tagbase_server/telemetry.py) `SERVICE_VERSION`
-- After the tag exists, [`.github/workflows/publish-ghcr.yml`](https://github.com/tagbase/tagbase-server/blob/main/.github/workflows/publish-ghcr.yml) builds/pushes GHCR images and `docker compose publish` of [`docker-compose.publish.yml`](https://github.com/tagbase/tagbase-server/blob/main/docker-compose.publish.yml) as `ghcr.io/tagbase/tagbase-stack` (tags `vX.Y.Z`, `X.Y`, `X`, `latest`). First package push is often **private**; set each GHCR package public and link it to `tagbase/tagbase-server` once.
+- After the GitHub Release is **published**, [`.github/workflows/publish-ghcr.yml`](https://github.com/tagbase/tagbase-server/blob/main/.github/workflows/publish-ghcr.yml) builds/pushes GHCR images and `docker compose publish` of [`docker-compose.publish.yml`](https://github.com/tagbase/tagbase-server/blob/main/docker-compose.publish.yml) as `ghcr.io/tagbase/tagbase-stack` (tags `vX.Y.Z`, `X.Y`, `X`, `latest`). It does **not** run on tag push: the release commit message includes `[skip ci]`, which suppresses `on.push.tags`. First package push is often **private**; set each GHCR package public and link it to `tagbase/tagbase-server` once. Do not republish `v0.16.0` (that tag has no GHCR images).
 
 ## Clone-free operator install (Compose OCI)
 
@@ -103,7 +103,7 @@ Agents: see [AGENTS.md](https://github.com/tagbase/tagbase-server/blob/main/AGEN
 
 ```text
 .github/workflows/semantic-release.yml   # cron + dispatch; Node 24; npx semantic-release
-.github/workflows/publish-ghcr.yml         # v* tags: bake GHCR images + compose publish
+.github/workflows/publish-ghcr.yml         # GitHub Release published (+ dispatch): bake GHCR + compose publish
 .github/workflows/commitlint.yml          # PR title + commits
 .releaserc.json                          # plugins, releaseRules, git assets, tagFormat
 scripts/semantic-release-fortnight-gate.sh
@@ -161,6 +161,14 @@ Release now (skips the 14-day gate; still no-ops if there is nothing to release)
 gh workflow run semantic-release.yml --ref main
 ```
 
+That creates the tag and GitHub Release. [`.github/workflows/publish-ghcr.yml`](https://github.com/tagbase/tagbase-server/blob/main/.github/workflows/publish-ghcr.yml) then runs on `release: published`. Merge any change to that workflow onto `main` **before** dispatching Semantic Release (`release` workflows are read from the default branch).
+
+Recover a later `v*` tag (not `v0.16.0`) if the GHCR job did not run:
+
+```bash
+gh workflow run publish-ghcr.yml --ref main -f tag=vX.Y.Z
+```
+
 Inspect the last tags:
 
 ```bash
@@ -186,6 +194,7 @@ Do not run `release.yml`. Do not open `release/v*` bump PRs.
 | `set-release-version.py` exits non-zero | A listed file no longer matches the expected pattern (URL or version string).             |
 | GH006 (PR required to push `main`)      | `RELEASE_TOKEN` missing/expired or Actions bot; not a missing `contents: write`.          |
 | commitlint red on this PR               | Title or a commit is not Conventional (squash-merge still needs a Conventional PR title). |
+| GHCR job never starts after a Release   | Workflow still only listens for tag push, or this file is not on `main` yet.              |
 
 ## Related CI (not the releaser)
 
