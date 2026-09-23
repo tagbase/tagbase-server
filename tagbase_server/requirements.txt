@@ -8,7 +8,7 @@ opentelemetry-exporter-otlp==1.44.0
 opentelemetry-instrumentation-flask==0.65b0
 opentelemetry-instrumentation-logging==0.65b0
 opentelemetry-instrumentation-psycopg2==0.65b0
-pandas==3.0.5
+pandas==3.0.6
 parmap==1.7.0
 patool==4.1.0
 psycopg2-binary==2.9.12
