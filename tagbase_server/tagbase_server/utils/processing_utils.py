@@ -155,7 +155,7 @@ def insert_new_submission(
 ):
     cur.execute(
         "INSERT INTO submission (tag_id, filename, date_time, notes, version, file_sha256, dataset_id, md_sha256, data_sha256) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING submission_id",
         (
             tag_id,
             submission_filename,
@@ -168,10 +168,12 @@ def insert_new_submission(
             data_sha256,
         ),
     )
+    submission_id = cur.fetchone()[0]
     logger.info(
         "Successful INSERT of '%s' into 'submission' table.",
         submission_filename,
     )
+    return submission_id
 
 
 def detect_duplicate_file(cursor, file_sha256):
@@ -310,13 +312,6 @@ def insert_metadata(cur, metadata, tag_id):
             record_db_error("insert_metadata")
             logger.error("Error inserting metadata for tag %s", x)
     logger.debug("Inserted metadata attributes: %s", metadata)
-
-
-def get_current_submission_id(cur):
-    cur.execute("SELECT currval('submission_submission_id_seq')")
-    submission_id = cur.fetchone()[0]
-    logger.debug("New submission_id=%d", submission_id)
-    return submission_id
 
 
 def update_submission_metadata(
@@ -601,7 +596,7 @@ def process_etuff_file(file, version=None, notes=None):
                     )
 
                     if not submission_id:
-                        insert_new_submission(
+                        submission_id = insert_new_submission(
                             cur,
                             tag_id,
                             submission_filename,
@@ -612,7 +607,6 @@ def process_etuff_file(file, version=None, notes=None):
                             metadata_hash,
                             content_hash,
                         )
-                        submission_id = get_current_submission_id(cur)
 
                     persist_span.set_attribute("tag_id", tag_id)
                     persist_span.set_attribute("submission_id", submission_id)
