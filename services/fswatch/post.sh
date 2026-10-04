@@ -106,17 +106,46 @@ ingest_file() {
 	case "$filename" in
 	*.txt) ctype=text/plain ;;
 	esac
-	if ! curl -sS -f -X POST \
+	if ! body=$(curl -sS -f -X POST \
 		-H "accept: application/json" \
 		-H "Content-Type: ${ctype}" \
 		-T "$line" \
-		"${TAGBASE_INGEST_BASE}/ingest?filename=${enc}&type=etuff"; then
+		"${TAGBASE_INGEST_BASE}/ingest?filename=${enc}&type=etuff"); then
 		echo "Ingest failed for $filename (see tagbase_server logs)"
-	else
-		printf '%s\n%s\n' "$line" "$size" >"$DEDUPE_STATE"
-		echo
-		echo "Ingest OK: $filename"
+		return 0
 	fi
+	job_id=$(printf '%s' "$body" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+	if [ -z "$job_id" ]; then
+		echo "Ingest accept for $filename did not return a job id"
+		return 0
+	fi
+	if ! wait_for_job "$job_id"; then
+		echo "Ingest failed for $filename (see tagbase_server logs)"
+		return 0
+	fi
+	printf '%s\n%s\n' "$line" "$size" >"$DEDUPE_STATE"
+	echo
+	echo "Ingest OK: $filename"
+}
+
+wait_for_job() {
+	job_id=$1
+	while true; do
+		if ! status_body=$(curl -sS -f \
+			-H "accept: application/json" \
+			"${TAGBASE_INGEST_BASE}/ingest/jobs/${job_id}"); then
+			echo "Job status request failed for $job_id"
+			return 1
+		fi
+		if printf '%s' "$status_body" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"succeeded"'; then
+			return 0
+		fi
+		if printf '%s' "$status_body" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"failed"'; then
+			echo "Job $job_id failed: $status_body"
+			return 1
+		fi
+		sleep 2
+	done
 }
 
 scan_existing() {

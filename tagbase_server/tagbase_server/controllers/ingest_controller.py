@@ -1,20 +1,16 @@
 import logging
+import os
 import time
-from functools import partial
-from multiprocessing import cpu_count
+import uuid
 
-import parmap
-from tqdm import tqdm as std_tqdm
-
-from tagbase_server.models.ingest200 import Ingest200  # noqa: E501
-from tagbase_server.problem import TagbaseClientError, as_json
-from tagbase_server.telemetry import get_tracer, record_ingest_request
+from tagbase_server.ingest_jobs import IngestJobError, enqueue_job, fetch_job
+from tagbase_server.problem import TYPE_HTTP, TagbaseClientError, as_json
+from tagbase_server.telemetry import record_ingest_request
 from tagbase_server.utils.io_utils import (
+    TEMP_DIR,
     process_get_input_data,
     process_post_input_data,
-    unpack_compressed_binary,
 )
-from tagbase_server.utils.processing_utils import process_etuff_file
 
 logger = logging.getLogger(__name__)
 
@@ -30,91 +26,54 @@ def _resolve_ingest_file_type(type):
     return ingest_file_type
 
 
-def _ingest_progress_bar(data_file):
-    """Create a standard stdout progress bar for ingestio]n."""
-    return partial(std_tqdm, desc=f"Ingesting: {data_file}")
-
-
-def _run_ingest_queue(etuff_files, version, notes, data_file):
-    parmap.map(
-        process_etuff_file,
-        etuff_files,
-        version=version,
-        notes=notes,
-        pm_parallel=False,
-        pm_processes=cpu_count(),
-        pm_pbar=_ingest_progress_bar(data_file),
+def _isolate_upload(source_path):
+    """Keep a POST body off the caller-supplied name so a later post cannot overwrite it."""
+    unique = os.path.join(
+        TEMP_DIR, f"{uuid.uuid4().hex}-{os.path.basename(source_path)}"
     )
+    os.replace(source_path, unique)
+    return unique
 
 
-def _ingest_with_telemetry(operation_name, work):
-    tracer = get_tracer()
-    start = time.perf_counter()
-    outcome = "success"
+def _accept(source_path, filename, version, notes, started):
     try:
-        with tracer.start_as_current_span("ingest.handle") as span:
-            span.set_attribute("ingest.operation", operation_name)
-            return work()
-    except TagbaseClientError:
-        outcome = "client_error"
+        job_id = enqueue_job(
+            source_path=source_path,
+            filename=filename,
+            version=version,
+            notes=notes,
+        )
+    except IngestJobError:
+        logger.exception("Failed to queue ingest for %s", filename)
         raise
-    except ValueError as exc:
-        outcome = "client_error"
-        raise TagbaseClientError(str(exc)) from exc
-    except Exception:
-        outcome = "server_error"
-        raise
-    finally:
-        record_ingest_request(outcome, time.perf_counter() - start)
+    record_ingest_request("accepted", round(time.perf_counter() - started, 2))
+    return as_json({"id": job_id, "status": "queued"}, 202)
 
 
 def ingest_get(file, notes=None, type=None, type_=None, version=None):  # noqa: E501
     """Get network accessible file and execute ingestion
 
-    Get network accessible file and execute ingestion # noqa: E501
-
-    :param file: Location of a network accessible (file, ftp, http, https) file e.g. &#39;file:///usr/src/app/data/eTUFF-sailfish-117259.txt&#39;.
+    :param file: Location of a network accessible (file, ftp, http, https) file
     :type file: str
-    :param notes: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solution-positional meta/data)
+    :param notes: Free-form text field
     :type notes: str
-    :param type: Type of file to be ingested, defaults to &#39;etuff&#39;
+    :param type: Type of file to be ingested, defaults to 'etuff'
     :type type: str
     :param type_: Connexion pythonic alias for OpenAPI parameter ``type``
     :type type_: str
     :param version: Version identifier for the eTUFF tag data file ingested
     :type version: str
 
-    :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
+    :rtype: tuple
     """
-
-    def _work():
-        ingest_file_type = _resolve_ingest_file_type(
-            type_ if type_ is not None else type
-        )
-        logger.info("Ingest file type: %s", ingest_file_type)
-        start = time.perf_counter()
+    started = time.perf_counter()
+    ingest_file_type = _resolve_ingest_file_type(type_ if type_ is not None else type)
+    logger.info("Ingest file type: %s", ingest_file_type)
+    try:
         data_file = process_get_input_data(file)
-        etuff_files = []
-        if not data_file.endswith(".txt"):
-            etuff_files = unpack_compressed_binary(data_file)
-        else:
-            etuff_files.append(data_file)
-        logger.info("eTUFF ingestion queue: %s", etuff_files)
-        _run_ingest_queue(etuff_files, version, notes, data_file)
-        finish = time.perf_counter()
-        elapsed = round(finish - start, 2)
-        return as_json(
-            Ingest200.from_dict(
-                {
-                    "code": "200",
-                    "elapsed": elapsed,
-                    "message": f"Processing %s file(s) - {etuff_files}"
-                    % len(etuff_files),
-                }
-            )
-        )
-
-    return _ingest_with_telemetry("get", _work)
+    except ValueError as exc:
+        raise TagbaseClientError(str(exc)) from exc
+    return _accept(data_file, os.path.basename(data_file), version, notes, started)
 
 
 def ingest_post(
@@ -122,49 +81,47 @@ def ingest_post(
 ):  # noqa: E501
     """Post a local file and perform a ingest operation
 
-    Post a local file and perform a ingest operation # noqa: E501
-
-    :param filename: Free-form text field to explicitly define the name of the file to be persisted
+    :param filename: Name of the file to be persisted
     :type filename: str
     :param body:
     :type body: str
-    :param notes: Free-form text field where details of submitted eTUFF file for ingest can be provided e.g. submitter name, etuff data contents (tag metadata and measurements + primary position data, or just secondary solution-positional meta/data)
+    :param notes: Free-form text field
     :type notes: str
-    :param type: Type of file to be ingested, defaults to &#39;etuff&#39;
+    :param type: Type of file to be ingested, defaults to 'etuff'
     :type type: str
     :param type_: Connexion pythonic alias for OpenAPI parameter ``type``
     :type type_: str
     :param version: Version identifier for the eTUFF tag data file ingested
     :type version: str
 
-    :rtype: Union[Ingest200, Tuple[Ingest200, int], Tuple[Ingest200, int, Dict[str, str]]
+    :rtype: tuple
     """
+    started = time.perf_counter()
+    ingest_file_type = _resolve_ingest_file_type(type_ if type_ is not None else type)
+    logger.info("Ingest file type: %s", ingest_file_type)
+    data_file = process_post_input_data(filename, body)
+    stored = _isolate_upload(data_file)
+    return _accept(stored, filename, version, notes, started)
 
-    def _work():
-        ingest_file_type = _resolve_ingest_file_type(
-            type_ if type_ is not None else type
-        )
-        logger.info("Ingest file type: %s", ingest_file_type)
-        start = time.perf_counter()
-        data_file = process_post_input_data(filename, body)
-        etuff_files = []
-        if not data_file.endswith(".txt"):
-            etuff_files = unpack_compressed_binary(data_file)
-        else:
-            etuff_files.append(data_file)
-        logger.info("eTUFF ingestion queue: %s", etuff_files)
-        _run_ingest_queue(etuff_files, version, notes, data_file)
-        finish = time.perf_counter()
-        elapsed = round(finish - start, 2)
-        return as_json(
-            Ingest200.from_dict(
-                {
-                    "code": "200",
-                    "elapsed": elapsed,
-                    "message": f"Processing %s file(s) - {etuff_files}."
-                    % len(etuff_files),
-                }
-            )
-        )
 
-    return _ingest_with_telemetry("post", _work)
+def get_ingest_job(job_id):  # noqa: E501
+    """Return one ingest job.
+
+    :param job_id: Job id returned by POST or GET /ingest
+    :type job_id: str
+
+    :rtype: tuple
+    """
+    try:
+        job = fetch_job(job_id)
+    except IngestJobError:
+        logger.exception("Failed to read ingest job %s", job_id)
+        raise
+    if job is None:
+        raise TagbaseClientError(
+            f"Ingest job '{job_id}' was not found.",
+            title="Not Found",
+            type_=TYPE_HTTP,
+            status=404,
+        )
+    return as_json(job)

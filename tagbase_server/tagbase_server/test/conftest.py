@@ -117,6 +117,14 @@ def clean_db(db_conn):
     with db_conn.cursor() as cur:
         cur.execute("TRUNCATE submission CASCADE")
         cur.execute("TRUNCATE dataset CASCADE")
+        cur.execute("""
+            DO $$
+            BEGIN
+                IF to_regclass('public.ingest_job') IS NOT NULL THEN
+                    TRUNCATE ingest_job;
+                END IF;
+            END $$;
+            """)
         for attribute_id, category, name, description, necessity in METADATA_TYPE_SEED:
             cur.execute(
                 """

@@ -3,9 +3,9 @@
 # flake8: noqa
 from __future__ import absolute_import
 
-from tagbase_server.models.ingest200 import Ingest200
-
 # import models into model package
+from tagbase_server.models.ingest_accepted import IngestAccepted
+from tagbase_server.models.ingest_job import IngestJob
 from tagbase_server.models.problem import Problem
 from tagbase_server.models.tag200 import Tag200
 from tagbase_server.models.tag200_collection import Tag200Collection

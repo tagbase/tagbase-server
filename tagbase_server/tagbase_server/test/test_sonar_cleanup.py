@@ -12,7 +12,7 @@ from tagbase_server.__main__ import configure_cors, parse_cors_origins
 from tagbase_server.controllers import ingest_controller
 from tagbase_server.controllers.ingest_controller import _resolve_ingest_file_type
 from tagbase_server.models.base_model_ import Model
-from tagbase_server.models.ingest200 import Ingest200
+from tagbase_server.models.tag_put200 import TagPut200
 from tagbase_server.utils import io_utils
 from tagbase_server.utils import processing_utils as pu
 
@@ -125,34 +125,45 @@ def test_resolve_ingest_file_type_defaults_and_rejects():
         _resolve_ingest_file_type("csv")
 
 
-@mock.patch("tagbase_server.controllers.ingest_controller.parmap.map")
+@mock.patch("tagbase_server.controllers.ingest_controller.record_ingest_request")
+@mock.patch(
+    "tagbase_server.controllers.ingest_controller.enqueue_job", return_value="job-1"
+)
 @mock.patch("tagbase_server.controllers.ingest_controller.process_get_input_data")
-def test_ingest_get_happy_path(mock_get, mock_map):
+def test_ingest_get_happy_path(mock_get, mock_enqueue, mock_record):
     mock_get.return_value = "/data/file.txt"
-    mock_map.return_value = [0]
     result, status, headers = ingest_controller.ingest_get(
         "file:///data/file.txt", type="etuff"
     )
-    assert status == 200
+    assert status == 202
     assert headers["Content-Type"] == "application/json"
-    assert result.code == "200"
-    mock_map.assert_called_once()
+    assert result == {"id": "job-1", "status": "queued"}
+    mock_enqueue.assert_called_once()
+    mock_record.assert_called_once()
+    assert mock_record.call_args.args[0] == "accepted"
 
 
-@mock.patch("tagbase_server.controllers.ingest_controller.parmap.map")
-@mock.patch("tagbase_server.controllers.ingest_controller.unpack_compressed_binary")
+@mock.patch("tagbase_server.controllers.ingest_controller.record_ingest_request")
+@mock.patch(
+    "tagbase_server.controllers.ingest_controller.enqueue_job", return_value="job-2"
+)
+@mock.patch(
+    "tagbase_server.controllers.ingest_controller._isolate_upload",
+    return_value="/tmp/unique-bundle.zip",
+)
 @mock.patch("tagbase_server.controllers.ingest_controller.process_post_input_data")
-def test_ingest_post_archive_path(mock_post, mock_unpack, mock_map):
-    mock_post.return_value = "/data/bundle.zip"
-    mock_unpack.return_value = ["/data/a.txt"]
-    mock_map.return_value = [0]
+def test_ingest_post_archive_path(mock_post, mock_isolate, mock_enqueue, mock_record):
+    mock_post.return_value = "/tmp/bundle.zip"
     result, status, headers = ingest_controller.ingest_post(
         "bundle.zip", b"x", type=None
     )
-    assert status == 200
+    assert status == 202
     assert headers["Content-Type"] == "application/json"
-    assert result.code == "200"
-    mock_unpack.assert_called_once()
+    assert result["status"] == "queued"
+    mock_isolate.assert_called_once_with("/tmp/bundle.zip")
+    mock_enqueue.assert_called_once()
+    assert mock_enqueue.call_args.kwargs["source_path"] == "/tmp/unique-bundle.zip"
+    mock_record.assert_called_once()
 
 
 def test_processing_utils_has_no_pytz():
@@ -335,7 +346,7 @@ def test_base_model_ne_and_to_dict_branches():
     assert as_dict["items"][0]["name"] == "a"
     assert as_dict["nested"]["name"] == "b"
     assert as_dict["mapping"]["k"]["name"] == "c"
-    a = Ingest200.from_dict({"code": "200", "elapsed": 1.0, "message": "a"})
-    b = Ingest200.from_dict({"code": "200", "elapsed": 1.0, "message": "b"})
+    a = TagPut200.from_dict({"code": "200", "message": "a"})
+    b = TagPut200.from_dict({"code": "200", "message": "b"})
     assert a != b
     assert not (a != a)

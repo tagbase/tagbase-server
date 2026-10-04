@@ -5,7 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from tagbase_server.test.helpers import API_PREFIX, ETUFF_FIXTURE, response_json
+from tagbase_server.test.helpers import (
+    API_PREFIX,
+    ETUFF_FIXTURE,
+    finish_accepted_ingest,
+    response_json,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -34,10 +39,7 @@ def test_post_ingest_etuff_makes_tag_listable_and_gettable(
         },
         data=etuff_bytes,
     )
-    assert response.status_code == 200
-    body = response_json(response)
-    assert body["code"] == "200"
-    assert "minimal-etuff.txt" in body["message"]
+    finish_accepted_ingest(client, response)
 
     listed = client.get(f"{API_PREFIX}/tags", headers={"Accept": "application/json"})
     assert listed.status_code == 200
@@ -70,8 +72,8 @@ def test_post_ingest_duplicate_etuff_keeps_single_submission(
     second = client.post(
         f"{API_PREFIX}/ingest", params=params, headers=headers, data=etuff_bytes
     )
-    assert first.status_code == 200
-    assert second.status_code == 200
+    finish_accepted_ingest(client, first)
+    finish_accepted_ingest(client, second)
 
     listed = response_json(
         client.get(f"{API_PREFIX}/tags", headers={"Accept": "application/json"})
@@ -97,7 +99,7 @@ def test_post_ingest_zip_etuff_makes_tag_retrievable(client, clean_db, etuff_zip
         },
         data=etuff_zip_bytes,
     )
-    assert response.status_code == 200
+    finish_accepted_ingest(client, response)
     listed = response_json(
         client.get(f"{API_PREFIX}/tags", headers={"Accept": "application/json"})
     )
@@ -114,7 +116,7 @@ def test_get_ingest_file_url_makes_tag_listable(client, clean_db, short_etuff_fi
         },
         headers={"Accept": "application/json"},
     )
-    assert response.status_code == 200
+    finish_accepted_ingest(client, response)
     listed = response_json(
         client.get(f"{API_PREFIX}/tags", headers={"Accept": "application/json"})
     )
@@ -162,7 +164,7 @@ def test_ingest_defaults_omitted_type_to_etuff(client, clean_db, etuff_bytes):
         },
         data=etuff_bytes,
     )
-    assert response.status_code == 200
+    finish_accepted_ingest(client, response)
     listed = response_json(
         client.get(f"{API_PREFIX}/tags", headers={"Accept": "application/json"})
     )

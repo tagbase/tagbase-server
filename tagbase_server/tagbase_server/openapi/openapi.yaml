@@ -27,7 +27,7 @@ tags:
 paths:
   /ingest:
     get:
-      description: Get network accessible file and execute ingestion
+      description: Get a network accessible file, store it, and queue ingestion
       operationId: ingest_get
       parameters:
         - description: Location of a network accessible (file, ftp, http, https)
@@ -46,22 +46,22 @@ paths:
         - $ref: "#/components/parameters/type"
         - $ref: "#/components/parameters/version"
       responses:
-        "200":
+        "202":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Ingest200"
-          description: A success message confirming ingestion.
+                $ref: "#/components/schemas/IngestAccepted"
+          description: The file was stored and an ingest job was queued.
         "400":
           $ref: "#/components/responses/BadRequest"
         "500":
           $ref: "#/components/responses/InternalError"
-      summary: Get network accessible file and execute ingestion
+      summary: Get network accessible file and queue ingestion
       tags:
         - ingest
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
     post:
-      description: Post a local file and perform a ingest operation
+      description: Store a local file and queue ingestion
       operationId: ingest_post
       parameters:
         - $ref: "#/components/parameters/filename"
@@ -87,20 +87,52 @@ paths:
         required: true
         x-body-name: body
       responses:
-        "200":
+        "202":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Ingest200"
-          description: A success message confirming ingestion.
+                $ref: "#/components/schemas/IngestAccepted"
+          description: The file was stored and an ingest job was queued.
         "400":
           $ref: "#/components/responses/BadRequest"
         "500":
           $ref: "#/components/responses/InternalError"
-      summary: Post a local file and perform a ingest operation
+      summary: Post a local file and queue ingestion
       tags:
         - ingest
       x-codegen-request-body-name: body
+      x-openapi-router-controller: tagbase_server.controllers.ingest_controller
+  /ingest/jobs/{job_id}:
+    get:
+      description: Status of one ingest job
+      operationId: get_ingest_job
+      parameters:
+        - description: Job id returned when the file was accepted
+          explode: true
+          in: path
+          name: job_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+            minLength: 36
+            maxLength: 36
+            pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+          style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestJob"
+          description: The job is queued, running, or finished.
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+      summary: Get ingest job status
+      tags:
+        - ingest
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
   /tags:
     delete:
@@ -201,6 +233,12 @@ components:
   responses:
     BadRequest:
       description: Client-fixable request error.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: The ingest job id is not in the table.
       content:
         application/problem+json:
           schema:
@@ -353,38 +391,88 @@ components:
           maxLength: 36
           pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
           example: 123e4567-e89b-12d3-a456-426614174000
-    Ingest200:
-      description: HTTP 200 success response
+    IngestAccepted:
+      description: HTTP 202 response after an ingest file is stored
       example:
-        code: "200"
-        elapsed: "0:00:06.506691"
-        message:
-          Data file eTUFF-sailfish-117259.txt successfully ingested into Tagbase
-          DB.
+        id: 123e4567-e89b-12d3-a456-426614174000
+        status: queued
       properties:
-        code:
-          description: HTTP status code
-          example: "200"
+        id:
+          description: Job id
+          example: 123e4567-e89b-12d3-a456-426614174000
+          format: uuid
+          maxLength: 36
+          minLength: 36
+          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
           type: string
-          minLength: 3
-          maxLength: 3
-          pattern: ^[1-5][0-9]{2}$
-        elapsed:
-          description: Elapsed time for the operation
+        status:
+          description: Job status at accept time
+          enum:
+            - queued
+          example: queued
+          maxLength: 6
+          minLength: 6
+          pattern: ^queued$
           type: string
-          minLength: 1
-          maxLength: 64
-          pattern: ^(?!\s*$).+$
-        message:
-          description: A string detailing specifics of an HTTP operation
-          example:
-            Data file eTUFF-sailfish-117259.txt successfully ingested into
-            Tagbase DB.
+      required:
+        - id
+        - status
+      title: IngestAccepted
+      type: object
+    IngestJob:
+      description: Status of one ingest job
+      example:
+        id: 123e4567-e89b-12d3-a456-426614174000
+        status: succeeded
+        files_total: 2
+        files_done: 2
+      properties:
+        id:
+          description: Job id
+          example: 123e4567-e89b-12d3-a456-426614174000
+          format: uuid
+          maxLength: 36
+          minLength: 36
+          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
           type: string
-          minLength: 1
+        status:
+          description: queued, running, succeeded, or failed
+          enum:
+            - queued
+            - running
+            - succeeded
+            - failed
+          example: succeeded
+          maxLength: 9
+          minLength: 6
+          pattern: ^(queued|running|succeeded|failed)$
+          type: string
+        error:
+          description: Present when the job failed
+          example: restarted before ingest finished
           maxLength: 10000
+          minLength: 1
           pattern: ^(?!\s*$).+$
-      title: Ingest200
+          type: string
+        files_total:
+          description: Members in the archive, once unpacking has started
+          example: 2
+          format: int32
+          maximum: 2147483647
+          minimum: 0
+          type: integer
+        files_done:
+          description: Members ingested so far
+          example: 2
+          format: int32
+          maximum: 2147483647
+          minimum: 0
+          type: integer
+      required:
+        - id
+        - status
+        - files_done
+      title: IngestJob
       type: object
     Metadata:
       description: Contains the ingested tag metadata consistent with the eTUFF specification
