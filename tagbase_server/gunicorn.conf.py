@@ -14,6 +14,7 @@ errorlog = "./logs/gunicorn_error_log.txt"
 loglevel = "info"
 worker_class = "uvicorn.workers.UvicornWorker"
 workers = max(2, multiprocessing.cpu_count())
+timeout = 60
 
 
 def post_fork(server, worker):
