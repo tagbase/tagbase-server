@@ -858,13 +858,6 @@ SELECT pg_catalog.setval('observation_types_variable_id_seq', 1, false);
 
 
 --
--- Name: submission_submission_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('submission_submission_id_seq', 1, false);
-
-
---
 -- Name: submission_tag_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
