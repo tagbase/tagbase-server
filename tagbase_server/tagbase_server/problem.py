@@ -6,6 +6,7 @@ import logging
 import uuid
 
 from flask import jsonify, request
+from opentelemetry import trace
 from werkzeug.exceptions import HTTPException
 
 logger = logging.getLogger(__name__)
@@ -44,7 +45,15 @@ class TagbaseClientError(Exception):
 
 
 def new_trace_id():
-    return str(uuid.uuid4())
+    return uuid.uuid4().hex
+
+
+def current_trace_id():
+    """Return the active OpenTelemetry trace ID or a compatible fallback."""
+    span_context = trace.get_current_span().get_span_context()
+    if span_context.is_valid:
+        return f"{span_context.trace_id:032x}"
+    return new_trace_id()
 
 
 def problem_body(
@@ -60,7 +69,7 @@ def problem_body(
         "title": title,
         "status": status,
         "detail": detail,
-        "trace_id": trace_id or new_trace_id(),
+        "trace_id": trace_id or current_trace_id(),
     }
     if instance is not None:
         body["instance"] = instance
@@ -96,7 +105,7 @@ def register_problem_handlers(flask_app):
 
     @flask_app.errorhandler(TagbaseClientError)
     def _handle_client_error(exc):
-        trace_id = new_trace_id()
+        trace_id = current_trace_id()
         logger.warning(
             "Client error [%s]: %s",
             trace_id,
@@ -112,7 +121,7 @@ def register_problem_handlers(flask_app):
 
     @flask_app.errorhandler(HTTPException)
     def _handle_http_exception(exc):
-        trace_id = new_trace_id()
+        trace_id = current_trace_id()
         detail = exc.description or exc.name
         return problem_response(
             status=exc.code or 500,
@@ -128,7 +137,7 @@ def register_problem_handlers(flask_app):
             return _handle_client_error(exc)
         if isinstance(exc, HTTPException):
             return _handle_http_exception(exc)
-        trace_id = new_trace_id()
+        trace_id = current_trace_id()
         logger.exception("Unhandled error [%s]", trace_id)
         return problem_response(
             status=500,
