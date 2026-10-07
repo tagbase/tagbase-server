@@ -2,6 +2,8 @@
 
 """Unit tests for RFC7807 problem+json helpers and Problem model."""
 
+from opentelemetry import trace
+from opentelemetry.trace import NonRecordingSpan, SpanContext
 from werkzeug.exceptions import NotFound
 
 from tagbase_server.models.problem import Problem
@@ -11,9 +13,24 @@ from tagbase_server.problem import (
     TYPE_INTERNAL,
     TagbaseClientError,
     as_json,
+    current_trace_id,
     problem_body,
 )
 from tagbase_server.test.helpers import API_PREFIX
+
+
+def test_current_trace_id_uses_active_otel_span():
+    expected = "4bf92f3577b34da6a3ce929d0e0e4736"
+    span = NonRecordingSpan(
+        SpanContext(
+            trace_id=int(expected, 16),
+            span_id=int("00f067aa0ba902b7", 16),
+            is_remote=False,
+        )
+    )
+
+    with trace.use_span(span):
+        assert current_trace_id() == expected
 
 
 def test_problem_body_includes_required_fields():
