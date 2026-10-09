@@ -1399,3 +1399,18 @@ AS $BODY$
  WHERE position_date_time IS NULL;
 $BODY$;
 
+
+CREATE TABLE ingest_job (
+    id uuid PRIMARY KEY,
+    status text NOT NULL
+        CHECK (status IN ('queued', 'running', 'succeeded', 'failed')),
+    source_path text NOT NULL,
+    filename text,
+    version text,
+    notes text,
+    error text,
+    files_total integer,
+    files_done integer NOT NULL DEFAULT 0,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);

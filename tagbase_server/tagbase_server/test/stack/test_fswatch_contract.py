@@ -81,10 +81,25 @@ class _IngestHandler(BaseHTTPRequestHandler):
                 "body": body,
             }
         )
+        self.send_response(202)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(
+            b'{"id":"11111111-1111-1111-1111-111111111111","status":"queued"}'
+        )
+
+    def do_GET(self):  # noqa: N802
+        parsed = urlparse(self.path)
+        if not parsed.path.endswith("/11111111-1111-1111-1111-111111111111"):
+            self.send_response(404)
+            self.end_headers()
+            return
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(b'{"code":"200","message":"ok","elapsed":"0"}')
+        self.wfile.write(
+            b'{"id":"11111111-1111-1111-1111-111111111111","status":"succeeded","error":null,"files_total":1,"files_done":1}'
+        )
 
     def log_message(self, format, *args):  # noqa: A003
         return
