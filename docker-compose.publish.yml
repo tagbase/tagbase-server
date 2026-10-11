@@ -103,13 +103,41 @@ services:
       - acme-www:/var/www/acme
 
   pgadmin4:
+    configs:
+      - source: pgadmin-servers
+        target: /pgadmin4/servers.json
+      - source: pgadmin-pgpass
+        target: /run/secrets/pgpass
+        uid: "5050"
+        gid: "0"
+        mode: 0400
     depends_on:
       postgis:
         condition: service_healthy
+    # The image copies PGPASS_FILE only while pgadmin4.db is first created.
+    # Its /var/lib/pgadmin volume survives recreate, so refresh .pgpass here.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        if [ -n "$${PGPASS_FILE:-}" ] && [ -f "$$PGPASS_FILE" ]; then
+          user_dir=$$(printf '%s' "$${PGADMIN_DEFAULT_EMAIL}" | sed 's/@/_/g')
+          mkdir -p "/var/lib/pgadmin/storage/$${user_dir}"
+          cp "$$PGPASS_FILE" "/var/lib/pgadmin/storage/$${user_dir}/.pgpass"
+          chmod 600 "/var/lib/pgadmin/storage/$${user_dir}/.pgpass"
+        fi
+        exec /entrypoint.sh
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD:?set PGADMIN_DEFAULT_PASSWORD}
       - PGADMIN_LISTEN_PORT=5434
+      # The image compares this value to the string True.
+      - PGADMIN_REPLACE_SERVERS_ON_STARTUP=True
+      - PGADMIN_SERVER_JSON_FILE=/pgadmin4/servers.json
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+      # Server mode copies this to the login user's storage as .pgpass.
+      - PGPASS_FILE=/run/secrets/pgpass
     expose:
       - 5434
     hostname: pgadmin4
@@ -291,3 +319,26 @@ volumes:
   staging-data:
   dbbackups:
   tagbase-logs:
+
+configs:
+  # Keep in sync with services/pgadmin/servers.json. Inline content avoids a
+  # host bind, which Compose OCI artifacts cannot include.
+  pgadmin-servers:
+    content: |
+      {
+        "Servers": {
+          "1": {
+            "Name": "tagbase",
+            "Group": "Servers",
+            "Host": "postgis",
+            "Port": 5432,
+            "MaintenanceDB": "tagbase",
+            "Username": "tagbase",
+            "SSLMode": "prefer",
+            "PassFile": ".pgpass"
+          }
+        }
+      }
+  pgadmin-pgpass:
+    content: |
+      postgis:5432:*:tagbase:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
