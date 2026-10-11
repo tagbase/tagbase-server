@@ -235,7 +235,6 @@ def test_compute_submission_hashes(mock_make, mock_file, mock_props):
 @mock.patch("tagbase_server.utils.processing_utils.insert_metadata")
 @mock.patch("tagbase_server.utils.processing_utils.is_only_metadata_change")
 @mock.patch("tagbase_server.utils.processing_utils.process_global_attributes_metadata")
-@mock.patch("tagbase_server.utils.processing_utils.get_current_submission_id")
 @mock.patch("tagbase_server.utils.processing_utils.insert_new_submission")
 @mock.patch("tagbase_server.utils.processing_utils.get_submission_id")
 @mock.patch("tagbase_server.utils.processing_utils.get_tag_id")
@@ -253,7 +252,6 @@ def test_process_etuff_file_full_path(
     mock_tag,
     mock_sub,
     mock_insert,
-    mock_curr,
     mock_meta,
     mock_meta_only,
     mock_insert_meta,
@@ -276,7 +274,7 @@ def test_process_etuff_file_full_path(
     mock_dataset.return_value = 1
     mock_tag.return_value = 2
     mock_sub.return_value = None
-    mock_curr.return_value = 3
+    mock_insert.return_value = 3
     mock_meta.return_value = [("3", "1", "v")]
     mock_meta_only.return_value = False
     mock_build.return_value = ([[timezone.utc, 1, "1", 3, 2]], 1)

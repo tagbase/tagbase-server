@@ -153,11 +153,39 @@ services:
       - type: tmpfs
         target: /opt/data
 
+  db-migrate:
+    image: ghcr.io/tagbase/tagbase-postgis:${TAGBASE_VERSION:-latest}
+    depends_on:
+      postgis:
+        condition: service_healthy
+    environment:
+      - POSTGRES_DB=tagbase
+      - POSTGRES_USER=tagbase
+      - PGPASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    entrypoint: ["/bin/sh", "-c"]
+    command: >-
+      psql -v ON_ERROR_STOP=1 -h postgis
+      -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      -c "BEGIN;
+      LOCK TABLE public.submission IN SHARE ROW EXCLUSIVE MODE;
+      SELECT setval(
+        pg_get_serial_sequence('public.submission', 'submission_id'),
+        COALESCE(MAX(submission_id), 1),
+        COUNT(*) > 0
+      )
+      FROM public.submission;
+      COMMIT;"
+    networks:
+      - internal-network
+    restart: "no"
+
   tagbase_server:
     image: ghcr.io/tagbase/tagbase-server:${TAGBASE_VERSION:-latest}
     depends_on:
       postgis:
         condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}

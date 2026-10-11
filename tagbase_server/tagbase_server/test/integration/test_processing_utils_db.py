@@ -63,7 +63,7 @@ def test_dataset_tag_submission_ids(clean_db):
         assert dataset_id is not None
         assert tag_id is not None
         assert pu.get_submission_id(cur, tag_id, dataset_id, "missing-hash") is None
-        pu.insert_new_submission(
+        submission_id = pu.insert_new_submission(
             cur,
             tag_id,
             "file.txt",
@@ -74,7 +74,6 @@ def test_dataset_tag_submission_ids(clean_db):
             "md-hash",
             "data-hash",
         )
-        submission_id = pu.get_current_submission_id(cur)
         assert (
             pu.get_submission_id(cur, tag_id, dataset_id, "data-hash") == submission_id
         )
@@ -89,7 +88,7 @@ def test_process_global_attributes_and_metadata_insert(clean_db):
     with clean_db.cursor() as cur:
         dataset_id = pu.get_dataset_id(cur, "inst-b", "sn-b", "ptt-b", "plat-b")
         tag_id = pu.get_tag_id(cur, dataset_id)
-        pu.insert_new_submission(
+        submission_id = pu.insert_new_submission(
             cur,
             tag_id,
             "file.txt",
@@ -100,7 +99,6 @@ def test_process_global_attributes_and_metadata_insert(clean_db):
             "mh",
             "dh",
         )
-        submission_id = pu.get_current_submission_id(cur)
         metadata = pu.process_global_attributes_metadata(
             lines, cur, submission_id, "file.txt", 0
         )
@@ -119,7 +117,7 @@ def test_is_only_metadata_change_and_update(clean_db):
     with clean_db.cursor() as cur:
         dataset_id = pu.get_dataset_id(cur, "inst-c", "sn-c", "ptt-c", "plat-c")
         tag_id = pu.get_tag_id(cur, dataset_id)
-        pu.insert_new_submission(
+        submission_id = pu.insert_new_submission(
             cur,
             tag_id,
             "file.txt",
@@ -130,7 +128,6 @@ def test_is_only_metadata_change_and_update(clean_db):
             "old-md",
             "same-data",
         )
-        submission_id = pu.get_current_submission_id(cur)
         assert pu.is_only_metadata_change(cur, "new-md", "same-data") is True
         assert pu.is_only_metadata_change(cur, "old-md", "other-data") is False
 

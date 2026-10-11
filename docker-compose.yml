@@ -203,12 +203,50 @@ services:
       # init scripts after postgis-data is wiped (stale .entry_point.lock).
       - type: tmpfs
         target: /opt/data
+
+  db-migrate:
+    image: kartoza/postgis:18-3.6@sha256:69c86f07ff80ac8c852f4303ea6542a46de15b047cf8692465f752905f2b1979
+    depends_on:
+      postgis:
+        condition: service_healthy
+    environment:
+      - POSTGRES_DB=tagbase
+      - POSTGRES_USER=tagbase
+      - PGPASSWORD=${POSTGRES_PASSWORD:-tagbase}
+    entrypoint: ["psql"]
+    command:
+      - -v
+      - ON_ERROR_STOP=1
+      - -h
+      - postgis
+      - -U
+      - tagbase
+      - -d
+      - tagbase
+      - -c
+      - >-
+        BEGIN;
+        LOCK TABLE public.submission IN SHARE ROW EXCLUSIVE MODE;
+        SELECT setval(
+          pg_get_serial_sequence('public.submission', 'submission_id'),
+          COALESCE(MAX(submission_id), 1),
+          COUNT(*) > 0
+        )
+        FROM public.submission;
+        COMMIT;
+
+    networks:
+      - internal-network
+    restart: "no"
+
   tagbase_server:
     build:
       context: ./tagbase_server
     depends_on:
       postgis:
         condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-tagbase}
