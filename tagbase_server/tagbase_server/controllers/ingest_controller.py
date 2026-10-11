@@ -7,7 +7,7 @@ import parmap
 from tqdm import tqdm as std_tqdm
 
 from tagbase_server.models.ingest200 import Ingest200  # noqa: E501
-from tagbase_server.problem import TagbaseClientError, as_json
+from tagbase_server.problem import TagbaseClientError, as_json, current_trace_id
 from tagbase_server.telemetry import get_tracer, record_ingest_request
 from tagbase_server.utils.io_utils import (
     process_get_input_data,
@@ -108,6 +108,7 @@ def ingest_get(file, notes=None, type=None, type_=None, version=None):  # noqa: 
                 {
                     "code": "200",
                     "elapsed": elapsed,
+                    "trace_id": current_trace_id(),
                     "message": f"Processing %s file(s) - {etuff_files}"
                     % len(etuff_files),
                 }
@@ -161,6 +162,7 @@ def ingest_post(
                 {
                     "code": "200",
                     "elapsed": elapsed,
+                    "trace_id": current_trace_id(),
                     "message": f"Processing %s file(s) - {etuff_files}."
                     % len(etuff_files),
                 }

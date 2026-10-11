@@ -346,18 +346,23 @@ components:
           pattern: ^(?!\s*$).+$
           example: /tagbase/api/v0/ingest
         trace_id:
-          description: Correlation id for matching this error to server logs
+          description: OpenTelemetry trace ID for matching this error to server traces and logs
           type: string
-          format: uuid
-          minLength: 36
-          maxLength: 36
-          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
-          example: 123e4567-e89b-12d3-a456-426614174000
+          minLength: 32
+          maxLength: 32
+          pattern: ^[0-9a-f]{32}$
+          example: 4bf92f3577b34da6a3ce929d0e0e4736
     Ingest200:
       description: HTTP 200 success response
+      required:
+        - code
+        - elapsed
+        - message
+        - trace_id
       example:
         code: "200"
         elapsed: "0:00:06.506691"
+        trace_id: 4bf92f3577b34da6a3ce929d0e0e4736
         message:
           Data file eTUFF-sailfish-117259.txt successfully ingested into Tagbase
           DB.
@@ -384,6 +389,13 @@ components:
           minLength: 1
           maxLength: 10000
           pattern: ^(?!\s*$).+$
+        trace_id:
+          description: OpenTelemetry trace ID for matching this response to traces and logs
+          type: string
+          minLength: 32
+          maxLength: 32
+          pattern: ^[0-9a-f]{32}$
+          example: 4bf92f3577b34da6a3ce929d0e0e4736
       title: Ingest200
       type: object
     Metadata:

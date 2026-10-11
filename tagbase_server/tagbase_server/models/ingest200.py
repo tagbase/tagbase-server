@@ -15,7 +15,9 @@ class Ingest200(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, code=None, elapsed=None, message=None):  # noqa: E501
+    def __init__(
+        self, code=None, elapsed=None, message=None, trace_id=None
+    ):  # noqa: E501
         """Ingest200 - a model defined in OpenAPI
 
         :param code: The code of this Ingest200.  # noqa: E501
@@ -24,18 +26,27 @@ class Ingest200(Model):
         :type elapsed: str
         :param message: The message of this Ingest200.  # noqa: E501
         :type message: str
+        :param trace_id: The OpenTelemetry trace ID.  # noqa: E501
+        :type trace_id: str
         """
-        self.openapi_types = {"code": str, "elapsed": str, "message": str}
+        self.openapi_types = {
+            "code": str,
+            "elapsed": str,
+            "message": str,
+            "trace_id": str,
+        }
 
         self.attribute_map = {
             "code": "code",
             "elapsed": "elapsed",
             "message": "message",
+            "trace_id": "trace_id",
         }
 
         self._code = code
         self._elapsed = elapsed
         self._message = message
+        self._trace_id = trace_id
 
     @classmethod
     def from_dict(cls, dikt) -> "Ingest200":
@@ -116,3 +127,13 @@ class Ingest200(Model):
         """
 
         self._message = message
+
+    @property
+    def trace_id(self):
+        """Gets the trace ID of this Ingest200."""
+        return self._trace_id
+
+    @trace_id.setter
+    def trace_id(self, trace_id):
+        """Sets the trace ID of this Ingest200."""
+        self._trace_id = trace_id
