@@ -332,21 +332,28 @@ def test_fswatch_keeps_submitting_while_a_job_is_running(mock_ingest_server):
         time.sleep(0.4)
         (staging / "first.txt").write_bytes(b"one")
         (staging / "second.txt").write_bytes(b"two")
+        # record_pending runs after the POST returns, so wait for the file too.
         deadline = time.time() + 30
+        pending_path = work / "pending.tsv"
+        pending = ""
         while time.time() < deadline:
             names = {
                 (r["query"].get("filename") or [None])[0] for r in handler.requests
             }
-            if names >= {"first.txt", "second.txt"}:
+            if pending_path.is_file():
+                pending = pending_path.read_text(encoding="utf-8")
+            if (
+                names >= {"first.txt", "second.txt"}
+                and "first.txt" in pending
+                and "second.txt" in pending
+            ):
                 break
             time.sleep(0.25)
         else:
             pytest.fail(
-                f"expected both posts while running. log:\n{_read_log(log_path)}"
+                "expected both posts to stay pending while running. "
+                f"pending:\n{pending}\nlog:\n{_read_log(log_path)}"
             )
-        pending = (work / "pending.tsv").read_text(encoding="utf-8")
-        assert "first.txt" in pending
-        assert "second.txt" in pending
     finally:
         _stop_fswatch(proc)
         shutil.rmtree(work, ignore_errors=True)
