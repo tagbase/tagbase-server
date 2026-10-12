@@ -212,7 +212,8 @@ while true; do
 	reconcile_pending
 	if IFS= read -r -t "$RECONCILE_SECONDS" -u 3 line; then
 		submit_file "$line"
-		while IFS= read -r -t 0 -u 3 line; do
+		# bash 5 `read -t 0` repeats the previous line and never consumes the fifo.
+		while IFS= read -r -t 1 -u 3 line; do
 			submit_file "$line"
 		done
 	fi

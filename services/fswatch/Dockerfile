@@ -7,7 +7,9 @@ RUN apt-get update \
     install -y curl fswatch iputils-ping \
     # Remove package lists for smaller image sizes
     && rm -rf /var/lib/apt/lists/* \
-    && useradd -ms /bin/bash tagbase
+    && useradd -ms /bin/bash tagbase \
+    && mkdir -p /var/lib/tagbase-fswatch \
+    && chown tagbase:tagbase /var/lib/tagbase-fswatch
 
 # Copy owned by root and grant the runtime user read+execute only, so the
 # non-root user running the container cannot modify the script it executes.
