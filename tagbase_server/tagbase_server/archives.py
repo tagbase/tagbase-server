@@ -22,6 +22,9 @@ _GZIP_MAGIC = b"\x1f\x8b"
 _DEFAULT_MAX_MEMBERS = 10_000
 _DEFAULT_MAX_UNCOMPRESSED = 10 * 1024 * 1024 * 1024
 _READ_CHUNK = 1024 * 1024
+_INVALID_FILENAME = "invalid filename"
+_NO_ETUFF_MEMBERS = "archive contained no eTUFF files"
+_CORRUPT_ARCHIVE = "archive is corrupt or unreadable"
 
 
 class ArchiveError(ValueError):
@@ -66,13 +69,13 @@ def archive_limits() -> tuple[int, int]:
 def logical_filename(name: str) -> str:
     """Reject blank names and any path, keeping a single basename."""
     if name is None:
-        raise ArchiveError("invalid filename")
+        raise ArchiveError(_INVALID_FILENAME)
     text = str(name).strip()
     if not text or text in {".", ".."} or "/" in text or "\\" in text:
-        raise ArchiveError("invalid filename")
+        raise ArchiveError(_INVALID_FILENAME)
     base = os.path.basename(text)
     if base != text:
-        raise ArchiveError("invalid filename")
+        raise ArchiveError(_INVALID_FILENAME)
     return base
 
 
@@ -80,7 +83,7 @@ def classify(path: str, filename: str) -> str:
     """Return etuff, zip, or tar after the name and magic bytes agree."""
     logical = logical_filename(filename)
     lowered = logical.lower()
-    if lowered.endswith(".tar.gz") or lowered.endswith(".tgz"):
+    if lowered.endswith((".tar.gz", ".tgz")):
         expected = "tar"
     elif lowered.endswith(".zip"):
         expected = "zip"
@@ -132,7 +135,7 @@ def materialize(path: str, filename: str) -> PreparedIngest:
         raise
     if not members:
         shutil.rmtree(workspace, ignore_errors=True)
-        raise ArchiveError("archive contained no eTUFF files")
+        raise ArchiveError(_NO_ETUFF_MEMBERS)
     return PreparedIngest(
         files=[member_path for member_path, _name in members],
         workspace=workspace,
@@ -187,9 +190,9 @@ def _inspect_zip(path: str) -> None:
                         txts += 1
                 _limits_exceeded(index, declared)
     except zipfile.BadZipFile as exc:
-        raise ArchiveError("archive is corrupt or unreadable") from exc
+        raise ArchiveError(_CORRUPT_ARCHIVE) from exc
     if txts == 0:
-        raise ArchiveError("archive contained no eTUFF files")
+        raise ArchiveError(_NO_ETUFF_MEMBERS)
 
 
 def _reject_zip_member(info: zipfile.ZipInfo) -> None:
@@ -242,9 +245,9 @@ def _inspect_tar(path: str) -> None:
                         txts += 1
                 _limits_exceeded(count, declared)
     except (tarfile.TarError, OSError) as exc:
-        raise ArchiveError("archive is corrupt or unreadable") from exc
+        raise ArchiveError(_CORRUPT_ARCHIVE) from exc
     if txts == 0:
-        raise ArchiveError("archive contained no eTUFF files")
+        raise ArchiveError(_NO_ETUFF_MEMBERS)
 
 
 def _reject_tar_member(member: tarfile.TarInfo) -> None:
@@ -267,7 +270,7 @@ def _extract_tar(path: str, workspace: str) -> list[tuple[str, str]]:
             os.makedirs(os.path.dirname(target), exist_ok=True)
             source = archive.extractfile(member)
             if source is None:
-                raise ArchiveError("archive is corrupt or unreadable")
+                raise ArchiveError(_CORRUPT_ARCHIVE)
             with source, open(target, "wb") as dest:
                 while True:
                     chunk = source.read(_READ_CHUNK)

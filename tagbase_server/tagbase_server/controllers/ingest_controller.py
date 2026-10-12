@@ -192,7 +192,7 @@ def ingest_post(
     return _ingest_with_telemetry("post", _work)
 
 
-def _stage_job_body(filename, body) -> str:
+def _stage_job_body(body) -> str:
     staged = staged_upload.get()
     if staged:
         return staged
@@ -238,7 +238,7 @@ def create_ingest_job(
     stored = None
     try:
         _resolve_ingest_file_type(type_ if type_ is not None else type)
-        staged = _stage_job_body(filename, body)
+        staged = _stage_job_body(body)
         try:
             preflight(staged, filename)
         except ArchiveError as exc:

@@ -20,6 +20,10 @@ SYNC_MAX_BYTES = 100 * 1024 * 1024
 JOB_MAX_BYTES = 2 * 1024 * 1024 * 1024
 _STAGED_BODY = b"staged"
 _CHUNK = 1024 * 1024
+_HTTP_REQUEST = "http.request"
+_TITLE_BAD_REQUEST = "Bad Request"
+_TITLE_TOO_LARGE = "Payload Too Large"
+_EMPTY_BODY = "Request body is empty."
 
 staged_upload: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "staged_upload",
@@ -74,13 +78,13 @@ class UploadGuardMiddleware:
         length = _content_length(scope)
         limit = sync_max_bytes()
         if length == 0:
-            await _send_problem(send, 400, "Bad Request", "Request body is empty.")
+            await _send_problem(send, 400, _TITLE_BAD_REQUEST, _EMPTY_BODY)
             return
         if length is not None and length > limit:
             await _send_problem(
                 send,
                 413,
-                "Payload Too Large",
+                _TITLE_TOO_LARGE,
                 "Synchronous ingest accepts at most 100 MiB. Use POST /ingest/jobs.",
             )
             return
@@ -93,14 +97,14 @@ class UploadGuardMiddleware:
             await _send_problem(
                 send,
                 413,
-                "Payload Too Large",
+                _TITLE_TOO_LARGE,
                 "Synchronous ingest accepts at most 100 MiB. Use POST /ingest/jobs.",
             )
             return
         except _ClientGone:
             return
         if not body:
-            await _send_problem(send, 400, "Bad Request", "Request body is empty.")
+            await _send_problem(send, 400, _TITLE_BAD_REQUEST, _EMPTY_BODY)
             return
         await self.app(
             _with_content_length(scope, len(body)),
@@ -112,21 +116,17 @@ class UploadGuardMiddleware:
         length = _content_length(scope)
         limit = job_max_bytes()
         if length == 0:
-            await _send_problem(send, 400, "Bad Request", "Request body is empty.")
+            await _send_problem(send, 400, _TITLE_BAD_REQUEST, _EMPTY_BODY)
             return
         if length is not None and length > limit:
             await _send_problem(
                 send,
                 413,
-                "Payload Too Large",
+                _TITLE_TOO_LARGE,
                 "Ingest jobs accept at most 2 GiB.",
             )
             return
-        handle = tempfile.NamedTemporaryFile(
-            dir=TEMP_DIR,
-            prefix="tagbase-upload-",
-            delete=False,
-        )
+        handle = _create_staged_file()
         path = handle.name
         try:
             total = await _write_bounded(receive, handle, limit)
@@ -136,7 +136,7 @@ class UploadGuardMiddleware:
             await _send_problem(
                 send,
                 413,
-                "Payload Too Large",
+                _TITLE_TOO_LARGE,
                 "Ingest jobs accept at most 2 GiB.",
             )
             return
@@ -151,7 +151,7 @@ class UploadGuardMiddleware:
         handle.close()
         if total == 0:
             _remove(path)
-            await _send_problem(send, 400, "Bad Request", "Request body is empty.")
+            await _send_problem(send, 400, _TITLE_BAD_REQUEST, _EMPTY_BODY)
             return
         token = staged_upload.set(path)
         try:
@@ -162,6 +162,14 @@ class UploadGuardMiddleware:
             )
         finally:
             staged_upload.reset(token)
+
+
+def _create_staged_file():
+    return tempfile.NamedTemporaryFile(
+        dir=TEMP_DIR,
+        prefix="tagbase-upload-",
+        delete=False,
+    )
 
 
 def _content_length(scope) -> int | None:
@@ -192,9 +200,9 @@ def _replay(body: bytes):
     async def receive():
         nonlocal sent
         if sent:
-            return {"type": "http.request", "body": b"", "more_body": False}
+            return {"type": _HTTP_REQUEST, "body": b"", "more_body": False}
         sent = True
-        return {"type": "http.request", "body": body, "more_body": False}
+        return {"type": _HTTP_REQUEST, "body": body, "more_body": False}
 
     return receive
 
@@ -206,7 +214,7 @@ async def _read_bounded(receive, limit: int) -> bytes:
         message = await receive()
         if message["type"] == "http.disconnect":
             raise _ClientGone()
-        if message["type"] != "http.request":
+        if message["type"] != _HTTP_REQUEST:
             continue
         piece = message.get("body") or b""
         if piece:
@@ -225,7 +233,7 @@ async def _write_bounded(receive, handle, limit: int) -> int:
         message = await receive()
         if message["type"] == "http.disconnect":
             raise _ClientGone()
-        if message["type"] != "http.request":
+        if message["type"] != _HTTP_REQUEST:
             continue
         piece = message.get("body") or b""
         if piece:
