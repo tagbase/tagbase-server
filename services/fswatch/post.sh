@@ -1,19 +1,24 @@
-#!/usr/bin/env sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
 PATH_TO_CHECK=${PATH_TO_CHECK:-/usr/src/app/staging_data/}
 TAGBASE_INGEST_BASE=${TAGBASE_INGEST_BASE:-http://tagbase_server:5433/tagbase/api/v0}
+CURL_MAX_TIME=${CURL_MAX_TIME:-60}
+RECONCILE_SECONDS=${RECONCILE_SECONDS:-5}
 
-# Last successfully ingested path+size (file so it survives the fswatch|while subshell).
-DEDUPE_STATE=${DEDUPE_STATE:-/tmp/fswatch-ingest-dedupe-$$}
-if ! : >"$DEDUPE_STATE" 2>/dev/null; then
-	DEDUPE_STATE="/tmp/fswatch-ingest-dedupe-$$"
-	: >"$DEDUPE_STATE"
+if [ -n "${DEDUPE_STATE:-}" ]; then
+	STATE_DIR=$(dirname "$DEDUPE_STATE")
+	DONE_FILE=$DEDUPE_STATE
+else
+	STATE_DIR=${FSWATCH_STATE_DIR:-/var/lib/tagbase-fswatch}
+	DONE_FILE=$STATE_DIR/done.tsv
 fi
+mkdir -p "$STATE_DIR"
+PENDING_FILE=$STATE_DIR/pending.tsv
+touch "$PENDING_FILE" "$DONE_FILE"
 
-echo "Watching $PATH_TO_CHECK (dedupe=$DEDUPE_STATE)"
+echo "Watching $PATH_TO_CHECK (state=$STATE_DIR)"
 
-# Detect GNU vs BSD stat once (not per-file — missing files must not flip dialects).
 if stat -c%s / >/dev/null 2>&1; then
 	file_size() {
 		[ -f "$1" ] || return 1
@@ -27,12 +32,7 @@ else
 fi
 
 urlencode() {
-	# Prefer python3 (available in fswatch image); fall back to raw name.
-	if command -v python3 >/dev/null 2>&1; then
-		python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$1"
-	else
-		printf '%s' "$1"
-	fi
+	python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$1"
 }
 
 should_ingest() {
@@ -72,108 +72,148 @@ wait_stable() {
 	return 1
 }
 
-already_ingested() {
+already_done() {
 	path=$1
 	size=$2
-	[ -f "$DEDUPE_STATE" ] || return 1
-	{
-		read -r last_path
-		read -r last_size
-	} <"$DEDUPE_STATE" || return 1
-	[ "$path" = "$last_path" ] && [ "$size" = "$last_size" ]
+	awk -F '\t' -v path="$path" -v size="$size" '$1 == path && $2 == size { found = 1 } END { exit !found }' "$DONE_FILE"
 }
 
-ingest_file() {
+already_pending() {
+	path=$1
+	awk -F '\t' -v path="$path" '$1 == path { found = 1 } END { exit !found }' "$PENDING_FILE"
+}
+
+record_pending() {
+	path=$1
+	size=$2
+	job_id=$3
+	awk -F '\t' -v path="$path" '$1 != path { print }' "$PENDING_FILE" >"$STATE_DIR/.pending.next"
+	printf '%s\t%s\t%s\n' "$path" "$size" "$job_id" >>"$STATE_DIR/.pending.next"
+	mv "$STATE_DIR/.pending.next" "$PENDING_FILE"
+}
+
+drop_pending() {
+	path=$1
+	awk -F '\t' -v path="$path" '$1 != path { print }' "$PENDING_FILE" >"$STATE_DIR/.pending.next"
+	mv "$STATE_DIR/.pending.next" "$PENDING_FILE"
+}
+
+record_done() {
+	path=$1
+	size=$2
+	drop_pending "$path"
+	awk -F '\t' -v path="$path" '$1 != path { print }' "$DONE_FILE" >"$STATE_DIR/.done.next"
+	printf '%s\t%s\n' "$path" "$size" >>"$STATE_DIR/.done.next"
+	mv "$STATE_DIR/.done.next" "$DONE_FILE"
+}
+
+json_field() {
+	python3 -c 'import json,sys; print(json.load(sys.stdin).get(sys.argv[1], "") or "")' "$1"
+}
+
+submit_file() {
 	line=$1
 	filename=${line##*/}
 	if ! should_ingest "$filename"; then
 		echo "Skipping non-ingestible: $filename"
 		return 0
 	fi
-	echo "Contents of $PATH_TO_CHECK changed; Checking: $filename"
 	if ! wait_stable "$line"; then
 		echo "Gave up waiting for stable file: $filename"
 		return 0
 	fi
 	size=$(file_size "$line") || return 0
-	if already_ingested "$line" "$size"; then
-		echo "Already ingested at this size, skipping: $filename"
+	if already_pending "$line" || already_done "$line" "$size"; then
+		echo "Already tracked, skipping: $filename"
 		return 0
 	fi
-	echo "Processing: $filename"
+	echo "Submitting: $filename"
 	enc=$(urlencode "$filename")
 	ctype=application/octet-stream
 	case "$filename" in
 	*.txt) ctype=text/plain ;;
 	esac
-	if ! body=$(curl -sS -f -X POST \
+	body_file=$(mktemp "$STATE_DIR/.body.XXXXXX")
+	code=$(curl -sS --max-time "$CURL_MAX_TIME" -o "$body_file" -w '%{http_code}' -X POST \
 		-H "accept: application/json" \
 		-H "Content-Type: ${ctype}" \
 		-T "$line" \
-		"${TAGBASE_INGEST_BASE}/ingest?filename=${enc}&type=etuff"); then
-		echo "Ingest failed for $filename (see tagbase_server logs)"
+		"${TAGBASE_INGEST_BASE}/ingest/jobs?filename=${enc}&type=etuff" || true)
+	if [ "$code" != "202" ]; then
+		echo "Ingest accept failed for $filename (HTTP ${code})"
+		rm -f "$body_file"
 		return 0
 	fi
-	job_id=$(printf '%s' "$body" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+	job_id=$(json_field id <"$body_file" || true)
+	rm -f "$body_file"
 	if [ -z "$job_id" ]; then
 		echo "Ingest accept for $filename did not return a job id"
 		return 0
 	fi
-	if ! wait_for_job "$job_id"; then
-		echo "Ingest failed for $filename (see tagbase_server logs)"
-		return 0
-	fi
-	printf '%s\n%s\n' "$line" "$size" >"$DEDUPE_STATE"
-	echo
-	echo "Ingest OK: $filename"
+	record_pending "$line" "$size" "$job_id"
+	echo "Queued $filename as $job_id"
 }
 
-wait_for_job() {
-	job_id=$1
-	while true; do
-		if ! status_body=$(curl -sS -f \
+reconcile_pending() {
+	[ -s "$PENDING_FILE" ] || return 0
+	snapshot=$(mktemp "$STATE_DIR/.pending.XXXXXX")
+	cp "$PENDING_FILE" "$snapshot"
+	while IFS=$'\t' read -r path size job_id; do
+		[ -n "${job_id:-}" ] || continue
+		body_file=$(mktemp "$STATE_DIR/.status.XXXXXX")
+		code=$(curl -sS --max-time "$CURL_MAX_TIME" -o "$body_file" -w '%{http_code}' \
 			-H "accept: application/json" \
-			"${TAGBASE_INGEST_BASE}/ingest/jobs/${job_id}"); then
-			echo "Job status request failed for $job_id"
-			return 1
+			"${TAGBASE_INGEST_BASE}/ingest/jobs/${job_id}" || true)
+		if [ "$code" != "200" ]; then
+			echo "Job status request failed for $job_id (HTTP ${code}); keeping pending"
+			rm -f "$body_file"
+			continue
 		fi
-		if printf '%s' "$status_body" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"succeeded"'; then
-			return 0
+		status=$(json_field status <"$body_file" || true)
+		if [ "$status" = "succeeded" ]; then
+			record_done "$path" "$size"
+			echo "Ingest OK: ${path##*/}"
+		elif [ "$status" = "failed" ]; then
+			echo "Job $job_id failed: $(cat "$body_file")"
+			drop_pending "$path"
 		fi
-		if printf '%s' "$status_body" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"failed"'; then
-			echo "Job $job_id failed: $status_body"
-			return 1
-		fi
-		sleep 2
-	done
+		rm -f "$body_file"
+	done <"$snapshot"
+	rm -f "$snapshot"
 }
 
 scan_existing() {
-	# Process files already present (startup / leftover from a prior blind window).
-	# shellcheck disable=SC2039
 	for path in "$PATH_TO_CHECK"*; do
 		[ -f "$path" ] || continue
-		ingest_file "$path"
+		submit_file "$path"
 	done
 }
 
 scan_existing
 
-# Continuous watch: keep receiving events while wait_stable/curl run for one file.
-# Line-buffer fswatch stdout when piped (otherwise events can sit in libc buffer).
-# Outer loop only restarts fswatch if the binary exits unexpectedly.
-FSWATCH_CMD="fswatch"
+FSWATCH_CMD=(fswatch)
 if command -v stdbuf >/dev/null 2>&1; then
-	FSWATCH_CMD="stdbuf -oL fswatch"
+	FSWATCH_CMD=(stdbuf -oL fswatch)
 fi
 
+FIFO=$(mktemp -u "$STATE_DIR/.events.XXXXXX")
+mkfifo "$FIFO"
+"${FSWATCH_CMD[@]}" "$PATH_TO_CHECK" \
+	--event Created --event MovedTo --event IsFile --event Updated >"$FIFO" &
+watch_pid=$!
+cleanup() {
+	kill "$watch_pid" >/dev/null 2>&1 || true
+	rm -f "$FIFO"
+}
+trap cleanup EXIT
+
+exec 3<>"$FIFO"
 while true; do
-	# shellcheck disable=SC2086
-	$FSWATCH_CMD "$PATH_TO_CHECK" \
-		--event Created --event MovedTo --event IsFile --event Updated |
-		while IFS= read -r line; do
-			ingest_file "$line"
+	reconcile_pending
+	if IFS= read -r -t "$RECONCILE_SECONDS" -u 3 line; then
+		submit_file "$line"
+		while IFS= read -r -t 0 -u 3 line; do
+			submit_file "$line"
 		done
-	echo "fswatch exited; restarting watch on $PATH_TO_CHECK"
-	sleep 1
+	fi
 done

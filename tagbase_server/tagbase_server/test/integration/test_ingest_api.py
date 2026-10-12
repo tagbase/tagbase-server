@@ -8,6 +8,7 @@ import pytest
 from tagbase_server.test.helpers import (
     API_PREFIX,
     ETUFF_FIXTURE,
+    assert_sync_ingest,
     finish_accepted_ingest,
     response_json,
 )
@@ -39,7 +40,7 @@ def test_post_ingest_etuff_makes_tag_listable_and_gettable(
         },
         data=etuff_bytes,
     )
-    finish_accepted_ingest(client, response)
+    assert_sync_ingest(response)
 
     listed = client.get(f"{API_PREFIX}/tags", headers={"Accept": "application/json"})
     assert listed.status_code == 200
@@ -54,7 +55,7 @@ def test_post_ingest_etuff_makes_tag_listable_and_gettable(
     assert detail.status_code == 200
     tag = response_json(detail)["tag"]
     assert len(tag) == 1
-    assert tag[0]["filename"].endswith("minimal-etuff.txt")
+    assert tag[0]["filename"] == "minimal-etuff.txt"
     assert tag[0]["notes"] == "integration ingest notes"
     assert tag[0]["version"] == "1"
     assert tag[0]["metadata"]["ptt"] == "117464"
@@ -72,8 +73,8 @@ def test_post_ingest_duplicate_etuff_keeps_single_submission(
     second = client.post(
         f"{API_PREFIX}/ingest", params=params, headers=headers, data=etuff_bytes
     )
-    finish_accepted_ingest(client, first)
-    finish_accepted_ingest(client, second)
+    assert_sync_ingest(first)
+    assert_sync_ingest(second)
 
     listed = response_json(
         client.get(f"{API_PREFIX}/tags", headers={"Accept": "application/json"})
@@ -99,7 +100,7 @@ def test_post_ingest_zip_etuff_makes_tag_retrievable(client, clean_db, etuff_zip
         },
         data=etuff_zip_bytes,
     )
-    finish_accepted_ingest(client, response)
+    assert_sync_ingest(response)
     listed = response_json(
         client.get(f"{API_PREFIX}/tags", headers={"Accept": "application/json"})
     )
@@ -116,7 +117,7 @@ def test_get_ingest_file_url_makes_tag_listable(client, clean_db, short_etuff_fi
         },
         headers={"Accept": "application/json"},
     )
-    finish_accepted_ingest(client, response)
+    assert_sync_ingest(response)
     listed = response_json(
         client.get(f"{API_PREFIX}/tags", headers={"Accept": "application/json"})
     )
@@ -164,8 +165,25 @@ def test_ingest_defaults_omitted_type_to_etuff(client, clean_db, etuff_bytes):
         },
         data=etuff_bytes,
     )
-    finish_accepted_ingest(client, response)
+    assert_sync_ingest(response)
     listed = response_json(
         client.get(f"{API_PREFIX}/tags", headers={"Accept": "application/json"})
     )
     assert listed["count"] == 1
+
+
+def test_post_ingest_job_zip_reaches_succeeded(client, clean_db, etuff_zip_bytes):
+    response = client.post(
+        f"{API_PREFIX}/ingest/jobs",
+        params={"filename": "minimal-etuff.zip", "version": "1"},
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/zip",
+        },
+        data=etuff_zip_bytes,
+    )
+    finish_accepted_ingest(client, response)
+    listed = response_json(
+        client.get(f"{API_PREFIX}/tags", headers={"Accept": "application/json"})
+    )
+    assert listed["tags"][0]["filename"] == "minimal-etuff.txt"

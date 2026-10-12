@@ -16,22 +16,20 @@ from tagbase_server.utils.db_utils import connect
 
 RESTART_ERROR = "restarted before ingest finished"
 MISSING_FILE_ERROR = "upload file missing after restart"
+DEFAULT_RETENTION_DAYS = 30
 
-_CREATE_TABLE = """
-CREATE TABLE IF NOT EXISTS ingest_job (
-    id uuid PRIMARY KEY,
-    status text NOT NULL
-        CHECK (status IN ('queued', 'running', 'succeeded', 'failed')),
-    source_path text NOT NULL,
-    filename text,
-    version text,
-    notes text,
-    error text,
-    files_total integer,
-    files_done integer NOT NULL DEFAULT 0,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+_CLAIM_SQL = """
+UPDATE ingest_job
+SET status = 'running', updated_at = now()
+WHERE id = (
+    SELECT id
+    FROM ingest_job
+    WHERE status = 'queued'
+    ORDER BY created_at, updated_at
+    FOR UPDATE SKIP LOCKED
+    LIMIT 1
 )
+RETURNING *
 """
 
 
@@ -78,7 +76,6 @@ def enqueue_job(
 ) -> str:
     job_id = str(uuid.uuid4())
     with _connection() as conn:
-        _ensure_table(conn)
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -93,7 +90,6 @@ def enqueue_job(
 
 def fetch_job(job_id: str) -> dict[str, Any] | None:
     with _connection() as conn:
-        _ensure_table(conn)
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("SELECT * FROM ingest_job WHERE id = %s", (job_id,))
             row = cur.fetchone()
@@ -105,7 +101,6 @@ def fetch_job(job_id: str) -> dict[str, Any] | None:
 
 def recover_stale_jobs() -> None:
     with _connection() as conn:
-        _ensure_table(conn)
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("""
                 SELECT id, status, source_path
@@ -127,26 +122,35 @@ def recover_stale_jobs() -> None:
 
 def claim_next_job() -> dict[str, Any] | None:
     with _connection() as conn:
-        _ensure_table(conn)
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("""
-                UPDATE ingest_job
-                SET status = 'running', updated_at = now()
-                WHERE id = (
-                    SELECT id
-                    FROM ingest_job
-                    WHERE status = 'queued'
-                    ORDER BY created_at
-                    FOR UPDATE SKIP LOCKED
-                    LIMIT 1
-                )
-                RETURNING *
-                """)
+            cur.execute(_CLAIM_SQL)
             row = cur.fetchone()
         conn.commit()
     if row is None:
         return None
     return dict(row)
+
+
+def retention_days() -> int:
+    return int(os.environ.get("INGEST_JOB_RETENTION_DAYS", DEFAULT_RETENTION_DAYS))
+
+
+def purge_expired_jobs(days: int | None = None) -> int:
+    """Delete terminal jobs older than the retention window."""
+    window = DEFAULT_RETENTION_DAYS if days is None else days
+    with _connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM ingest_job
+                WHERE status IN ('succeeded', 'failed')
+                  AND updated_at < now() - (%s * interval '1 day')
+                """,
+                (window,),
+            )
+            deleted = cur.rowcount
+        conn.commit()
+    return deleted
 
 
 def set_progress(job_id: str, *, files_total: int, files_done: int) -> None:
@@ -183,8 +187,3 @@ def _connection():
         raise IngestJobError("database unavailable")
     conn.autocommit = False
     return conn
-
-
-def _ensure_table(conn) -> None:
-    with conn.cursor() as cur:
-        cur.execute(_CREATE_TABLE)

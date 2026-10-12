@@ -14,13 +14,16 @@ errorlog = "./logs/gunicorn_error_log.txt"
 loglevel = "info"
 worker_class = "uvicorn.workers.UvicornWorker"
 workers = max(2, multiprocessing.cpu_count())
+timeout = 60
 
 
 def post_fork(server, worker):
     from tagbase_server.__main__ import app
     from tagbase_server.telemetry import setup_telemetry
+    from tagbase_server.upload_stream import register_upload_heartbeat
     from tagbase_server.utils.db_utils import assert_schema_ready, connect
 
+    register_upload_heartbeat(worker.notify)
     setup_telemetry(flask_app=app.app)
     server.log.info("OpenTelemetry setup complete in worker pid=%s", worker.pid)
 

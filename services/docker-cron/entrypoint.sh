@@ -8,6 +8,7 @@ POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 cat >/usr/src/app/.env <<EOF
 export POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 export POSTGRES_PORT=${POSTGRES_PORT}
+export INGEST_JOB_RETENTION_DAYS=${INGEST_JOB_RETENTION_DAYS:-30}
 EOF
 
 echo "Seeding metadata_types and observation_types..."

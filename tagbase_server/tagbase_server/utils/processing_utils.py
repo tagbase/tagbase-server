@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 from datetime import datetime as dt
 from datetime import timezone
@@ -155,7 +156,7 @@ def insert_new_submission(
 ):
     cur.execute(
         "INSERT INTO submission (tag_id, filename, date_time, notes, version, file_sha256, dataset_id, md_sha256, data_sha256) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING submission_id",
         (
             tag_id,
             submission_filename,
@@ -168,10 +169,12 @@ def insert_new_submission(
             data_sha256,
         ),
     )
+    submission_id = cur.fetchone()[0]
     logger.info(
         "Successful INSERT of '%s' into 'submission' table.",
         submission_filename,
     )
+    return submission_id
 
 
 def detect_duplicate_file(cursor, file_sha256):
@@ -310,13 +313,6 @@ def insert_metadata(cur, metadata, tag_id):
             record_db_error("insert_metadata")
             logger.error("Error inserting metadata for tag %s", x)
     logger.debug("Inserted metadata attributes: %s", metadata)
-
-
-def get_current_submission_id(cur):
-    cur.execute("SELECT currval('submission_submission_id_seq')")
-    submission_id = cur.fetchone()[0]
-    logger.debug("New submission_id=%d", submission_id)
-    return submission_id
 
 
 def update_submission_metadata(
@@ -534,9 +530,12 @@ def _compute_submission_hashes(submission_filename, file_content, metadata_conte
     )
 
 
-def process_etuff_file(file, version=None, notes=None, count_request=True):
+def process_etuff_file(
+    file, version=None, notes=None, count_request=True, submission_name=None
+):
     start = time.perf_counter()
-    submission_filename = file
+    source_path = file
+    submission_filename = submission_name or os.path.basename(source_path)
 
     def _record(outcome, duration):
         if count_request:
@@ -575,14 +574,12 @@ def process_etuff_file(file, version=None, notes=None, count_request=True):
                 file_content,
                 metadata_content,
                 number_global_attributes_lines,
-            ) = get_dataset_properties(submission_filename)
+            ) = get_dataset_properties(source_path)
             (
                 content_hash,
                 metadata_hash,
                 entire_file_hash,
-            ) = _compute_submission_hashes(
-                submission_filename, file_content, metadata_content
-            )
+            ) = _compute_submission_hashes(source_path, file_content, metadata_content)
         except Exception:
             logger.exception("Error parsing etuff file: %s", submission_filename)
             _record("error", round(time.perf_counter() - start, 2))
@@ -613,7 +610,7 @@ def process_etuff_file(file, version=None, notes=None, count_request=True):
                     )
 
                     if not submission_id:
-                        insert_new_submission(
+                        submission_id = insert_new_submission(
                             cur,
                             tag_id,
                             submission_filename,
@@ -624,7 +621,6 @@ def process_etuff_file(file, version=None, notes=None, count_request=True):
                             metadata_hash,
                             content_hash,
                         )
-                        submission_id = get_current_submission_id(cur)
 
                     persist_span.set_attribute("tag_id", tag_id)
                     persist_span.set_attribute("submission_id", submission_id)

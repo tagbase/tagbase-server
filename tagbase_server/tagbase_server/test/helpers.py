@@ -22,6 +22,15 @@ def response_json(response):
     return json.loads(response.content)
 
 
+def assert_sync_ingest(response):
+    """Synchronous /ingest returns 200 and a trace id in the request."""
+    assert response.status_code == 200, response.content
+    body = response_json(response)
+    assert body["code"] == "200"
+    assert len(body["trace_id"]) == 32
+    return body
+
+
 def finish_accepted_ingest(client, response):
     """Assert the upload was accepted, then run queued jobs in this process."""
     from tagbase_server.ingest_worker import process_available

@@ -4,6 +4,7 @@
 from __future__ import absolute_import
 
 # import models into model package
+from tagbase_server.models.ingest200 import Ingest200
 from tagbase_server.models.ingest_accepted import IngestAccepted
 from tagbase_server.models.ingest_job import IngestJob
 from tagbase_server.models.problem import Problem

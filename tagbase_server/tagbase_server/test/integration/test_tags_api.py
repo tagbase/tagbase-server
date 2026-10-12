@@ -4,7 +4,7 @@ import pytest
 
 from tagbase_server.test.helpers import (
     API_PREFIX,
-    finish_accepted_ingest,
+    assert_sync_ingest,
     response_json,
 )
 
@@ -25,7 +25,7 @@ def _ingest(client, etuff_bytes, notes="notes", version="1"):
         },
         data=etuff_bytes,
     )
-    finish_accepted_ingest(client, response)
+    assert_sync_ingest(response)
     listed = response_json(
         client.get(f"{API_PREFIX}/tags", headers={"Accept": "application/json"})
     )
