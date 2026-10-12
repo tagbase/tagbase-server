@@ -1,3 +1,16 @@
+# [0.17.0](https://github.com/tagbase/tagbase-server/compare/v0.16.2...v0.17.0) (2026-10-12)
+
+
+### Bug Fixes
+
+* return trace-id as part of ingest response to improve traceability ([d561ec6](https://github.com/tagbase/tagbase-server/commit/d561ec6842f6b5feaaa255348fd5ddd29a38fbf8))
+
+
+### Features
+
+* add sequence object db migration step ([05ddef4](https://github.com/tagbase/tagbase-server/commit/05ddef4657393f5160c57f6f7d73394816bb8b1b))
+* increase time outs for nginx.conf, nginx.test.conf, gunicorn.conf.py ([c47b5ac](https://github.com/tagbase/tagbase-server/commit/c47b5acbdbccc72148ea07cc681143f095fdebbd))
+
 ## [0.16.2](https://github.com/tagbase/tagbase-server/compare/v0.16.1...v0.16.2) (2026-09-23)
 
 
