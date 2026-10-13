@@ -2,7 +2,7 @@
 # optional Alloy + LGTM for observability smoke (profile: observability).
 services:
   postgis:
-    image: kartoza/postgis:18-3.6@sha256:69c86f07ff80ac8c852f4303ea6542a46de15b047cf8692465f752905f2b1979
+    image: kartoza/postgis:18-3.6@sha256:935d2dbeeece33459ab83715fb17dee92499dc4ce47ffee22dedacb3bc861db3
     platform: linux/amd64
     environment:
       - ALLOW_IP_RANGE=0.0.0.0/0
@@ -105,7 +105,7 @@ services:
 
   alloy:
     profiles: ["observability"]
-    image: grafana/alloy:v1.19.2@sha256:b8ec653c44235fbe910879145dac3597d66b0aaecf60bcbbe82580767771a839
+    image: grafana/alloy:v1.20.1@sha256:2aa2099af76c0098d4af7a4d6e48f86cb66dc1a000222ad927a1c67c6542d13f
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
@@ -128,7 +128,7 @@ services:
 
   prometheus:
     profiles: ["observability"]
-    image: prom/prometheus:v3.14.0@sha256:5ce7540c3c00ef4ab0c9d2c995c6a5b9c421f44b4a115d97a2c7af3b1c21cbb0
+    image: prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -146,7 +146,7 @@ services:
 
   loki:
     profiles: ["observability"]
-    image: grafana/loki:3.7.7@sha256:d70e4659623f3e109af669cae76fe2a5dd5be54e2298fe8aed380d982fbc2500
+    image: grafana/loki:3.7.8@sha256:1107dd5274e0ada47e42472b7a7e71f3b2a2fe878878108f3e2f9e51528f0193
     command: ["-config.file=/etc/loki/loki-config.yml"]
     volumes:
       - ./services/observability/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
@@ -158,7 +158,7 @@ services:
 
   tempo:
     profiles: ["observability"]
-    image: grafana/tempo:3.0.3@sha256:0296560ac66f8a3600d7fb3014a52c189d4d9c3549ad6ff441bf2409855d68d5
+    image: grafana/tempo:3.1.0@sha256:3076b8dcdfb32fd6bc5ccef85e7b7313e6199b9cb84366257fc17ecb696db5fd
     command: ["-config.file=/etc/tempo/tempo-config.yml"]
     volumes:
       - ./services/observability/tempo/tempo-config.yml:/etc/tempo/tempo-config.yml:ro
@@ -170,7 +170,7 @@ services:
 
   grafana:
     profiles: ["observability"]
-    image: grafana/grafana:13.2.1@sha256:f772d434e8fab0049deb2b1b30abd43342bcfca1537614aa8d36080232cf4283
+    image: grafana/grafana:13.2.3@sha256:b28bae15e219c998fb0e0424ed724930cc61b1f61fb404d47c862f9a23f9e572
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
