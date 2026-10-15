@@ -129,13 +129,16 @@ All browser routes need **nginx basic auth** (`NGINX_USER` / `NGINX_PASS`). Graf
 
 **OpenAPI** is the ingest contract (GET/POST, `file` / `ftp` / `http` / `https`, `.txt` / archives). Start at [https://localhost/docs](https://localhost/docs).
 
-**pgAdmin:** [https://localhost/pgadmin4/](https://localhost/pgadmin4/) — nginx auth first, then `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD`. Register a server:
+**pgAdmin:** [https://localhost/pgadmin4/](https://localhost/pgadmin4/) — nginx auth first, then `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD`. The saved `tagbase` connection is already filled in:
 
-- Host: **`postgis`** (Docker DNS name, not `postgres` and not `localhost`)
+- Host: `postgis` (Docker DNS name on the Compose network)
 - Port: `5432`
 - Database: `tagbase`
 - Username: `tagbase`
-- Password: the same `POSTGRES_PASSWORD`
+
+Expand **tagbase** in the object explorer to connect. The password is the configured `POSTGRES_PASSWORD`.
+
+Keep `:`, `\`, and line breaks out of `POSTGRES_PASSWORD`. The preloaded connection reads that password from a [pgpass](https://www.postgresql.org/docs/current/libpq-pgpass.html) file, which treats those characters as syntax.
 
 **Materialized views** (once, after you have ingested tags you want in “application ready” form): run [`tagbase_materialized_views.sql`](https://github.com/tagbase/tagbase-server/blob/main/services/postgis/tagbase_materialized_views.sql) in the pgAdmin query tool. Do not re-run that script on every ingest.
 
