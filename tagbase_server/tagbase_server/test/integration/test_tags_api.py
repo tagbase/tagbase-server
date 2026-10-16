@@ -2,7 +2,11 @@
 
 import pytest
 
-from tagbase_server.test.helpers import API_PREFIX, response_json
+from tagbase_server.test.helpers import (
+    API_PREFIX,
+    assert_sync_ingest,
+    response_json,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -21,7 +25,7 @@ def _ingest(client, etuff_bytes, notes="notes", version="1"):
         },
         data=etuff_bytes,
     )
-    assert response.status_code == 200
+    assert_sync_ingest(response)
     listed = response_json(
         client.get(f"{API_PREFIX}/tags", headers={"Accept": "application/json"})
     )

@@ -11,6 +11,7 @@ from connexion.options import SwaggerUIOptions
 
 from tagbase_server import encoder
 from tagbase_server.problem import register_problem_handlers
+from tagbase_server.upload_stream import UploadGuardMiddleware
 
 OPENAPI_DIR = Path(__file__).resolve().parents[1] / "openapi"
 _FIXTURES = Path(__file__).resolve().parent / "fixtures"
@@ -41,6 +42,7 @@ def create_test_app():
         swagger_ui_options=swagger_ui_options,
         jsonifier=encoder.create_jsonifier(),
     )
+    app.add_middleware(UploadGuardMiddleware)
     app.add_api("openapi.yaml", pythonic_params=True, strict_validation=True)
     register_problem_handlers(app.app)
     return app
@@ -117,6 +119,14 @@ def clean_db(db_conn):
     with db_conn.cursor() as cur:
         cur.execute("TRUNCATE submission CASCADE")
         cur.execute("TRUNCATE dataset CASCADE")
+        cur.execute("""
+            DO $$
+            BEGIN
+                IF to_regclass('public.ingest_job') IS NOT NULL THEN
+                    TRUNCATE ingest_job;
+                END IF;
+            END $$;
+            """)
         for attribute_id, category, name, description, necessity in METADATA_TYPE_SEED:
             cur.execute(
                 """

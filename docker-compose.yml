@@ -59,6 +59,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./staging_data:/usr/src/app/staging_data:ro
+      - fswatch-state:/var/lib/tagbase-fswatch
   nginx:
     build:
       context: ./services/nginx
@@ -375,6 +376,7 @@ networks:
   internal-network:
 
 volumes:
+  fswatch-state:
   alloy-data:
   prometheus-data:
   loki-data:

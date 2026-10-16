@@ -754,7 +754,7 @@ COMMENT ON COLUMN submission.date_time IS 'Local datetime stamp at the time of e
 -- Name: COLUMN submission.filename; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN submission.filename IS 'Full path, name and extension of the ingested eTUFF tag data file';
+COMMENT ON COLUMN submission.filename IS 'Name of the ingested eTUFF file. Archive members keep their path inside the archive';
 
 
 --
@@ -1156,9 +1156,30 @@ $$;
 -- The following PROCEDURE ensures that data migration (from the proc_observation's
 -- table to other target tables) is executed. f
 CREATE PROCEDURE sp_execute_data_migration(submission_id_param integer, is_reference_track_param boolean)
-LANGUAGE SQL
+LANGUAGE plpgsql
 AS $BODY$
+DECLARE
+  ts_rows bigint;
+  defer_date_index boolean;
+BEGIN
  --\connect tagbase
+ -- Once older submissions already cover this time range, maintaining the
+ -- global date_time btree is a mid-index insert per row (~29 MB/min of heap).
+ -- One million rows is about 100 MB of heap. Below that, rebuilding the
+ -- whole index costs more than leaving it in place.
+ SELECT count(*) INTO ts_rows
+ FROM proc_observations a
+ JOIN observation_types c ON a.variable_id = c.variable_id
+ WHERE a.submission_id = submission_id_param
+   AND c.variable_name IN ('datetime',
+                           'depth',
+                           'temperature',
+                           'light',
+                           'internal temperature');
+ defer_date_index := ts_rows >= 1000000;
+ IF defer_date_index THEN
+   DROP INDEX data_time_series_date_time_index;
+ END IF;
  -- data_time_series
  WITH moved_rows AS
    ( DELETE
@@ -1200,7 +1221,7 @@ AS $BODY$
         variable_value,
         submission_id,
         tag_id,
-        is_reference_track_param
+        moved_rows.is_reference_track_param
  FROM moved_rows;
  WITH moved_rows AS
    ( DELETE
@@ -1288,8 +1309,7 @@ AS $BODY$
  WITH moved_rows AS
    ( DELETE
     FROM proc_observations a USING observation_types b,
-                                   submission c,
-                                   data_time_series d
+                                   submission c
     WHERE a.variable_id = b.variable_id
       AND b.variable_name LIKE 'TimeAt%'
       AND c.submission_id = submission_id_param
@@ -1299,7 +1319,7 @@ AS $BODY$
                                                        cast(substring(variable_name, '(\d+)') AS int) AS bin_class,
                                                        a.date_time,
                                                        a.variable_value,
-                                                       d.position_date_time,
+                                                       cast(NULL AS timestamp(6) with time zone),
                                                        a.variable_id)
  INSERT INTO data_histogram_bin_data
  SELECT *
@@ -1363,32 +1383,73 @@ AS $BODY$
  WHERE data_profile.date_time = moved_rows.date_time
    AND data_profile.submission_id = moved_rows.submission_id;
  -- SQL update statements to link measurement date time with position date time
- UPDATE data_time_series
- SET position_date_time =
-   (SELECT date_time
-    FROM data_position
-    WHERE data_time_series.submission_id = data_position.submission_id
-      AND data_time_series.date_time >= data_position.date_time
-    ORDER BY data_position.date_time DESC
-    LIMIT 1)
- WHERE position_date_time IS NULL;
- UPDATE data_histogram_bin_data
- SET position_date_time =
-   (SELECT date_time
-    FROM data_position
-    WHERE data_histogram_bin_data.submission_id = data_position.submission_id
-      AND data_histogram_bin_data.date_time >= data_position.date_time
-    ORDER BY data_position.date_time DESC
-    LIMIT 1)
- WHERE position_date_time IS NULL;
- UPDATE data_profile
- SET position_date_time =
-   (SELECT date_time
-    FROM data_position
-    WHERE data_profile.submission_id = data_position.submission_id
-      AND data_profile.date_time >= data_position.date_time
-    ORDER BY data_position.date_time DESC
-    LIMIT 1)
- WHERE position_date_time IS NULL;
+ DROP TABLE IF EXISTS migration_position_match;
+ CREATE TEMP TABLE migration_position_match ON COMMIT DROP AS
+ SELECT m.submission_id,
+        m.tag_id,
+        m.date_time,
+        p.position_date_time
+ FROM (
+     SELECT submission_id, tag_id, date_time
+     FROM data_time_series
+     WHERE position_date_time IS NULL
+     UNION
+     SELECT submission_id, tag_id, date_time
+     FROM data_histogram_bin_data
+     WHERE position_date_time IS NULL
+     UNION
+     SELECT submission_id, tag_id, date_time
+     FROM data_profile
+     WHERE position_date_time IS NULL
+ ) AS m
+ CROSS JOIN LATERAL (
+     SELECT dp.date_time AS position_date_time
+     FROM data_position AS dp
+     WHERE dp.submission_id = m.submission_id
+       AND dp.tag_id = m.tag_id
+       AND dp.date_time <= m.date_time
+     ORDER BY dp.date_time DESC
+     LIMIT 1
+ ) AS p;
+ UPDATE data_time_series AS t
+ SET position_date_time = m.position_date_time
+ FROM migration_position_match AS m
+ WHERE t.position_date_time IS NULL
+   AND t.submission_id = m.submission_id
+   AND t.tag_id = m.tag_id
+   AND t.date_time = m.date_time;
+ UPDATE data_histogram_bin_data AS t
+ SET position_date_time = m.position_date_time
+ FROM migration_position_match AS m
+ WHERE t.position_date_time IS NULL
+   AND t.submission_id = m.submission_id
+   AND t.tag_id = m.tag_id
+   AND t.date_time = m.date_time;
+ UPDATE data_profile AS t
+ SET position_date_time = m.position_date_time
+ FROM migration_position_match AS m
+ WHERE t.position_date_time IS NULL
+   AND t.submission_id = m.submission_id
+   AND t.tag_id = m.tag_id
+   AND t.date_time = m.date_time;
+ IF defer_date_index THEN
+   CREATE INDEX data_time_series_date_time_index ON data_time_series USING btree (date_time);
+ END IF;
+END;
 $BODY$;
 
+
+CREATE TABLE ingest_job (
+    id uuid PRIMARY KEY,
+    status text NOT NULL
+        CHECK (status IN ('queued', 'running', 'succeeded', 'failed')),
+    source_path text NOT NULL,
+    filename text,
+    version text,
+    notes text,
+    error text,
+    files_total integer,
+    files_done integer NOT NULL DEFAULT 0,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);

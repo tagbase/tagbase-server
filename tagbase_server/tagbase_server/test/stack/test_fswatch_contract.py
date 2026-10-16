@@ -69,6 +69,8 @@ done
 
 class _IngestHandler(BaseHTTPRequestHandler):
     requests = []
+    job_status = "succeeded"
+    get_status = 200
 
     def do_POST(self):  # noqa: N802
         length = int(self.headers.get("Content-Length", "0"))
@@ -76,15 +78,40 @@ class _IngestHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         self.requests.append(
             {
+                "method": "POST",
                 "path": parsed.path,
                 "query": parse_qs(parsed.query),
                 "body": body,
             }
         )
-        self.send_response(200)
+        self.send_response(202)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(b'{"code":"200","message":"ok","elapsed":"0"}')
+        self.wfile.write(
+            b'{"id":"11111111-1111-1111-1111-111111111111","status":"queued"}'
+        )
+
+    def do_GET(self):  # noqa: N802
+        parsed = urlparse(self.path)
+        if not parsed.path.endswith("/11111111-1111-1111-1111-111111111111"):
+            self.send_response(404)
+            self.end_headers()
+            return
+        status = type(self).job_status
+        code = type(self).get_status
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        if code != 200:
+            self.wfile.write(b'{"title":"unavailable"}')
+            return
+        error = "" if status != "failed" else "parse failed"
+        payload = (
+            '{"id":"11111111-1111-1111-1111-111111111111",'
+            f'"status":"{status}","error":"{error}",'
+            '"files_total":1,"files_done":0}'
+        )
+        self.wfile.write(payload.encode())
 
     def log_message(self, format, *args):  # noqa: A003
         return
@@ -93,6 +120,8 @@ class _IngestHandler(BaseHTTPRequestHandler):
 @pytest.fixture
 def mock_ingest_server():
     _IngestHandler.requests = []
+    _IngestHandler.job_status = "succeeded"
+    _IngestHandler.get_status = 200
     server = HTTPServer(("127.0.0.1", 0), _IngestHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -121,7 +150,7 @@ def _install_fake_fswatch(work):
 def _run_fswatch(env, log_path):
     log_f = open(log_path, "w", encoding="utf-8")
     proc = subprocess.Popen(
-        ["sh", str(POST_SH)],
+        ["bash", str(POST_SH)],
         env=env,
         stdout=log_f,
         stderr=subprocess.STDOUT,
@@ -212,7 +241,7 @@ def test_fswatch_posts_basename_and_body_after_size_stable(mock_ingest_server):
                 f"fswatch did not POST to ingest. post.sh output:\n{_read_log(log_path)}"
             )
         req = handler.requests[0]
-        assert req["path"].endswith("/ingest")
+        assert req["path"].endswith("/ingest/jobs")
         assert req["query"]["filename"] == ["drop-etuff.txt"]
         assert req["query"]["type"] == ["etuff"]
         assert req["body"] == b"partial-complete"
@@ -284,6 +313,79 @@ def test_fswatch_ingests_multiple_files_dropped_quickly(mock_ingest_server):
         }
         for name in names:
             assert by_name[name] == bodies[name]
+    finally:
+        _stop_fswatch(proc)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def test_fswatch_keeps_submitting_while_a_job_is_running(mock_ingest_server):
+    ingest_base, handler = mock_ingest_server
+    handler.job_status = "running"
+    work = _workspace_tmpdir("running")
+    staging = work / "staging_data"
+    staging.mkdir()
+    bin_dir = _install_fake_fswatch(work)
+    log_path = work / "fswatch.log"
+    env = _clean_env(os.environ, staging, work / "dedupe", ingest_base, bin_dir)
+    proc = _run_fswatch(env, log_path)
+    try:
+        time.sleep(0.4)
+        (staging / "first.txt").write_bytes(b"one")
+        (staging / "second.txt").write_bytes(b"two")
+        # record_pending runs after the POST returns, so wait for the file too.
+        deadline = time.time() + 30
+        pending_path = work / "pending.tsv"
+        pending = ""
+        while time.time() < deadline:
+            names = {
+                (r["query"].get("filename") or [None])[0] for r in handler.requests
+            }
+            if pending_path.is_file():
+                pending = pending_path.read_text(encoding="utf-8")
+            if (
+                names >= {"first.txt", "second.txt"}
+                and "first.txt" in pending
+                and "second.txt" in pending
+            ):
+                break
+            time.sleep(0.25)
+        else:
+            pytest.fail(
+                "expected both posts to stay pending while running. "
+                f"pending:\n{pending}\nlog:\n{_read_log(log_path)}"
+            )
+    finally:
+        _stop_fswatch(proc)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def test_fswatch_reconciles_pending_across_restart(mock_ingest_server):
+    ingest_base, handler = mock_ingest_server
+    work = _workspace_tmpdir("restart")
+    staging = work / "staging_data"
+    staging.mkdir()
+    target = staging / "already.txt"
+    target.write_bytes(b"kept")
+    pending = work / "pending.tsv"
+    pending.write_text(
+        f"{target}\t{target.stat().st_size}\t11111111-1111-1111-1111-111111111111\n",
+        encoding="utf-8",
+    )
+    bin_dir = _install_fake_fswatch(work)
+    log_path = work / "fswatch.log"
+    env = _clean_env(os.environ, staging, work / "dedupe", ingest_base, bin_dir)
+    proc = _run_fswatch(env, log_path)
+    try:
+        deadline = time.time() + 20
+        done = work / "dedupe"
+        while time.time() < deadline:
+            if done.is_file() and "already.txt" in done.read_text(encoding="utf-8"):
+                break
+            time.sleep(0.25)
+        else:
+            pytest.fail(f"pending job was not reconciled. log:\n{_read_log(log_path)}")
+        assert handler.requests == []
+        assert "already.txt" not in pending.read_text(encoding="utf-8")
     finally:
         _stop_fswatch(proc)
         shutil.rmtree(work, ignore_errors=True)

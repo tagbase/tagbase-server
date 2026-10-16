@@ -18,6 +18,6 @@ COPY . /usr/src/app
 
 EXPOSE 5433
 
-ENTRYPOINT ["gunicorn"]
+RUN chmod 0555 /usr/src/app/docker-entrypoint.sh
 
-CMD ["-c", "gunicorn.conf.py", "tagbase_server.__main__:app"]
+ENTRYPOINT ["/usr/src/app/docker-entrypoint.sh"]
