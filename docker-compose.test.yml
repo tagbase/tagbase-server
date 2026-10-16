@@ -100,6 +100,7 @@ services:
       - TAGBASE_INGEST_BASE=tagbase_server:5433/tagbase/api/v0
     volumes:
       - ./staging_data:/usr/src/app/staging_data:ro
+      - fswatch-state:/var/lib/tagbase-fswatch
     networks:
       - test-network
 
@@ -195,6 +196,7 @@ networks:
   test-network:
 
 volumes:
+  fswatch-state:
   tagbase-test-pgdata:
   tagbase-test-alloy:
   tagbase-test-prometheus:

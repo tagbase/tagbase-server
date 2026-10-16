@@ -12,7 +12,7 @@ from tagbase_server.__main__ import configure_cors, parse_cors_origins
 from tagbase_server.controllers import ingest_controller
 from tagbase_server.controllers.ingest_controller import _resolve_ingest_file_type
 from tagbase_server.models.base_model_ import Model
-from tagbase_server.models.ingest200 import Ingest200
+from tagbase_server.models.tag_put200 import TagPut200
 from tagbase_server.utils import io_utils
 from tagbase_server.utils import processing_utils as pu
 
@@ -86,23 +86,6 @@ def test_process_get_input_data_local_file(tmp_path):
     assert result == str(local)
 
 
-@mock.patch("tagbase_server.utils.io_utils.Archive")
-def test_unpack_compressed_binary_uses_temp_dir(mock_archive, tmp_path):
-    archive_path = tmp_path / "bundle.zip"
-    archive_path.write_bytes(b"x")
-
-    def extractall(target):
-        assert target.startswith(tempfile.gettempdir())
-        nested = os.path.join(target, "inner.txt")
-        with open(nested, "w", encoding="utf-8") as handle:
-            handle.write("etuff")
-
-    mock_archive.return_value.extractall.side_effect = extractall
-    files = io_utils.unpack_compressed_binary(str(archive_path))
-    assert len(files) == 1
-    assert files[0].endswith("inner.txt")
-
-
 @mock.patch("tagbase_server.utils.io_utils.urlopen")
 def test_process_get_input_data_downloads_remote(mock_urlopen, tmp_path):
     mock_urlopen.return_value.read.side_effect = [b"chunk", b""]
@@ -125,34 +108,48 @@ def test_resolve_ingest_file_type_defaults_and_rejects():
         _resolve_ingest_file_type("csv")
 
 
-@mock.patch("tagbase_server.controllers.ingest_controller.parmap.map")
+@mock.patch("tagbase_server.controllers.ingest_controller.record_ingest_request")
+@mock.patch("tagbase_server.controllers.ingest_controller._run_ingest_queue")
+@mock.patch("tagbase_server.controllers.ingest_controller.materialize")
 @mock.patch("tagbase_server.controllers.ingest_controller.process_get_input_data")
-def test_ingest_get_happy_path(mock_get, mock_map):
+def test_ingest_get_happy_path(mock_get, mock_materialize, mock_queue, mock_record):
+    from tagbase_server.archives import PreparedIngest
+
     mock_get.return_value = "/data/file.txt"
-    mock_map.return_value = [0]
+    mock_materialize.return_value = PreparedIngest(
+        files=["/data/file.txt"], workspace=None
+    )
     result, status, headers = ingest_controller.ingest_get(
         "file:///data/file.txt", type="etuff"
     )
     assert status == 200
     assert headers["Content-Type"] == "application/json"
     assert result.code == "200"
-    mock_map.assert_called_once()
+    assert len(result.trace_id) == 32
+    mock_queue.assert_called_once()
+    mock_record.assert_called_once()
+    assert mock_record.call_args.args[0] == "success"
 
 
-@mock.patch("tagbase_server.controllers.ingest_controller.parmap.map")
-@mock.patch("tagbase_server.controllers.ingest_controller.unpack_compressed_binary")
+@mock.patch("tagbase_server.controllers.ingest_controller.record_ingest_request")
+@mock.patch("tagbase_server.controllers.ingest_controller._run_ingest_queue")
+@mock.patch("tagbase_server.controllers.ingest_controller.materialize")
 @mock.patch("tagbase_server.controllers.ingest_controller.process_post_input_data")
-def test_ingest_post_archive_path(mock_post, mock_unpack, mock_map):
-    mock_post.return_value = "/data/bundle.zip"
-    mock_unpack.return_value = ["/data/a.txt"]
-    mock_map.return_value = [0]
+def test_ingest_post_archive_path(mock_post, mock_materialize, mock_queue, mock_record):
+    from tagbase_server.archives import PreparedIngest
+
+    mock_post.return_value = "/tmp/bundle.zip"
+    mock_materialize.return_value = PreparedIngest(
+        files=["/tmp/inner.txt"], workspace=None
+    )
     result, status, headers = ingest_controller.ingest_post(
         "bundle.zip", b"x", type=None
     )
     assert status == 200
     assert headers["Content-Type"] == "application/json"
     assert result.code == "200"
-    mock_unpack.assert_called_once()
+    mock_queue.assert_called_once()
+    mock_record.assert_called_once()
 
 
 def test_processing_utils_has_no_pytz():
@@ -280,7 +277,15 @@ def test_process_etuff_file_full_path(
     mock_build.return_value = ([[timezone.utc, 1, "1", 3, 2]], 1)
     mock_buffer.return_value = StringIO("x")
     mock_migrate.return_value = 0.1
-    assert pu.process_etuff_file("f.txt") is None
+    assert (
+        pu.process_etuff_file(
+            "/tmp/5fb7423d-tagbase-upload-cjz5",
+            submission_name="2024BFT07799A.txt",
+        )
+        is None
+    )
+    assert mock_props.call_args.args[0] == "/tmp/5fb7423d-tagbase-upload-cjz5"
+    assert mock_insert.call_args.args[2] == "2024BFT07799A.txt"
 
 
 @mock.patch("tagbase_server.utils.processing_utils.connect")
@@ -333,7 +338,7 @@ def test_base_model_ne_and_to_dict_branches():
     assert as_dict["items"][0]["name"] == "a"
     assert as_dict["nested"]["name"] == "b"
     assert as_dict["mapping"]["k"]["name"] == "c"
-    a = Ingest200.from_dict({"code": "200", "elapsed": 1.0, "message": "a"})
-    b = Ingest200.from_dict({"code": "200", "elapsed": 1.0, "message": "b"})
+    a = TagPut200.from_dict({"code": "200", "message": "a"})
+    b = TagPut200.from_dict({"code": "200", "message": "b"})
     assert a != b
     assert not (a != a)
