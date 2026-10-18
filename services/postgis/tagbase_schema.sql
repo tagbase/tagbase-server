@@ -1163,8 +1163,28 @@ $$;
 CREATE PROCEDURE sp_execute_data_migration(submission_id_param integer, is_reference_track_param boolean)
 LANGUAGE plpgsql
 AS $BODY$
+DECLARE
+  ts_rows bigint;
+  defer_date_index boolean;
 BEGIN
  --\connect tagbase
+ -- Once older submissions already cover this time range, maintaining the
+ -- global date_time btree is a mid-index insert per row (~29 MB/min of heap).
+ -- One million rows is about 100 MB of heap. Below that, rebuilding the
+ -- whole index costs more than leaving it in place.
+ SELECT count(*) INTO ts_rows
+ FROM proc_observations a
+ JOIN observation_types c ON a.variable_id = c.variable_id
+ WHERE a.submission_id = submission_id_param
+   AND c.variable_name IN ('datetime',
+                           'depth',
+                           'temperature',
+                           'light',
+                           'internal temperature');
+ defer_date_index := ts_rows >= 1000000;
+ IF defer_date_index THEN
+   DROP INDEX data_time_series_date_time_index;
+ END IF;
  -- data_time_series
  WITH moved_rows AS
    ( DELETE
@@ -1417,6 +1437,9 @@ BEGIN
    AND t.submission_id = m.submission_id
    AND t.tag_id = m.tag_id
    AND t.date_time = m.date_time;
+ IF defer_date_index THEN
+   CREATE INDEX data_time_series_date_time_index ON data_time_series USING btree (date_time);
+ END IF;
 END;
 $BODY$;
 
