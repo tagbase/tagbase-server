@@ -11,6 +11,7 @@ from flask_cors import CORS
 from tagbase_server import encoder
 from tagbase_server.problem import register_problem_handlers
 from tagbase_server.telemetry import setup_telemetry
+from tagbase_server.upload_stream import UploadGuardMiddleware
 
 LOGGER_NAME = "tagbase_server"
 
@@ -62,6 +63,7 @@ app = FlaskApp(
     swagger_ui_options=swagger_ui_options,
     jsonifier=encoder.create_jsonifier(),
 )
+app.add_middleware(UploadGuardMiddleware)
 app.add_api(
     "openapi.yaml",
     arguments={"title": "tagbase-server API"},

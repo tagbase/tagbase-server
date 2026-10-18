@@ -3,10 +3,7 @@ import logging
 import os
 import re
 import tempfile
-from time import time
 from urllib.request import urlopen
-
-from pyunpack import Archive
 
 logger = logging.getLogger(__name__)
 
@@ -105,28 +102,3 @@ def process_post_input_data(filename, body):
         f.write(data)
     logger.debug(filepath)
     return filepath
-
-
-def unpack_compressed_binary(file):
-    """
-    Unpack a variety of compressed input files storing all .txt contents under the process temp directory.
-    No explicit cleanup is performed per-se however details of the implementation
-    can be found in https://docs.python.org/3/library/tempfile.html#tempfile.TemporaryFile
-    For a list of files which can be processed, see
-    https://pypi.org/project/patool/, and
-    https://github.com/ponty/pyunpack
-
-    :param file: The .zip or .tar.gz file containing one or more eTUFF .txt files.
-    :type file: str
-    """
-    etuff_files = []
-    temp_dir = os.path.join(TEMP_DIR, str(time()))
-    if not os.path.exists(temp_dir):
-        os.mkdir(temp_dir)
-    logger.info("Unpacking %s archive to %s", file, temp_dir)
-    Archive(file).extractall(temp_dir)
-    for root, dirs, files in os.walk(temp_dir):
-        for file in files:
-            if file.endswith(".txt"):
-                etuff_files.append(os.path.join(root, file))
-    return etuff_files

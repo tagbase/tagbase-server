@@ -54,6 +54,7 @@ services:
     restart: unless-stopped
     volumes:
       - staging-data:/usr/src/app/staging_data:ro
+      - fswatch-state:/var/lib/tagbase-fswatch
 
   nginx:
     image: ghcr.io/tagbase/tagbase-nginx:${TAGBASE_VERSION:-latest}
@@ -317,5 +318,6 @@ volumes:
   lego-data:
   postgis-data:
   staging-data:
+  fswatch-state:
   dbbackups:
   tagbase-logs:
