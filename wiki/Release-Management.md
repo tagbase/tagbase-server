@@ -90,12 +90,20 @@ Renovate titles such as `chore(deps): …` are patches when a release actually r
 
 ## Pull request lint (commitlint)
 
+Local gate: [`.pre-commit-config.yaml`](https://github.com/tagbase/tagbase-server/blob/main/.pre-commit-config.yaml) installs a `commit-msg` hook (`default_install_hook_types` includes `pre-commit` and `commit-msg`). On commit it runs the same pins as CI, with `npm_config_ignore_scripts=true`, and reads the message through `commitlint --edit` and [`commitlint.config.cjs`](https://github.com/tagbase/tagbase-server/blob/main/commitlint.config.cjs).
+
+```bash
+pre-commit install --hook-type pre-commit --hook-type commit-msg
+```
+
+That hook checks the message being committed. PR title lint stays in CI.
+
 [`.github/workflows/commitlint.yml`](https://github.com/tagbase/tagbase-server/blob/main/.github/workflows/commitlint.yml) runs on `opened` / `synchronize` / `reopened` / `edited`. It fails if:
 
 - any commit from the PR base SHA to the head SHA is not Conventional, or
 - the **PR title** is not Conventional (`@commitlint/config-conventional`).
 
-Pinned in the workflow via `npx` (no root `package.json`): `@commitlint/cli@21.2.2` and `@commitlint/config-conventional@21.2.2`. Config: [`commitlint.config.cjs`](https://github.com/tagbase/tagbase-server/blob/main/commitlint.config.cjs). There is no Husky hook; CI is the gate.
+Pinned in the workflow via `npx` (no root `package.json`): `@commitlint/cli@21.2.2` and `@commitlint/config-conventional@21.2.2`. Config: [`commitlint.config.cjs`](https://github.com/tagbase/tagbase-server/blob/main/commitlint.config.cjs).
 
 Agents: see [AGENTS.md](https://github.com/tagbase/tagbase-server/blob/main/AGENTS.md) Commits. Do not commit unless the user asks.
 
@@ -105,6 +113,7 @@ Agents: see [AGENTS.md](https://github.com/tagbase/tagbase-server/blob/main/AGEN
 .github/workflows/semantic-release.yml   # cron + dispatch; Node 24; npx semantic-release
 .github/workflows/publish-ghcr.yml         # GitHub Release published (+ dispatch): bake GHCR + compose publish
 .github/workflows/commitlint.yml          # PR title + commits
+.pre-commit-config.yaml                   # local commit-msg hook (same pins)
 .releaserc.json                          # plugins, releaseRules, git assets, tagFormat
 scripts/semantic-release-fortnight-gate.sh
 scripts/semantic-release-auth-preflight.sh # RELEASE_TOKEN must be a human PAT
