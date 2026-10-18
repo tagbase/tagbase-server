@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 from datetime import datetime as dt
 from datetime import timezone
@@ -529,9 +530,23 @@ def _compute_submission_hashes(submission_filename, file_content, metadata_conte
     )
 
 
-def process_etuff_file(file, version=None, notes=None):
+def process_etuff_file(
+    file, version=None, notes=None, count_request=True, submission_name=None
+):
     start = time.perf_counter()
-    submission_filename = file
+    source_path = file
+    submission_filename = submission_name or os.path.basename(source_path)
+
+    def _record(outcome, duration):
+        if count_request:
+            record_ingest_request(outcome, duration)
+
+    def _soft_error(outcome, duration, message):
+        _record(outcome, duration)
+        if not count_request:
+            raise RuntimeError(message)
+        return 1
+
     tracer = get_tracer()
     logger.info(
         "Processing etuff file: %s",
@@ -541,8 +556,11 @@ def process_etuff_file(file, version=None, notes=None):
     conn = connect()
     if not hasattr(conn, "cursor"):
         record_db_error("connect")
-        record_ingest_request("error", round(time.perf_counter() - start, 2))
-        return 1
+        return _soft_error(
+            "error",
+            round(time.perf_counter() - start, 2),
+            "database unavailable",
+        )
     conn.autocommit = True
 
     with tracer.start_as_current_span("ingest.parse_etuff"):
@@ -556,17 +574,15 @@ def process_etuff_file(file, version=None, notes=None):
                 file_content,
                 metadata_content,
                 number_global_attributes_lines,
-            ) = get_dataset_properties(submission_filename)
+            ) = get_dataset_properties(source_path)
             (
                 content_hash,
                 metadata_hash,
                 entire_file_hash,
-            ) = _compute_submission_hashes(
-                submission_filename, file_content, metadata_content
-            )
+            ) = _compute_submission_hashes(source_path, file_content, metadata_content)
         except Exception:
             logger.exception("Error parsing etuff file: %s", submission_filename)
-            record_ingest_request("error", round(time.perf_counter() - start, 2))
+            _record("error", round(time.perf_counter() - start, 2))
             raise
 
     with conn:
@@ -579,9 +595,7 @@ def process_etuff_file(file, version=None, notes=None):
                             submission_filename,
                             entire_file_hash,
                         )
-                        record_ingest_request(
-                            "duplicate", round(time.perf_counter() - start, 2)
-                        )
+                        _record("duplicate", round(time.perf_counter() - start, 2))
                         return 1
 
                     dataset_id = get_dataset_id(
@@ -628,9 +642,7 @@ def process_etuff_file(file, version=None, notes=None):
                             dataset_id,
                             metadata_hash,
                         )
-                        record_ingest_request(
-                            "metadata_only", round(time.perf_counter() - start, 2)
-                        )
+                        _record("metadata_only", round(time.perf_counter() - start, 2))
                         return 1
 
                     proc_obs, len_proc_obs = _build_proc_observations(
@@ -648,10 +660,11 @@ def process_etuff_file(file, version=None, notes=None):
                     )
                     if sub_elapsed is False:
                         record_db_error("migrate_proc_observations")
-                        record_ingest_request(
-                            "error", round(time.perf_counter() - start, 2)
+                        return _soft_error(
+                            "error",
+                            round(time.perf_counter() - start, 2),
+                            "failed to migrate proc observations",
                         )
-                        return 1
                     record_rows_written(len_proc_obs)
                     logger.info(
                         "Successful migration of %s 'proc_observations'. Elapsed time: %s second(s).",
@@ -660,9 +673,7 @@ def process_etuff_file(file, version=None, notes=None):
                     )
                 except Exception:
                     record_db_error("persist")
-                    record_ingest_request(
-                        "error", round(time.perf_counter() - start, 2)
-                    )
+                    _record("error", round(time.perf_counter() - start, 2))
                     raise
 
     conn.commit()
@@ -672,7 +683,7 @@ def process_etuff_file(file, version=None, notes=None):
 
     finish = time.perf_counter()
     elapsed = round(finish - start, 2)
-    record_ingest_request("success", elapsed)
+    _record("success", elapsed)
     logger.info(
         "Data file %s successfully ingested into Tagbase DB. Total time: %s second(s)",
         submission_filename,

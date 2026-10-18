@@ -24,13 +24,15 @@ The following emerging best practices can be used to drive throughput in the ing
 
 ## Use compressed binary containers when submitting etuff data to tagbase-server
 
-Although tagbase-server is capable of ingesting plain text (.txt) utf-8 encoded etuff data via both POST and GET requests, we suggest first grouping and compressing multiple etuff files into a single `.zip` for example. tagbase-server will decompress and unpack the binary container and then ingest files in parallel.
+Synchronous `POST /ingest` and `GET /ingest` still process the file inside the request and return HTTP 200 with a trace id. A synchronous POST body is limited to 100 MiB. `GET /ingest` is also limited by the 60-second request window, so a large remote file should be submitted with `POST /ingest/jobs` instead.
 
-tagbase-server uses the powerful [patool](https://pypi.org/project/patool/) library to unpack a wide variety of files. See [supported formats](https://wummel.github.io/patool/#main_content) for more information.
+`POST /ingest/jobs` accepts `.txt`, `.zip`, `.tar.gz`, and `.tgz` up to 2 GiB. The body is streamed to disk and the call returns HTTP 202 with a job id. Poll `GET /ingest/jobs/{job_id}` until `status` is `succeeded` or `failed`. The upload form and the fswatch service both use this job API.
+
+Archives are opened with the Python `zipfile` and `tarfile` libraries. Other archive types are rejected. Extraction refuses path traversal, symlink members, and encrypted ZIP members, and it stops when a configurable member count (default 10,000) or uncompressed size (default 10 GiB) is exceeded.
 
 ## Submit multiple files at once
 
-As mentioned above, tagbase-server is capable of ingesting multiple files in parallel. It does this by using the powerful and lightweight [parmap](https://pypi.org/project/parmap/) library which utilizes as many processor cores as possible to perform parallel ingestion.
+A synchronous request still walks the eTUFF members with [parmap](https://pypi.org/project/parmap/). The job worker runs one upload at a time. Parallelism beyond that single process is tracked as a follow-on issue.
 
 ## Use rsync
 

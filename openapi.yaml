@@ -13,7 +13,7 @@ info:
     url: https://www.apache.org/licenses/LICENSE-2.0
   termsOfService: TODO
   title: tagbase-server API
-  version: v0.16.2
+  version: v0.17.0
 servers:
   - description: Local development tagbase-server
     url: https://localhost/tagbase/api/v0
@@ -70,20 +70,24 @@ paths:
         - $ref: "#/components/parameters/version"
       requestBody:
         content:
+          application/gzip:
+            schema:
+              $ref: "#/components/schemas/SyncUpload"
           application/octet-stream:
             schema:
-              description: Compressed binary e.g. zip file containing one or more eTUFF files
-              format: binary
-              maxLength: 1000000000
-              minLength: 1
-              type: string
+              $ref: "#/components/schemas/SyncUpload"
+          application/x-gzip:
+            schema:
+              $ref: "#/components/schemas/SyncUpload"
+          application/x-tar:
+            schema:
+              $ref: "#/components/schemas/SyncUpload"
+          application/zip:
+            schema:
+              $ref: "#/components/schemas/SyncUpload"
           text/plain:
             schema:
-              description: Plain text eTUFF file
-              format: binary
-              maxLength: 1000000000
-              minLength: 1
-              type: string
+              $ref: "#/components/schemas/SyncUpload"
         required: true
         x-body-name: body
       responses:
@@ -95,12 +99,87 @@ paths:
           description: A success message confirming ingestion.
         "400":
           $ref: "#/components/responses/BadRequest"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
         "500":
           $ref: "#/components/responses/InternalError"
       summary: Post a local file and perform a ingest operation
       tags:
         - ingest
       x-codegen-request-body-name: body
+      x-openapi-router-controller: tagbase_server.controllers.ingest_controller
+  /ingest/jobs:
+    post:
+      description: >
+        Accept a .txt, .zip, .tar.gz, or .tgz upload up to 2 GiB, store it,
+        and enqueue ingest. Poll GET /ingest/jobs/{job_id} until the job
+        succeeds or fails.
+      operationId: create_ingest_job
+      parameters:
+        - $ref: "#/components/parameters/filename"
+        - $ref: "#/components/parameters/notes"
+        - $ref: "#/components/parameters/type"
+        - $ref: "#/components/parameters/version"
+      requestBody:
+        content:
+          application/gzip:
+            schema:
+              $ref: "#/components/schemas/JobUpload"
+          application/octet-stream:
+            schema:
+              $ref: "#/components/schemas/JobUpload"
+          application/x-gzip:
+            schema:
+              $ref: "#/components/schemas/JobUpload"
+          application/x-tar:
+            schema:
+              $ref: "#/components/schemas/JobUpload"
+          application/zip:
+            schema:
+              $ref: "#/components/schemas/JobUpload"
+          text/plain:
+            schema:
+              $ref: "#/components/schemas/JobUpload"
+        required: true
+        x-body-name: body
+      responses:
+        "202":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestAccepted"
+          description: Request accepted. Ingest job enqueued
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "500":
+          $ref: "#/components/responses/InternalError"
+      summary: Enqueue a large file for ingest
+      tags:
+        - ingest
+      x-codegen-request-body-name: body
+      x-openapi-router-controller: tagbase_server.controllers.ingest_controller
+  /ingest/jobs/{job_id}:
+    parameters:
+      - $ref: "#/components/parameters/jobId"
+    get:
+      description: Read the status of one ingest job.
+      operationId: get_ingest_job
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestJob"
+          description: The current ingest job.
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+      summary: Read one ingest job
+      tags:
+        - ingest
       x-openapi-router-controller: tagbase_server.controllers.ingest_controller
   /tags:
     delete:
@@ -205,6 +284,18 @@ components:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: The requested resource does not exist.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    PayloadTooLarge:
+      description: The request body exceeds the limit for this operation.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
     InternalError:
       description: Unexpected server error. Contact admin detailed in openapi.yaml.
       content:
@@ -212,6 +303,19 @@ components:
           schema:
             $ref: "#/components/schemas/Problem"
   parameters:
+    jobId:
+      description: Ingest job id
+      explode: false
+      in: path
+      name: job_id
+      required: true
+      schema:
+        format: uuid
+        maxLength: 36
+        minLength: 36
+        pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+        type: string
+      style: simple
     filename:
       description: Free-form text field to explicitly define the name of the file to be persisted
       explode: true
@@ -397,6 +501,91 @@ components:
           pattern: ^[0-9a-f]{32}$
           example: 4bf92f3577b34da6a3ce929d0e0e4736
       title: Ingest200
+      type: object
+    SyncUpload:
+      description: Synchronous ingest body, at most 100 MiB
+      format: binary
+      maxLength: 104857600
+      minLength: 1
+      type: string
+    JobUpload:
+      description: Ingest job body, at most 2 GiB
+      format: binary
+      maxLength: 2147483648
+      minLength: 1
+      type: string
+    IngestAccepted:
+      description: HTTP 202 response after an ingest job is queued
+      required:
+        - id
+        - status
+      example:
+        id: 4bf92f35-77b3-4da6-a3ce-929d0e0e4736
+        status: queued
+      properties:
+        id:
+          description: Ingest job id
+          format: uuid
+          type: string
+          minLength: 36
+          maxLength: 36
+          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+          example: 4bf92f35-77b3-4da6-a3ce-929d0e0e4736
+        status:
+          description: Job status at accept time
+          type: string
+          minLength: 6
+          maxLength: 9
+          pattern: ^queued$
+          example: queued
+      title: IngestAccepted
+      type: object
+    IngestJob:
+      description: Status of one ingest job
+      required:
+        - id
+        - status
+        - files_done
+      example:
+        id: 4bf92f35-77b3-4da6-a3ce-929d0e0e4736
+        status: succeeded
+        files_done: 1
+        files_total: 1
+      properties:
+        id:
+          description: Ingest job id
+          format: uuid
+          type: string
+          minLength: 36
+          maxLength: 36
+          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+          example: 4bf92f35-77b3-4da6-a3ce-929d0e0e4736
+        status:
+          description: queued, running, succeeded, or failed
+          type: string
+          minLength: 6
+          maxLength: 9
+          pattern: ^(queued|running|succeeded|failed)$
+          example: succeeded
+        error:
+          description: Present when the job failed
+          type: string
+          minLength: 1
+          maxLength: 10000
+          pattern: ^(?!\s*$).+$
+        files_total:
+          description: eTUFF members in the upload
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 10000
+        files_done:
+          description: eTUFF members already processed
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 10000
+      title: IngestJob
       type: object
     Metadata:
       description: Contains the ingested tag metadata consistent with the eTUFF specification

@@ -40,7 +40,11 @@
     <main class="container py-5" style="max-width: 42rem">
       <p><a href="./">← Home</a></p>
       <h1 class="mb-2">Upload data</h1>
-      <p>Select eTUFF text files or supported compressed files to ingest.</p>
+      <p>
+        Select eTUFF <code>.txt</code>, <code>.zip</code>, <code>.tar.gz</code>,
+        or <code>.tgz</code> files. Large files are queued and this page follows
+        them until the server finishes.
+      </p>
       <form id="upload-form" class="vstack gap-3">
         <label
           for="file"
@@ -55,7 +59,13 @@
             id="file-name"
             class="d-block mt-2 small text-primary fw-medium"
           ></span>
-          <input id="file" type="file" multiple required />
+          <input
+            id="file"
+            type="file"
+            multiple
+            required
+            accept=".txt,.zip,.tar.gz,.tgz"
+          />
         </label>
         <div>
           <label for="version" class="form-label"
@@ -67,13 +77,37 @@
             >Notes <span class="text-body-secondary">(optional)</span></label
           ><textarea id="notes" class="form-control" rows="4"></textarea>
         </div>
-        <button
-          id="submit"
-          class="btn btn-primary align-self-start"
-          type="submit"
-        >
-          Upload
-        </button>
+        <div class="d-flex gap-2">
+          <button
+            id="submit"
+            class="btn btn-primary align-self-start"
+            type="submit"
+          >
+            Upload
+          </button>
+          <button
+            id="abort"
+            class="btn btn-outline-secondary d-none"
+            type="button"
+          >
+            Abort upload
+          </button>
+          <button
+            id="stop-monitor"
+            class="btn btn-outline-secondary d-none"
+            type="button"
+          >
+            Stop monitoring
+          </button>
+        </div>
+        <div id="progress-wrap" class="progress d-none">
+          <div
+            id="progress"
+            class="progress-bar"
+            role="progressbar"
+            style="width: 0%"
+          ></div>
+        </div>
       </form>
       <div
         id="status"
@@ -89,6 +123,14 @@
       const fileName = document.querySelector("#file-name");
       const status = document.querySelector("#status");
       const submit = document.querySelector("#submit");
+      const abortButton = document.querySelector("#abort");
+      const stopMonitor = document.querySelector("#stop-monitor");
+      const progressWrap = document.querySelector("#progress-wrap");
+      const progress = document.querySelector("#progress");
+      const STORAGE_KEY = "tagbase-ingest-jobs";
+      const POLL_MS = 3000;
+      let activeXhr = null;
+      let pollTimer = null;
 
       function showStatus(type, message) {
         status.className = `alert alert-${type} mt-4`;
@@ -136,6 +178,116 @@
       );
       fileInput.addEventListener("change", updateFileListDisplay);
 
+      function loadJobs() {
+        try {
+          return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        } catch {
+          return [];
+        }
+      }
+
+      function saveJobs(jobs) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(jobs));
+        stopMonitor.classList.toggle("d-none", jobs.length === 0);
+      }
+
+      function rememberJob(job) {
+        const jobs = loadJobs().filter((item) => item.id !== job.id);
+        jobs.push(job);
+        saveJobs(jobs);
+      }
+
+      function forgetJob(id) {
+        saveJobs(loadJobs().filter((item) => item.id !== id));
+      }
+
+      function postFile(file, params) {
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          activeXhr = xhr;
+          xhr.open("POST", `/tagbase/api/v0/ingest/jobs?${params}`);
+          xhr.setRequestHeader(
+            "Content-Type",
+            file.type || "application/octet-stream",
+          );
+          xhr.setRequestHeader("Accept", "application/json");
+          xhr.upload.onprogress = (event) => {
+            if (!event.lengthComputable) return;
+            const pct = Math.round((event.loaded / event.total) * 100);
+            progress.style.width = `${pct}%`;
+            progress.textContent = `${pct}%`;
+          };
+          xhr.onload = () => {
+            activeXhr = null;
+            if (xhr.status === 202) {
+              resolve(JSON.parse(xhr.responseText));
+              return;
+            }
+            reject(new Error(`${xhr.status}\n${xhr.responseText}`));
+          };
+          xhr.onerror = () => {
+            activeXhr = null;
+            reject(new Error("upload failed"));
+          };
+          xhr.onabort = () => {
+            activeXhr = null;
+            reject(new Error("upload aborted"));
+          };
+          progressWrap.classList.remove("d-none");
+          abortButton.classList.remove("d-none");
+          xhr.send(file);
+        });
+      }
+
+      async function pollOnce() {
+        const jobs = loadJobs();
+        if (!jobs.length) {
+          stopMonitor.classList.add("d-none");
+          return;
+        }
+        const lines = [];
+        for (const job of jobs) {
+          try {
+            const response = await fetch(
+              `/tagbase/api/v0/ingest/jobs/${job.id}`,
+              { headers: { Accept: "application/json" } },
+            );
+            const body = await response.json();
+            if (body.status === "succeeded") {
+              forgetJob(job.id);
+              lines.push(`✓ ${job.filename}: succeeded`);
+            } else if (body.status === "failed") {
+              forgetJob(job.id);
+              lines.push(`✗ ${job.filename}: ${body.error || "failed"}`);
+            } else {
+              lines.push(`… ${job.filename}: ${body.status}`);
+            }
+          } catch (error) {
+            lines.push(`… ${job.filename}: ${error.message}`);
+          }
+        }
+        const remaining = loadJobs();
+        showStatus(
+          remaining.length ? "info" : "success",
+          lines.join("\n") || "No jobs are being monitored.",
+        );
+      }
+
+      function ensurePolling() {
+        if (pollTimer) return;
+        pollTimer = window.setInterval(pollOnce, POLL_MS);
+        pollOnce();
+      }
+
+      abortButton.addEventListener("click", () => {
+        if (activeXhr) activeXhr.abort();
+      });
+
+      stopMonitor.addEventListener("click", () => {
+        saveJobs([]);
+        showStatus("info", "Stopped monitoring. The server job keeps running.");
+      });
+
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
         const files = Array.from(fileInput.files);
@@ -143,69 +295,39 @@
 
         const version = document.querySelector("#version").value.trim();
         const notes = document.querySelector("#notes").value.trim();
-
         submit.disabled = true;
-        showStatus("info", `Uploading ${files.length} file(s)…`);
-
         const results = [];
-        let successCount = 0;
 
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
           const params = new URLSearchParams({ filename: file.name });
           if (version) params.set("version", version);
           if (notes) params.set("notes", notes);
-
           showStatus(
             "info",
             `Uploading file ${i + 1} of ${files.length}: ${file.name}…`,
           );
-
           try {
-            const response = await fetch(`/tagbase/api/v0/ingest?${params}`, {
-              method: "POST",
-              headers: {
-                "Content-Type": file.type || "application/octet-stream",
-              },
-              body: file,
-            });
-            const text = await response.text();
-            let result;
-            try {
-              result = JSON.stringify(JSON.parse(text), null, 2);
-            } catch {
-              result = text;
-            }
-
-            if (!response.ok)
-              throw new Error(
-                `${response.status} ${response.statusText}\n${result}`,
-              );
-
-            successCount++;
-            results.push(`✓ ${file.name}: ${result}`);
+            const accepted = await postFile(file, params);
+            rememberJob({ id: accepted.id, filename: file.name });
+            results.push(`queued ${file.name} (${accepted.id})`);
           } catch (error) {
             results.push(`✗ ${file.name}: ${error.message}`);
+          } finally {
+            abortButton.classList.add("d-none");
+            progressWrap.classList.add("d-none");
+            progress.style.width = "0%";
           }
         }
 
-        if (successCount === files.length) {
-          showStatus(
-            "success",
-            `All ${files.length} uploads completed.\n\n` + results.join("\n\n"),
-          );
-          form.reset();
-          fileName.textContent = "";
-        } else {
-          showStatus(
-            "warning",
-            `Completed with errors (${successCount}/${files.length} succeeded):\n\n` +
-              results.join("\n\n"),
-          );
-        }
-
+        showStatus("info", results.join("\n"));
         submit.disabled = false;
+        form.reset();
+        fileName.textContent = "";
+        ensurePolling();
       });
+
+      if (loadJobs().length) ensurePolling();
     </script>
   </body>
 </html>
