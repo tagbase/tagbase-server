@@ -51,7 +51,7 @@ Do not implement on `main` (or `master`). Before the first file change, create o
 
 When the work is ready, **recommend one Conventional Commit** (subject + short body) and stop. Do not `git add` or `git commit` unless the user asks. Default is **one commit for the whole change**; split only if they ask.
 
-[Conventional Commits](https://www.conventionalcommits.org/). CI lints the PR title **and** every commit (`@commitlint/config-conventional`). Use `feat` / `fix` for version bumps. `chore`, `docs`, `ci`, and similar are patch when a release runs.
+[Conventional Commits](https://www.conventionalcommits.org/). A local `commit-msg` hook lints the message at commit time; CI still lints every PR commit and the PR title (`@commitlint/config-conventional`). Use `feat` / `fix` for version bumps. `chore`, `docs`, `ci`, and similar are patch when a release runs.
 
 Do **not** use a `BREAKING CHANGE` footer or `feat!:` / `fix!:` on `0.x` unless the user explicitly wants **1.0.0**. That rewrite changes the public API prefix from `/tagbase/api/v0` to `/tagbase/api/v1`. Operator-facing breaks (ports, env) go in the commit **body**, not the footer.
 
