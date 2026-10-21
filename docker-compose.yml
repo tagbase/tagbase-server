@@ -207,6 +207,7 @@ services:
 
   db-migrate:
     image: kartoza/postgis:18-3.6@sha256:935d2dbeeece33459ab83715fb17dee92499dc4ce47ffee22dedacb3bc861db3
+    platform: linux/amd64
     depends_on:
       postgis:
         condition: service_healthy
