@@ -163,19 +163,27 @@ services:
       - POSTGRES_DB=tagbase
       - POSTGRES_USER=tagbase
       - PGPASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
-    entrypoint: ["/bin/sh", "-c"]
-    command: >-
-      psql -v ON_ERROR_STOP=1 -h postgis
-      -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
-      -c "BEGIN;
-      LOCK TABLE public.submission IN SHARE ROW EXCLUSIVE MODE;
-      SELECT setval(
-        pg_get_serial_sequence('public.submission', 'submission_id'),
-        COALESCE(MAX(submission_id), 1),
-        COUNT(*) > 0
-      )
-      FROM public.submission;
-      COMMIT;"
+    entrypoint: ["psql"]
+    command:
+      - -v
+      - ON_ERROR_STOP=1
+      - -h
+      - postgis
+      - -U
+      - tagbase
+      - -d
+      - tagbase
+      - -c
+      - >-
+        BEGIN;
+        LOCK TABLE public.submission IN SHARE ROW EXCLUSIVE MODE;
+        SELECT setval(
+          pg_get_serial_sequence('public.submission', 'submission_id'),
+          COALESCE(MAX(submission_id), 1),
+          COUNT(*) > 0
+        )
+        FROM public.submission;
+        COMMIT;
     networks:
       - internal-network
     restart: "no"
