@@ -46,7 +46,6 @@ Set secrets in the environment (or a `.env` file in the directory where you run 
 ```bash
 export POSTGRES_PASSWORD='choose-a-strong-password'
 export NGINX_PASS='choose-a-strong-password'
-export PGADMIN_DEFAULT_PASSWORD='choose-a-strong-password'
 # optional
 export NGINX_USER=tagbase
 export PGADMIN_DEFAULT_EMAIL=admin@example.com
@@ -74,9 +73,8 @@ Expect a browser **certificate warning**. Nginx creates a **self-signed** cert o
 | --------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `POSTGRES_PASSWORD`         | yes                               | Database and app                                                                                                              |
 | `NGINX_PASS`                | yes                               | HTTP basic auth on all UIs                                                                                                    |
-| `PGADMIN_DEFAULT_PASSWORD`  | yes                               | pgAdmin login (after nginx auth)                                                                                              |
 | `NGINX_USER`                | no                                | Default `tagbase`                                                                                                             |
-| `PGADMIN_DEFAULT_EMAIL`     | no                                | Default `admin@example.com`                                                                                                   |
+| `PGADMIN_DEFAULT_EMAIL`     | no                                | Bootstrap email for pgAdmin’s config database (default `admin@example.com`); not a browser login                              |
 | `SYSLOG_ADDRESS`            | no                                | Default `host.docker.internal:514`. Docker Desktop: leave default. Linux engine: try `127.0.0.1:514` if logs never reach Loki |
 | `TLS_DOMAIN` / `ACME_EMAIL` | only with `--profile letsencrypt` | See [Trusted HTTPS](#trusted-https-lets-encrypt)                                                                              |
 
@@ -125,17 +123,20 @@ docker compose -f oci://ghcr.io/tagbase/tagbase-stack:vX.Y.Z down -v
 
 ## Using the UIs
 
-All browser routes need **nginx basic auth** (`NGINX_USER` / `NGINX_PASS`). Grafana is anonymous **behind** that gateway; do not expose Grafana on the host.
+All browser routes need **nginx basic auth** (`NGINX_USER` / `NGINX_PASS`). Grafana and pgAdmin are anonymous **behind** that gateway; do not expose them on the host.
 
 **OpenAPI** is the ingest contract (GET/POST, `file` / `ftp` / `http` / `https`, `.txt` / archives). Start at [https://localhost/docs](https://localhost/docs).
 
-**pgAdmin:** [https://localhost/pgadmin4/](https://localhost/pgadmin4/) — nginx auth first, then `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD`. Register a server:
+**pgAdmin:** [https://localhost/pgadmin4/](https://localhost/pgadmin4/) — nginx auth only (no second email/password prompt). The saved `tagbase` connection is already registered:
 
-- Host: **`postgis`** (Docker DNS name, not `postgres` and not `localhost`)
+- Host: `postgis` (Docker DNS name on the Compose network)
 - Port: `5432`
 - Database: `tagbase`
 - Username: `tagbase`
-- Password: the same `POSTGRES_PASSWORD`
+
+Expand **tagbase** in the object explorer to connect. The password is the configured `POSTGRES_PASSWORD` from a [pgpass](https://www.postgresql.org/docs/current/libpq-pgpass.html) file.
+
+Keep `:`, `\`, and line breaks out of `POSTGRES_PASSWORD`. The preloaded connection reads that password from pgpass, which treats those characters as syntax.
 
 **Materialized views** (once, after you have ingested tags you want in “application ready” form): run [`tagbase_materialized_views.sql`](https://github.com/tagbase/tagbase-server/blob/main/services/postgis/tagbase_materialized_views.sql) in the pgAdmin query tool. Do not re-run that script on every ingest.
 
