@@ -1,3 +1,18 @@
+# [0.18.0](https://github.com/tagbase/tagbase-server/compare/v0.17.0...v0.18.0) (2026-10-22)
+
+
+### Bug Fixes
+
+* db-migrate publish entrypoint ([#473](https://github.com/tagbase/tagbase-server/issues/473)) ([193ef94](https://github.com/tagbase/tagbase-server/commit/193ef945d31e48f5af2613f45866f787f1dc8d7a))
+* rebuild the time-series date index after large eTUFF loads ([#461](https://github.com/tagbase/tagbase-server/issues/461)) ([06341f8](https://github.com/tagbase/tagbase-server/commit/06341f8d648d9b6fc0a3630aadf8c8e0095ae75a))
+* specify db-migrate-platform to avoid platform mismatches ([#472](https://github.com/tagbase/tagbase-server/issues/472)) ([5b1e9f7](https://github.com/tagbase/tagbase-server/commit/5b1e9f7d9afe5aabd34cf36572660010eab1baba))
+
+
+### Features
+
+* **ingest:** accept uploads and queue them as jobs ([#437](https://github.com/tagbase/tagbase-server/issues/437)) ([f93fc8d](https://github.com/tagbase/tagbase-server/commit/f93fc8dfc6089abd34e71333b9450d1370b71840))
+* preload the pgAdmin PostGIS server ([#444](https://github.com/tagbase/tagbase-server/issues/444)) ([be049e1](https://github.com/tagbase/tagbase-server/commit/be049e1bfeef5bbc9b8a6d3927f6f26f2b1e57d9))
+
 # [0.17.0](https://github.com/tagbase/tagbase-server/compare/v0.16.2...v0.17.0) (2026-10-12)
 
 
