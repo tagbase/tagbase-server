@@ -1,6 +1,6 @@
 # Bind-mount-free compose for GHCR Compose OCI publish.
 # Operators: docker compose -f oci://ghcr.io/tagbase/tagbase-stack:vX.Y.Z up -d
-# Required: POSTGRES_PASSWORD, NGINX_PASS, PGADMIN_DEFAULT_PASSWORD
+# Required: POSTGRES_PASSWORD, NGINX_PASS
 # Optional Let's Encrypt: --profile letsencrypt plus TLS_DOMAIN and ACME_EMAIL
 x-syslog: &syslog
   driver: syslog
@@ -117,27 +117,33 @@ services:
         condition: service_healthy
     # The image copies PGPASS_FILE only while pgadmin4.db is first created.
     # Its /var/lib/pgadmin volume survives recreate, so refresh .pgpass here.
+    # Desktop mode resolves PassFile at /var/lib/pgadmin/.pgpass.
     entrypoint:
       - /bin/sh
       - -c
       - |
         set -eu
         if [ -n "$${PGPASS_FILE:-}" ] && [ -f "$$PGPASS_FILE" ]; then
-          user_dir=$$(printf '%s' "$${PGADMIN_DEFAULT_EMAIL}" | sed 's/@/_/g')
-          mkdir -p "/var/lib/pgadmin/storage/$${user_dir}"
-          cp "$$PGPASS_FILE" "/var/lib/pgadmin/storage/$${user_dir}/.pgpass"
-          chmod 600 "/var/lib/pgadmin/storage/$${user_dir}/.pgpass"
+          cp "$$PGPASS_FILE" /var/lib/pgadmin/.pgpass
+          chown 5050:0 /var/lib/pgadmin/.pgpass
+          chmod 600 /var/lib/pgadmin/.pgpass
         fi
         exec /entrypoint.sh
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD:?set PGADMIN_DEFAULT_PASSWORD}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD:-tagbase}
       - PGADMIN_LISTEN_PORT=5434
       # The image compares this value to the string True.
       - PGADMIN_REPLACE_SERVERS_ON_STARTUP=True
       - PGADMIN_SERVER_JSON_FILE=/pgadmin4/servers.json
+      # Desktop mode: skip the pgAdmin login form behind nginx basic auth.
+      # Use PGADMIN_CONFIG_SERVER_MODE (not PGADMIN_SERVER_MODE) so DATA_DIR
+      # stays /var/lib/pgadmin. Quotes make DESKTOP_USER a Python string.
+      - PGADMIN_CONFIG_SERVER_MODE=False
+      - PGADMIN_CONFIG_USE_OS_SECRET_STORAGE=False
       - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
-      # Server mode copies this to the login user's storage as .pgpass.
+      - PGADMIN_CONFIG_DESKTOP_USER='${PGADMIN_DEFAULT_EMAIL:-admin@example.com}'
+      # Desktop mode copies this to /var/lib/pgadmin/.pgpass.
       - PGPASS_FILE=/run/secrets/pgpass
     expose:
       - 5434
@@ -191,19 +197,27 @@ services:
       - POSTGRES_DB=tagbase
       - POSTGRES_USER=tagbase
       - PGPASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
-    entrypoint: ["/bin/sh", "-c"]
-    command: >-
-      psql -v ON_ERROR_STOP=1 -h postgis
-      -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
-      -c "BEGIN;
-      LOCK TABLE public.submission IN SHARE ROW EXCLUSIVE MODE;
-      SELECT setval(
-        pg_get_serial_sequence('public.submission', 'submission_id'),
-        COALESCE(MAX(submission_id), 1),
-        COUNT(*) > 0
-      )
-      FROM public.submission;
-      COMMIT;"
+    entrypoint: ["psql"]
+    command:
+      - -v
+      - ON_ERROR_STOP=1
+      - -h
+      - postgis
+      - -U
+      - tagbase
+      - -d
+      - tagbase
+      - -c
+      - >-
+        BEGIN;
+        LOCK TABLE public.submission IN SHARE ROW EXCLUSIVE MODE;
+        SELECT setval(
+          pg_get_serial_sequence('public.submission', 'submission_id'),
+          COALESCE(MAX(submission_id), 1),
+          COUNT(*) > 0
+        )
+        FROM public.submission;
+        COMMIT;
     networks:
       - internal-network
     restart: "no"
@@ -365,7 +379,7 @@ configs:
             "MaintenanceDB": "tagbase",
             "Username": "tagbase",
             "SSLMode": "prefer",
-            "PassFile": ".pgpass"
+            "PassFile": "/var/lib/pgadmin/.pgpass"
           }
         }
       }

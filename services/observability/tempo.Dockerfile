@@ -1,4 +1,4 @@
-FROM grafana/tempo:3.1.0@sha256:3076b8dcdfb32fd6bc5ccef85e7b7313e6199b9cb84366257fc17ecb696db5fd
+FROM grafana/tempo:3.1.1@sha256:64e2fbd56d9c2b3412a4b430a58ea59e91a670b1e75f920a0c702213ad145044
 
 USER root
 COPY tempo/tempo-config.yml /etc/tempo/tempo-config.yml

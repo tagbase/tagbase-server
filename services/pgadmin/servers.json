@@ -8,7 +8,7 @@
       "MaintenanceDB": "tagbase",
       "Username": "tagbase",
       "SSLMode": "prefer",
-      "PassFile": ".pgpass"
+      "PassFile": "/var/lib/pgadmin/.pgpass"
     }
   }
 }
