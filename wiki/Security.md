@@ -29,7 +29,7 @@ Do not bake credentials into an image build. Old `--build-arg NGINX_USER` / `NGI
 
 Grafana is **anonymous Admin** _behind_ nginx. Nginx **clears** the `Authorization` header on `/grafana/` (and other observability paths) so browser basic auth is not forwarded (that used to cause a second 401 prompt).
 
-pgAdmin has its **own** login (`PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD`) **after** nginx basic auth. Treat both as secrets on any shared host.
+pgAdmin runs in **desktop mode** behind the same nginx gate: there is no second email/password form. Anyone who passes nginx basic auth can use the query tool and the preloaded `tagbase` connection (password from `POSTGRES_PASSWORD`).
 
 Database password is `POSTGRES_PASSWORD` (required on the OCI install). You do not edit SQL files to change it.
 

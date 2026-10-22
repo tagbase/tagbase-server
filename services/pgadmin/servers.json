@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "tagbase",
+      "Group": "Servers",
+      "Host": "postgis",
+      "Port": 5432,
+      "MaintenanceDB": "tagbase",
+      "Username": "tagbase",
+      "SSLMode": "prefer",
+      "PassFile": "/var/lib/pgadmin/.pgpass"
+    }
+  }
+}
