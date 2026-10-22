@@ -36,7 +36,8 @@
     {
       "description": "OpenTelemetry Python SDK + instrumentations",
       "matchPackageNames": ["/^opentelemetry-/"],
-      "groupName": "opentelemetry"
+      "groupName": "opentelemetry",
+      "ignoreUnstable": false
     },
     {
       "description": "Grafana observability stack images",
