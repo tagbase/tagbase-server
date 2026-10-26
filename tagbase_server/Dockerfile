@@ -1,4 +1,4 @@
-FROM python:3.15-slim-bookworm@sha256:8c77b1d8f366eda6c7a66c292134d7bfb2672c1c6273262dd1a459532cbc6a96
+FROM python:3.15-slim-bookworm@sha256:575f8bc12ec26542e0678bc6b60e385218248019d433157ec327264a78c3a853
 
 RUN mkdir -p /usr/src/app
 RUN mkdir -p /usr/src/app/logs
