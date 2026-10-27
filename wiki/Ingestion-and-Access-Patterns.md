@@ -34,6 +34,43 @@ Archives are opened with the Python `zipfile` and `tarfile` libraries. Other arc
 
 A synchronous request still walks the eTUFF members with [parmap](https://pypi.org/project/parmap/). The job worker runs one upload at a time. Parallelism beyond that single process is tracked as a follow-on issue.
 
+## Ingest timings
+
+Each successful ingest logs one `ingest.timings {json}` line from the ingest worker. It holds the Python phases in seconds (`read`, `build_rows`, `dataframe`, `csv_buffer`, `copy`, `procedure`) and `procedure_steps`: the duration in milliseconds and row count of every step of `sp_execute_data_migration`. The same steps are `migration.step` events on the `ingest.persist` span.
+
+```bash
+docker compose logs tagbase_server | grep 'ingest.timings'
+```
+
+## Benchmark large-file ingest
+
+[`scripts/ingest-benchmark.py`](https://github.com/tagbase/tagbase-server/blob/main/scripts/ingest-benchmark.py) measures the large ICCAT files tracked in [#476](https://github.com/tagbase/tagbase-server/issues/476). `TAGBASE_BENCH_DATA_DIR` must hold `eTUFF_ICCAT-20260928T014825Z-1-001.zip`, `-002.zip` and `-003.zip`. Run the stack with the benchmark overlay, which keeps the database in a named volume and leaves fswatch stopped:
+
+```bash
+export TAGBASE_BENCH_DATA_DIR=/path/to/smoke-zips
+COMPOSE="--compose-file docker-compose.yml --compose-file docker-compose.bench.yml"
+docker compose -f docker-compose.yml -f docker-compose.bench.yml up -d --build
+
+# Once, on an empty database: ingest the 39 smaller members (about 1 to 2 hours)
+# and archive the PostGIS data directory to snapshots/warm.tar.
+scripts/ingest-benchmark.py $COMPOSE snapshot
+
+# Each benchmark: restore the archive, apply the procedure from
+# services/postgis/tagbase_schema_tables.sql, ingest the five large BFT files.
+scripts/ingest-benchmark.py $COMPOSE run --label=-my-change
+```
+
+Results go to `$TAGBASE_BENCH_DATA_DIR/results/<time>-<git sha><label>/`: `run.tsv` (per-file phases, procedure steps in seconds, peak memory of `tagbase_server` and `postgis`), `timings.jsonl`, `settings.txt` and `hashes.json`. A run has no timeout. Ctrl-C cancels a running `sp_execute_data_migration`.
+
+[`scripts/ingest-equivalence.py`](https://github.com/tagbase/tagbase-server/blob/main/scripts/ingest-equivalence.py) checks that a change leaves the data unchanged:
+
+```bash
+scripts/ingest-equivalence.py compare baseline/hashes.json candidate/hashes.json
+scripts/ingest-equivalence.py $COMPOSE positions
+```
+
+`compare` exits non-zero and names the file and table that differ. `positions` recomputes every `position_date_time` with the correlated subquery used before PR 437 and reports the rows that disagree.
+
 ## Use rsync
 
 [ISSUE-189](https://github.com/tagbase/tagbase-server/issues/189) offers the ability to use `rsync` to copy data to a `staging` location. The data is then automatically ingested into TagbaseDB via tagbase-server's REST API

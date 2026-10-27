@@ -216,6 +216,31 @@ def test_dataframe_to_buffer_and_migrate():
     conn.rollback.assert_called()
 
 
+def test_migrate_records_procedure_steps():
+    cur = mock.Mock()
+    conn = mock.Mock()
+    conn.notices = ["stale\n"]
+
+    def call(*_args):
+        conn.notices.extend(
+            [
+                'NOTICE:  table "migration_position_match" does not exist, skipping\n',
+                'NOTICE:  tagbase.step {"step" : "time_series", "ms" : 5, "rows" : 3}\n',
+                "NOTICE:  tagbase.step {not json}\n",
+            ]
+        )
+
+    cur.execute.side_effect = call
+    timings = {}
+    pu._migrate_proc_observations(cur, conn, StringIO("x"), 9, 0, timings)
+    assert set(timings) == {"copy", "procedure", "procedure_steps"}
+    assert timings["procedure_steps"] == [{"step": "time_series", "ms": 5, "rows": 3}]
+
+
+def test_migration_steps_from_notices_ignores_non_lists():
+    assert pu.migration_steps_from_notices(mock.Mock()) == []
+
+
 @mock.patch("tagbase_server.utils.processing_utils.get_dataset_properties")
 @mock.patch("tagbase_server.utils.processing_utils.compute_file_sha256")
 @mock.patch("tagbase_server.utils.processing_utils.make_hash_sha256")

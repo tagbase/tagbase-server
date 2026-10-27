@@ -163,6 +163,11 @@ services:
       - POSTGRES_USER=tagbase
       - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting
       - SCRIPTS_LOCKFILE_DIR=/opt/data/
+      - SHARED_BUFFERS=${POSTGRES_SHARED_BUFFERS:-1GB}
+      - WORK_MEM=${POSTGRES_WORK_MEM:-64MB}
+      - MAINTENANCE_WORK_MEM=${POSTGRES_MAINTENANCE_WORK_MEM:-512MB}
+      - EXTRA_CONF=max_wal_size = ${POSTGRES_MAX_WAL_SIZE:-8GB}\ncheckpoint_timeout = ${POSTGRES_CHECKPOINT_TIMEOUT:-15min}
+    shm_size: 1gb
     expose:
       - ${POSTGRES_PORT:-5432}
     healthcheck:
