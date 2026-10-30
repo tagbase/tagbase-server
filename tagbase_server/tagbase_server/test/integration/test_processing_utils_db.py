@@ -1,5 +1,8 @@
 # coding: utf-8
 
+import json
+import logging
+
 import pytest
 
 import tagbase_server.utils.processing_utils as pu
@@ -145,6 +148,45 @@ def test_is_only_metadata_change_and_update(clean_db):
             (submission_id,),
         )
         assert cur.fetchone()[0] == "new-md"
+
+
+MIGRATION_STEPS = [
+    "defer_index",
+    "time_series",
+    "position_lon",
+    "position_lat",
+    "position_lon_err",
+    "position_lat_err",
+    "hist_bin_min",
+    "hist_bin_max",
+    "hist_bin_data",
+    "profile_depth",
+    "profile_temp_min",
+    "profile_temp_max",
+    "position_match_build",
+    "position_update_time_series",
+    "position_update_hist_bin_data",
+    "position_update_profile",
+    "index_rebuild",
+]
+
+
+def test_process_etuff_file_logs_phase_and_step_timings(clean_db, caplog):
+    caplog.set_level(logging.INFO, logger=pu.__name__)
+    assert pu.process_etuff_file(str(ETUFF_FIXTURE), version="1") is None
+    lines = [
+        r.getMessage() for r in caplog.records if r.msg.startswith("ingest.timings")
+    ]
+    assert len(lines) == 1
+    timings = json.loads(lines[0].split(" ", 1)[1])
+    for phase in ("read", "build_rows", "dataframe", "csv_buffer", "copy"):
+        assert timings[phase] >= 0
+    steps = timings["procedure_steps"]
+    assert [s["step"] for s in steps] == MIGRATION_STEPS
+    by_step = {s["step"]: s for s in steps}
+    assert by_step["time_series"]["rows"] == 1
+    assert by_step["position_lon"]["rows"] == 1
+    assert by_step["position_lat"]["rows"] == 1
 
 
 def test_process_etuff_file_ingests_and_skips_duplicate(clean_db):

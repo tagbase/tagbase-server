@@ -1160,12 +1160,31 @@ $$;
 --
 -- The following PROCEDURE ensures that data migration (from the proc_observation's
 -- table to other target tables) is executed. f
-CREATE PROCEDURE sp_execute_data_migration(submission_id_param integer, is_reference_track_param boolean)
+--
+-- tagbase_migration_step reports one step as a 'tagbase.step {json}' NOTICE and
+-- returns the start time of the next step. The ingest worker reads these
+-- notices from the connection after CALL sp_execute_data_migration.
+CREATE OR REPLACE FUNCTION tagbase_migration_step(step_name text, started timestamp with time zone, row_count bigint)
+RETURNS timestamp with time zone
+LANGUAGE plpgsql
+AS $BODY$
+BEGIN
+  RAISE NOTICE 'tagbase.step %', json_build_object(
+    'step', step_name,
+    'ms', round(extract(epoch FROM clock_timestamp() - started) * 1000),
+    'rows', row_count);
+  RETURN clock_timestamp();
+END;
+$BODY$;
+
+CREATE OR REPLACE PROCEDURE sp_execute_data_migration(submission_id_param integer, is_reference_track_param boolean)
 LANGUAGE plpgsql
 AS $BODY$
 DECLARE
   ts_rows bigint;
   defer_date_index boolean;
+  step_start timestamp with time zone := clock_timestamp();
+  step_rows bigint;
 BEGIN
  --\connect tagbase
  -- Once older submissions already cover this time range, maintaining the
@@ -1184,7 +1203,9 @@ BEGIN
  defer_date_index := ts_rows >= 1000000;
  IF defer_date_index THEN
    DROP INDEX data_time_series_date_time_index;
+   DROP INDEX data_time_series_pos_date_time_index;
  END IF;
+ step_start := tagbase_migration_step('defer_index', step_start, ts_rows);
  -- data_time_series
  WITH moved_rows AS
    ( DELETE
@@ -1202,9 +1223,14 @@ BEGIN
                                                   a.variable_value,
                                                   a.submission_id,
                                                   b.tag_id)
+ -- Primary-key order: each new submission appends to the right edge of the
+ -- index instead of splitting pages in five places at once (one per variable).
  INSERT INTO data_time_series
  SELECT *
- FROM moved_rows;
+ FROM moved_rows
+ ORDER BY variable_id, date_time;
+ GET DIAGNOSTICS step_rows = ROW_COUNT;
+ step_start := tagbase_migration_step('time_series', step_start, step_rows);
  -- -- data_position
  WITH moved_rows AS
    ( DELETE
@@ -1228,6 +1254,8 @@ BEGIN
         tag_id,
         moved_rows.is_reference_track_param
  FROM moved_rows;
+ GET DIAGNOSTICS step_rows = ROW_COUNT;
+ step_start := tagbase_migration_step('position_lon', step_start, step_rows);
  WITH moved_rows AS
    ( DELETE
     FROM proc_observations a USING data_position b,
@@ -1245,6 +1273,8 @@ BEGIN
  FROM moved_rows
  WHERE data_position.date_time = moved_rows.date_time
    AND data_position.submission_id = moved_rows.submission_id;
+ GET DIAGNOSTICS step_rows = ROW_COUNT;
+ step_start := tagbase_migration_step('position_lat', step_start, step_rows);
  WITH moved_rows AS
    ( DELETE
     FROM proc_observations a USING data_position b,
@@ -1262,6 +1292,8 @@ BEGIN
  FROM moved_rows
  WHERE data_position.date_time = moved_rows.date_time
    AND data_position.submission_id = moved_rows.submission_id;
+ GET DIAGNOSTICS step_rows = ROW_COUNT;
+ step_start := tagbase_migration_step('position_lon_err', step_start, step_rows);
  WITH moved_rows AS
    ( DELETE
     FROM proc_observations a USING data_position b,
@@ -1279,6 +1311,8 @@ BEGIN
  FROM moved_rows
  WHERE data_position.date_time = moved_rows.date_time
    AND data_position.submission_id = moved_rows.submission_id;
+ GET DIAGNOSTICS step_rows = ROW_COUNT;
+ step_start := tagbase_migration_step('position_lat_err', step_start, step_rows);
  -- -- data_histogram_bin_info
  WITH moved_rows AS
    ( DELETE
@@ -1295,6 +1329,8 @@ BEGIN
  INSERT INTO data_histogram_bin_info
  SELECT *
  FROM moved_rows ON CONFLICT DO NOTHING;
+ GET DIAGNOSTICS step_rows = ROW_COUNT;
+ step_start := tagbase_migration_step('hist_bin_min', step_start, step_rows);
  WITH moved_rows AS
    ( DELETE
     FROM proc_observations a USING observation_types b,
@@ -1310,6 +1346,8 @@ BEGIN
  FROM moved_rows
  WHERE data_histogram_bin_info.bin_id = moved_rows.bin_id
    AND data_histogram_bin_info.bin_class = moved_rows.bin_class;
+ GET DIAGNOSTICS step_rows = ROW_COUNT;
+ step_start := tagbase_migration_step('hist_bin_max', step_start, step_rows);
  -- data_histogram_bin_data
  WITH moved_rows AS
    ( DELETE
@@ -1328,7 +1366,10 @@ BEGIN
                                                        a.variable_id)
  INSERT INTO data_histogram_bin_data
  SELECT *
- FROM moved_rows;
+ FROM moved_rows
+ ORDER BY variable_id, bin_id, bin_class, date_time;
+ GET DIAGNOSTICS step_rows = ROW_COUNT;
+ step_start := tagbase_migration_step('hist_bin_data', step_start, step_rows);
  -- data_profile
  WITH moved_rows AS
    ( DELETE
@@ -1348,7 +1389,10 @@ BEGIN
         variable_id,
         date_time,
         variable_value
- FROM moved_rows;
+ FROM moved_rows
+ ORDER BY date_time, variable_value, variable_id;
+ GET DIAGNOSTICS step_rows = ROW_COUNT;
+ step_start := tagbase_migration_step('profile_depth', step_start, step_rows);
  WITH moved_rows AS
    ( DELETE
     FROM proc_observations a USING observation_types b,
@@ -1368,6 +1412,8 @@ BEGIN
  FROM moved_rows
  WHERE data_profile.date_time = moved_rows.date_time
    AND data_profile.submission_id = moved_rows.submission_id;
+ GET DIAGNOSTICS step_rows = ROW_COUNT;
+ step_start := tagbase_migration_step('profile_temp_min', step_start, step_rows);
  WITH moved_rows AS
    ( DELETE
     FROM proc_observations a USING observation_types b,
@@ -1387,6 +1433,8 @@ BEGIN
  FROM moved_rows
  WHERE data_profile.date_time = moved_rows.date_time
    AND data_profile.submission_id = moved_rows.submission_id;
+ GET DIAGNOSTICS step_rows = ROW_COUNT;
+ step_start := tagbase_migration_step('profile_temp_max', step_start, step_rows);
  -- SQL update statements to link measurement date time with position date time
  DROP TABLE IF EXISTS migration_position_match;
  CREATE TEMP TABLE migration_position_match ON COMMIT DROP AS
@@ -1416,6 +1464,8 @@ BEGIN
      ORDER BY dp.date_time DESC
      LIMIT 1
  ) AS p;
+ GET DIAGNOSTICS step_rows = ROW_COUNT;
+ step_start := tagbase_migration_step('position_match_build', step_start, step_rows);
  UPDATE data_time_series AS t
  SET position_date_time = m.position_date_time
  FROM migration_position_match AS m
@@ -1423,6 +1473,8 @@ BEGIN
    AND t.submission_id = m.submission_id
    AND t.tag_id = m.tag_id
    AND t.date_time = m.date_time;
+ GET DIAGNOSTICS step_rows = ROW_COUNT;
+ step_start := tagbase_migration_step('position_update_time_series', step_start, step_rows);
  UPDATE data_histogram_bin_data AS t
  SET position_date_time = m.position_date_time
  FROM migration_position_match AS m
@@ -1430,6 +1482,8 @@ BEGIN
    AND t.submission_id = m.submission_id
    AND t.tag_id = m.tag_id
    AND t.date_time = m.date_time;
+ GET DIAGNOSTICS step_rows = ROW_COUNT;
+ step_start := tagbase_migration_step('position_update_hist_bin_data', step_start, step_rows);
  UPDATE data_profile AS t
  SET position_date_time = m.position_date_time
  FROM migration_position_match AS m
@@ -1437,9 +1491,13 @@ BEGIN
    AND t.submission_id = m.submission_id
    AND t.tag_id = m.tag_id
    AND t.date_time = m.date_time;
+ GET DIAGNOSTICS step_rows = ROW_COUNT;
+ step_start := tagbase_migration_step('position_update_profile', step_start, step_rows);
  IF defer_date_index THEN
    CREATE INDEX data_time_series_date_time_index ON data_time_series USING btree (date_time);
+   CREATE INDEX data_time_series_pos_date_time_index ON data_time_series USING btree (position_date_time);
  END IF;
+ step_start := tagbase_migration_step('index_rebuild', step_start, NULL);
 END;
 $BODY$;
 
