@@ -27,8 +27,7 @@ function updateFileListDisplay() {
     fileName.textContent = files[0].name;
   } else {
     fileName.textContent =
-      `${files.length} files selected:\n` +
-      files.map((f) => f.name).join(", ");
+      `${files.length} files selected:\n` + files.map((f) => f.name).join(", ");
   }
 }
 
