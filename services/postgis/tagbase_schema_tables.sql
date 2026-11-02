@@ -1198,6 +1198,9 @@ BEGIN
  defer_date_index := ts_rows >= 1000000;
  IF defer_date_index THEN
    DROP INDEX data_time_series_date_time_index;
+   -- Same threshold as the date index. The later position update would
+   -- otherwise maintain this index once per row. It is rebuilt with the
+   -- date index.
    DROP INDEX data_time_series_pos_date_time_index;
  END IF;
  step_start := tagbase_migration_step('defer_index', step_start, ts_rows);
@@ -1218,8 +1221,10 @@ BEGIN
                                                   a.variable_value,
                                                   a.submission_id,
                                                   b.tag_id)
- -- Primary-key order: each new submission appends to the right edge of the
- -- index instead of splitting pages in five places at once (one per variable).
+ -- The primary key is (submission_id, tag_id, variable_id, date_time).
+ -- The file interleaves the five variables, so an unsorted insert splits
+ -- the index in five places. Ordering by variable_id, date_time groups
+ -- each variable together.
  INSERT INTO data_time_series
  SELECT *
  FROM moved_rows

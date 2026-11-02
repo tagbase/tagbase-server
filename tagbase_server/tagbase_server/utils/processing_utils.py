@@ -26,6 +26,10 @@ MIGRATION_STEP_PREFIX = "tagbase.step "
 
 
 def _record_timing(timings, phase, started):
+    """Store seconds since started under timings[phase], when timings is a dict.
+
+    Return those seconds either way. Callers log the returned value.
+    """
     elapsed = round(time.perf_counter() - started, 3)
     if timings is not None:
         timings[phase] = elapsed
@@ -33,13 +37,23 @@ def _record_timing(timings, phase, started):
 
 
 def _clear_notices(conn):
+    """Drop psycopg2 notices so the next CALL's step lines are the only ones read.
+
+    A connection stand-in with no notices list, such as a test double, is left
+    alone.
+    """
     notices = getattr(conn, "notices", None)
     if isinstance(notices, list):
         del notices[:]
 
 
 def migration_steps_from_notices(notices):
-    """Parse the 'tagbase.step {json}' notices raised by sp_execute_data_migration."""
+    """Return the step objects from ``tagbase.step {json}`` notices, in order.
+
+    Each object has step, ms, and rows. A notice that is not valid JSON is
+    logged and skipped. Anything other than a list, such as a mock, yields
+    an empty list.
+    """
     steps = []
     for notice in notices if isinstance(notices, list) else []:
         _, sep, payload = notice.partition(MIGRATION_STEP_PREFIX)
@@ -431,6 +445,11 @@ def _resolve_variable_id(cur, conn, variable_name, tokens, variable_lookup):
 def _build_proc_observations(
     cur, conn, file_content, submission_filename, submission_id, tag_id, timings=None
 ):
+    """Parse eTUFF observation lines into proc_observations rows.
+
+    timings, when set, receives build_rows in seconds. Lines without a
+    datetime are skipped and logged.
+    """
     proc_obs = []
     variable_lookup = {}
     s_time = time.perf_counter()
@@ -485,6 +504,11 @@ def _build_proc_observations(
 
 
 def _dataframe_to_buffer(proc_obs, len_proc_obs, timings=None):
+    """Build the COPY buffer for proc_observations.
+
+    timings, when set, receives dataframe and csv_buffer in seconds. Building
+    the DataFrame is the peak-memory step for a file of tens of millions of rows.
+    """
     s_time = time.perf_counter()
     df = pd.DataFrame.from_records(
         proc_obs,
@@ -520,6 +544,12 @@ def _dataframe_to_buffer(proc_obs, len_proc_obs, timings=None):
 def _migrate_proc_observations(
     cur, conn, buffer, submission_id, referencetrack_included, timings=None
 ):
+    """COPY into proc_observations and call sp_execute_data_migration.
+
+    timings, when set, receives copy, procedure, and procedure_steps. Each
+    step is also a migration.step span event. Return the total seconds, or
+    False when the database call fails.
+    """
     s_time = time.perf_counter()
     logger.info(
         "Copying memory buffer to 'proc_observations' and executing data migration."

@@ -4,9 +4,10 @@
     ingest-benchmark.py snapshot    ingest every smoke member except the five
                                     large BFT files into an empty database,
                                     then archive the PostGIS data directory
-    ingest-benchmark.py run         restore the archive, ingest the five large
-                                    files in order, write run.tsv, timings.jsonl,
-                                    settings.txt and hashes.json
+    ingest-benchmark.py run         restore the archive and ingest one large
+                                    file (pass --files for more), then write
+                                    run.tsv, timings.jsonl, settings.txt and
+                                    hashes.json
 
 TAGBASE_BENCH_DATA_DIR holds eTUFF_ICCAT-20260928T014825Z-1-00{1,2,3}.zip.
 The snapshot is $TAGBASE_BENCH_DATA_DIR/snapshots/warm.tar and results go to
@@ -16,12 +17,22 @@ Uploads go through the nginx gateway (GATEWAY_URL, GATEWAY_USER, GATEWAY_PASS;
 defaults https://localhost and tagbase/tagbase). There is no timeout: a large
 file can take an hour. Ctrl-C cancels a running sp_execute_data_migration
 instead of leaving it in the database.
+
+The harness does not install SQL. A restored snapshot keeps the procedure it
+was archived with. After a procedure edit, recreate the stack so init SQL
+reloads and rebuild the snapshot, or apply the procedure yourself and pass
+--skip-restore.
+
+data_time_series_date_time_index and data_time_series_pos_date_time_index are
+database-wide. A large submission drops them until the migration rebuilds
+them, so this stack must not ingest anything else during a run.
 """
 
 import argparse
 import base64
 import http.client
 import json
+import logging
 import os
 import re
 import shutil
@@ -39,8 +50,12 @@ from urllib.parse import urlencode, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 API = "/tagbase/api/v0"
 PGDATA = "/var/lib/postgresql"
-SCHEMA_SQL = ROOT / "services" / "postgis" / "tagbase_schema_tables.sql"
 ZIP_GLOB = "eTUFF_ICCAT-20260928T014825Z-1-00[123].zip"
+logger = logging.getLogger("ingest-benchmark")
+ROUTINES = (
+    "tagbase_migration_step(text,timestamptz,bigint)",
+    "sp_execute_data_migration(integer,boolean)",
+)
 LARGE_FILES = [
     "2024BFT07891A_264262_23P2947.txt",
     "2024BFT07903A_265548_24P0087.txt",
@@ -79,17 +94,20 @@ PG_SETTINGS = [
 MEM_UNITS = {"B": 1 / 2**20, "KiB": 1 / 2**10, "MiB": 1, "GiB": 2**10, "TiB": 2**20}
 
 
-def log(message):
-    stamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
-    print(f"[{stamp}] {message}", flush=True)
-
-
 class Stack:
+    """The docker compose project this benchmark starts, queries, and stops.
+
+    compose_files are passed as repeated ``-f`` flags. SQL runs as the tagbase
+    user inside the postgis service.
+    """
+
     def __init__(self, compose_files):
+        """Remember the compose files. The default, when empty, is docker-compose.yml."""
         self.flags = [arg for f in compose_files for arg in ("-f", f)]
         self.compose_files = compose_files
 
     def compose(self, *args, capture=False, input_text=None):
+        """Run docker compose from the repo root. Return stdout when capture is set."""
         return subprocess.run(
             ["docker", "compose", *self.flags, *args],
             cwd=ROOT,
@@ -100,6 +118,7 @@ class Stack:
         ).stdout
 
     def psql(self, sql):
+        """Execute sql on the tagbase database and return its tuples-only stdout."""
         password = os.getenv("POSTGRES_PASSWORD", "tagbase")
         return self.compose(
             "exec",
@@ -124,11 +143,20 @@ class Stack:
         )
 
     def container(self, service):
+        """Return the full container id of one compose service."""
         return self.compose("ps", "-a", "-q", service, capture=True).strip()
 
 
 class Gateway:
+    """HTTP client for the nginx gateway in front of tagbase_server.
+
+    GATEWAY_URL, GATEWAY_USER, and GATEWAY_PASS override the defaults
+    (https://localhost, tagbase/tagbase). The local gateway certificate is
+    self-signed, so TLS is not verified.
+    """
+
     def __init__(self):
+        """Read the gateway URL and basic-auth settings from the environment."""
         url = urlsplit(os.getenv("GATEWAY_URL", "https://localhost"))
         self.https = url.scheme == "https"
         self.host = url.hostname
@@ -139,6 +167,7 @@ class Gateway:
         self.auth = f"Basic {token}"
 
     def _connection(self, timeout):
+        """Open one connection. A 1 MiB block streams a body of about 1 GB."""
         if self.https:
             return http.client.HTTPSConnection(
                 self.host,
@@ -152,6 +181,7 @@ class Gateway:
         )
 
     def request(self, method, path, body=None, headers=None, timeout=60):
+        """Send one request under /tagbase/api/v0. Return the status and body bytes."""
         conn = self._connection(timeout)
         try:
             conn.request(
@@ -166,6 +196,7 @@ class Gateway:
             conn.close()
 
     def wait_ready(self, timeout=600):
+        """Block until a missing ingest job returns 404, which means the API is up."""
         deadline = time.monotonic() + timeout
         probe = "/ingest/jobs/00000000-0000-0000-0000-000000000000"
         while time.monotonic() < deadline:
@@ -179,6 +210,12 @@ class Gateway:
         raise RuntimeError("tagbase_server did not become ready behind the gateway")
 
     def ingest(self, path):
+        """Upload one eTUFF file and poll its job until the job succeeds or fails.
+
+        Return the job object, the seconds spent uploading, and the seconds
+        from the start of the upload until the job is terminal. Polling has
+        no deadline, because a large file can take an hour.
+        """
         query = urlencode({"filename": path.name, "version": "1", "type": "etuff"})
         started = time.perf_counter()
         with path.open("rb") as body:
@@ -205,7 +242,10 @@ class Gateway:
 
 
 class MemorySampler(threading.Thread):
+    """Sample docker stats every five seconds and keep each container's peak memory."""
+
     def __init__(self, containers):
+        """containers maps a compose service name to its full container id."""
         super().__init__(daemon=True)
         self.containers = containers
         self.peaks = dict.fromkeys(containers, 0.0)
@@ -213,10 +253,12 @@ class MemorySampler(threading.Thread):
 
     @staticmethod
     def _mib(usage):
+        """Parse a docker stats memory field such as ``8.5GiB`` into mebibytes."""
         match = re.match(r"([\d.]+)\s*([KMGT]?i?B)", usage)
         return float(match.group(1)) * MEM_UNITS.get(match.group(2), 0) if match else 0
 
     def run(self):
+        """Poll docker stats until stop() and record the peak for each named container."""
         ids = list(self.containers.values())
         while not self.stopped.is_set():
             out = subprocess.run(
@@ -239,12 +281,14 @@ class MemorySampler(threading.Thread):
             self.stopped.wait(5)
 
     def stop(self):
+        """Stop sampling and return peak mebibytes, rounded, keyed by compose service."""
         self.stopped.set()
         self.join()
         return {name: round(peak) for name, peak in self.peaks.items()}
 
 
 def zip_members(data_dir):
+    """Map each .txt name in the three smoke zips to ``(archive path, ZipInfo)``."""
     zips = sorted(data_dir.glob(ZIP_GLOB))
     if len(zips) != 3:
         raise SystemExit(f"expected three {ZIP_GLOB} files in {data_dir}")
@@ -258,6 +302,7 @@ def zip_members(data_dir):
 
 
 def extract(member, work_dir):
+    """Write one zip member into work_dir and return that path."""
     archive, info = member
     target = work_dir / Path(info.filename).name
     with zipfile.ZipFile(archive) as zf, zf.open(info) as src, target.open("wb") as dst:
@@ -265,14 +310,32 @@ def extract(member, work_dir):
     return target
 
 
-def procedure_sql():
-    text = SCHEMA_SQL.read_text(encoding="utf-8").replace("\r\n", "\n")
-    start = text.index("CREATE OR REPLACE FUNCTION tagbase_migration_step")
-    proc = text.index("PROCEDURE sp_execute_data_migration", start)
-    return text[start : text.index("$BODY$;", proc) + len("$BODY$;")] + "\n"
+def procedure_fingerprints(stack):
+    """Return one ``signature md5`` line per installed migration routine.
+
+    Fail when either routine is missing. The harness does not install SQL.
+    Executing ``pg_get_functiondef`` would only repeat what is already loaded,
+    so a working-tree edit is not applied here.
+    """
+    lines = []
+    for signature in ROUTINES:
+        try:
+            digest = stack.psql(
+                "SELECT md5(pg_get_functiondef(" f"'{signature}'::regprocedure));"
+            ).strip()
+        except subprocess.CalledProcessError as exc:
+            detail = (exc.stderr or exc.stdout or "").strip()
+            raise SystemExit(f"{signature} is not installed: {detail}") from exc
+        lines.append(f"{signature} {digest}")
+    return "\n".join(lines) + "\n"
 
 
 def timings_for(stack, since, filename):
+    """Return the ingest.timings object for filename from logs since an ISO time.
+
+    Lines for other files are ignored. An empty dict means the worker did not
+    finish the file, which is what a failed job leaves behind.
+    """
     logs = stack.compose(
         "logs", "--no-color", "--since", since, "tagbase_server", capture=True
     )
@@ -290,7 +353,8 @@ def timings_for(stack, since, filename):
 
 
 def cancel_migration(stack):
-    log("cancelling any running sp_execute_data_migration")
+    """Cancel any backend that is still inside sp_execute_data_migration."""
+    logger.info("cancelling any running sp_execute_data_migration")
     stack.psql(
         "SELECT pg_cancel_backend(pid) FROM pg_stat_activity "
         "WHERE query ILIKE 'CALL sp_execute_data_migration%' "
@@ -298,22 +362,32 @@ def cancel_migration(stack):
     )
 
 
-def ingest_files(stack, gateway, members, names, work_dir, on_result=None):
+def ingest_files(
+    stack, gateway, members, names, work_dir, on_result=None, sample_memory=False
+):
+    """Ingest each name in order, then delete the extracted file.
+
+    on_result, when set, receives the member name, its zip size, the job, the
+    upload seconds, the job seconds, the memory peaks, and the timings record.
+    Memory is sampled only when sample_memory is set, and only for
+    tagbase_server and postgis while that file's job is running. A job that
+    does not succeed is recorded, then the run stops, so later files cannot
+    make the results look complete.
+    """
     containers = {s: stack.container(s) for s in ("tagbase_server", "postgis")}
     for name in names:
         path = extract(members[name], work_dir)
         since = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        sampler = MemorySampler(containers)
-        sampler.start()
-        log(f"ingesting {name} ({path.stat().st_size / 2**20:.1f} MiB)")
+        sampler = MemorySampler(containers) if sample_memory else None
+        if sampler:
+            sampler.start()
+        logger.info("ingesting %s (%.1f MiB)", name, path.stat().st_size / 2**20)
         try:
             job, upload_s, job_s = gateway.ingest(path)
         finally:
-            peaks = sampler.stop()
+            peaks = sampler.stop() if sampler else {}
             path.unlink(missing_ok=True)
-        log(f"{name}: {job['status']} in {job_s} s")
-        if job["status"] != "succeeded":
-            log(f"{name}: {job.get('error', 'no error message')}")
+        logger.info("%s: %s in %s s", name, job["status"], job_s)
         if on_result:
             on_result(
                 name,
@@ -324,9 +398,17 @@ def ingest_files(stack, gateway, members, names, work_dir, on_result=None):
                 peaks,
                 timings_for(stack, since, name),
             )
+        if job["status"] != "succeeded":
+            raise SystemExit(f"{name}: {job.get('error', 'no error message')}")
 
 
 def archive_data_dir(stack, snapshot, restore):
+    """Tar the PostGIS data directory, or replace that directory from snapshot.
+
+    A helper container mounts the volume by name. ``--volumes-from`` does not
+    work here: the postgis service also has a tmpfs mount. Return the postgis
+    image name so the caller can drop the VM page cache with that image.
+    """
     cid = stack.container("postgis")
     inspected = json.loads(
         subprocess.run(
@@ -363,7 +445,8 @@ def archive_data_dir(stack, snapshot, restore):
 
 
 def drop_caches(image):
-    subprocess.run(
+    """Ask the Docker VM to drop its page cache. A failure does not stop the run."""
+    completed = subprocess.run(
         [
             "docker",
             "run",
@@ -378,17 +461,31 @@ def drop_caches(image):
             "sync; echo 3 > /proc/sys/vm/drop_caches",
         ],
         check=False,
+        capture_output=True,
+        text=True,
+    )
+    logger.info(
+        "drop_caches exit %s\n%s%s",
+        completed.returncode,
+        completed.stdout,
+        completed.stderr,
     )
 
 
 def cmd_snapshot(args, stack, gateway, data_dir):
+    """Write snapshots/warm.tar from every smoke member except the five large files.
+
+    --archive-only tars the database as it stands, so an interrupted build can
+    be saved without ingesting again. A full build requires an empty
+    submission table.
+    """
     snapshot = data_dir / "snapshots" / "warm.tar"
     snapshot.parent.mkdir(exist_ok=True)
     if args.archive_only:
         stack.compose("stop")
         archive_data_dir(stack, snapshot, restore=False)
         stack.compose("up", "-d")
-        log(f"wrote {snapshot}")
+        logger.info("wrote %s", snapshot)
         return
     gateway.wait_ready()
     count = stack.psql("SELECT count(*) FROM submission;").strip()
@@ -396,10 +493,10 @@ def cmd_snapshot(args, stack, gateway, data_dir):
         raise SystemExit(
             f"snapshot needs an empty database; submission has {count} rows"
         )
-    stack.psql(procedure_sql())
+    logger.info("%s", procedure_fingerprints(stack).strip())
     members = zip_members(data_dir)
     names = sorted(n for n in members if n not in LARGE_FILES)
-    log(f"building snapshot from {len(names)} members")
+    logger.info("building snapshot from %s members", len(names))
     work_dir = data_dir / "tmp-bench"
     work_dir.mkdir(exist_ok=True)
     ingest_files(stack, gateway, members, names, work_dir)
@@ -407,10 +504,18 @@ def cmd_snapshot(args, stack, gateway, data_dir):
     stack.compose("stop")
     archive_data_dir(stack, snapshot, restore=False)
     stack.compose("up", "-d")
-    log(f"wrote {snapshot}")
+    logger.info("wrote %s", snapshot)
 
 
 def cmd_run(args, stack, gateway, data_dir):
+    """Restore the warm snapshot, ingest the selected files, and write the results.
+
+    The procedure already in the database is the one that runs. It is recorded
+    by md5 in settings.txt and is not replaced from the schema file. The
+    database is vacuumed and checkpointed before ingest. Ctrl-C cancels a
+    migration that is still running. hashes.json is produced by
+    ingest-equivalence.py.
+    """
     snapshot = data_dir / "snapshots" / "warm.tar"
     sha = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"],
@@ -425,13 +530,13 @@ def cmd_run(args, stack, gateway, data_dir):
     if not args.skip_restore:
         if not snapshot.exists():
             raise SystemExit(f"{snapshot} is missing; run the snapshot command first")
-        log("restoring warm snapshot")
+        logger.info("restoring warm snapshot")
         stack.compose("stop")
         image = archive_data_dir(stack, snapshot, restore=True)
         drop_caches(image)
         stack.compose("up", "-d")
     gateway.wait_ready()
-    stack.psql(procedure_sql())
+    fingerprints = procedure_fingerprints(stack)
     stack.psql("VACUUM ANALYZE; CHECKPOINT;")
 
     settings = stack.psql(
@@ -445,7 +550,7 @@ def cmd_run(args, stack, gateway, data_dir):
     ).stdout.split()
     (out_dir / "settings.txt").write_text(
         f"git {sha}\ndocker_mem_gib {int(docker_mem[0]) / 2**30:.2f}\n"
-        f"docker_cpus {docker_mem[1]}\n{settings}",
+        f"docker_cpus {docker_mem[1]}\n{settings}{fingerprints}",
         encoding="utf-8",
     )
 
@@ -466,6 +571,7 @@ def cmd_run(args, stack, gateway, data_dir):
     jsonl = (out_dir / "timings.jsonl").open("w", encoding="utf-8")
 
     def on_result(name, size, job, upload_s, job_s, peaks, timings):
+        """Append one TSV row and one timings JSON line, and flush both."""
         steps = {s["step"]: s.get("ms") for s in timings.get("procedure_steps", [])}
         row = [
             name,
@@ -476,8 +582,8 @@ def cmd_run(args, stack, gateway, data_dir):
             job_s,
             *(timings.get(p, "") for p in PHASES),
             *("" if steps.get(s) is None else round(steps[s] / 1000, 1) for s in STEPS),
-            peaks["tagbase_server"],
-            peaks["postgis"],
+            peaks.get("tagbase_server", ""),
+            peaks.get("postgis", ""),
         ]
         tsv.write("\t".join(str(v) for v in row) + "\n")
         tsv.flush()
@@ -486,9 +592,17 @@ def cmd_run(args, stack, gateway, data_dir):
 
     work_dir = data_dir / "tmp-bench"
     work_dir.mkdir(exist_ok=True)
-    names = args.files or LARGE_FILES
+    names = args.files or LARGE_FILES[:1]
     try:
-        ingest_files(stack, gateway, zip_members(data_dir), names, work_dir, on_result)
+        ingest_files(
+            stack,
+            gateway,
+            zip_members(data_dir),
+            names,
+            work_dir,
+            on_result,
+            sample_memory=args.sample_memory,
+        )
     except KeyboardInterrupt:
         cancel_migration(stack)
         raise
@@ -496,7 +610,7 @@ def cmd_run(args, stack, gateway, data_dir):
         tsv.close()
         jsonl.close()
 
-    log("digesting data_* tables")
+    logger.info("digesting data_* tables")
     subprocess.run(
         [
             sys.executable,
@@ -508,10 +622,15 @@ def cmd_run(args, stack, gateway, data_dir):
         cwd=ROOT,
         check=True,
     )
-    log(f"results in {out_dir}")
+    logger.info("results in %s", out_dir)
 
 
 def main(argv=None):
+    """Parse arguments and run snapshot or run. TAGBASE_BENCH_DATA_DIR is required."""
+    logging.Formatter.converter = time.gmtime
+    logging.basicConfig(
+        format="%(asctime)s %(message)s", datefmt="%H:%M:%S", level=logging.INFO
+    )
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
         "--compose-file",
@@ -529,7 +648,14 @@ def main(argv=None):
     run.add_argument("--out", help="results directory")
     run.add_argument("--label", default="", help="suffix for the results directory")
     run.add_argument(
-        "--files", nargs="+", help="member names instead of the five large files"
+        "--files",
+        nargs="+",
+        help="member names instead of the one default large file",
+    )
+    run.add_argument(
+        "--sample-memory",
+        action="store_true",
+        help="sample docker stats while each job runs",
     )
     run.add_argument(
         "--skip-restore", action="store_true", help="use the current database"

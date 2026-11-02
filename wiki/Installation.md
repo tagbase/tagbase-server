@@ -82,7 +82,7 @@ Postgres is **not** published on the host in this install (API and pgAdmin use t
 
 ### Database memory settings
 
-The `postgis` service ships settings sized for ingesting ~1 GB eTUFF files on a Docker VM with 8 GiB of memory. Override them with these variables:
+The `postgis` service ships settings chosen for one ingest of a ~1 GB eTUFF file on a Docker VM with 8 GiB of memory. They are a starting point, not a tuning for many ingests at once. `work_mem` is per sort or hash node per backend, so 100 concurrent files can multiply it; lower `POSTGRES_WORK_MEM` for that workload. `shared_buffers` of 1 GB and 1 GiB of `/dev/shm` assume that VM size; reduce them on a smaller machine. Override them with these variables:
 
 | Variable                        | Default | Postgres setting       |
 | ------------------------------- | ------- | ---------------------- |

@@ -172,6 +172,7 @@ MIGRATION_STEPS = [
 
 
 def test_process_etuff_file_logs_phase_and_step_timings(clean_db, caplog):
+    """The minimal fixture logs every Python phase and every migration step, in order."""
     caplog.set_level(logging.INFO, logger=pu.__name__)
     assert pu.process_etuff_file(str(ETUFF_FIXTURE), version="1") is None
     lines = [

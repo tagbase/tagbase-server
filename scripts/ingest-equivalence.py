@@ -6,10 +6,27 @@
     ingest-equivalence.py positions         exit 1 if position_date_time differs
                                             from the pre-#437 correlated UPDATEs
 
+To compare ingestion implementations:
+
+1. Start with an empty database.
+2. Ingest the same input files using the baseline implementation.
+3. Run `dump baseline.json`.
+4. Restore an empty database.
+5. Ingest the same input files using the candidate implementation.
+6. Run `dump candidate.json`.
+7. Run `compare baseline.json candidate.json`.
+
+The database must be reset between runs because duplicate submissions are not
+supported.
+
 Digests are order-independent sums of 64-bit row hashes, so they work on tables
 with tens of millions of rows per submission. Rows are keyed by the submission's
 file_sha256 and use variable_name rather than variable_id; submission_id,
-tag_id and bin_id are sequence values that differ between runs.
+tag_id and bin_id are sequence values that differ between runs. A dump is one
+object per submission, not per row.
+
+compare prints ``git diff --no-index`` of the two dump files and exits with
+git's status: 0 when they match, 1 when they differ.
 
 psql runs inside the postgis compose service by default (--compose-file may be
 repeated; --service). Use --local to run the psql on PATH with PG* variables.
@@ -62,6 +79,12 @@ POSITION_TABLES = ("data_time_series", "data_histogram_bin_data", "data_profile"
 
 
 def digest_sql():
+    """SQL for one row per table and submission: name, sha256, filename, count, digest.
+
+    The session time zone is UTC so timestamp text does not follow the
+    server's zone. The digest sums 64-bit md5 prefixes, which stays inside
+    numeric and does not build one string over millions of rows.
+    """
     parts = [f"""SELECT '{table}', file_sha256, max(filename), count(*),
                sum(('x' || left(md5(r), 16))::bit(64)::bigint::numeric)
         FROM ({query}) q GROUP BY file_sha256""" for table, query in TABLES.items()]
@@ -69,6 +92,11 @@ def digest_sql():
 
 
 def positions_sql():
+    """SQL that counts rows whose position_date_time differs from the old lookup.
+
+    The lookup is the pre-#437 correlated subquery: the latest data_position
+    at or before the row's date_time, in the same submission.
+    """
     parts = [f"""SELECT '{table}', count(*)
         FROM {table} t
         WHERE t.position_date_time IS DISTINCT FROM (
@@ -80,7 +108,11 @@ def positions_sql():
 
 
 def collect(run_query):
-    """Return {file_sha256: {"filename": ..., "tables": {table: [count, digest]}}}."""
+    """Turn digest_sql() into ``{file_sha256: {"filename", "tables"}}``.
+
+    tables maps a table name to ``[row count, digest]``. run_query executes
+    SQL and returns rows of strings.
+    """
     result = {}
     for table, file_sha256, filename, count, digest in run_query(digest_sql()):
         entry = result.setdefault(file_sha256, {"filename": filename, "tables": {}})
@@ -89,28 +121,22 @@ def collect(run_query):
 
 
 def compare(baseline, candidate):
-    """Return human-readable differences between two dumps (empty when equal)."""
-    differences = []
-    for key in sorted(set(baseline) | set(candidate)):
-        a = baseline.get(key)
-        b = candidate.get(key)
-        name = (a or b)["filename"]
-        if a is None or b is None:
-            side = "baseline" if a is None else "candidate"
-            differences.append(f"{name}: missing from {side}")
-            continue
-        for table in sorted(set(a["tables"]) | set(b["tables"])):
-            left = a["tables"].get(table, [0, "0"])
-            right = b["tables"].get(table, [0, "0"])
-            if left != right:
-                differences.append(
-                    f"{name}: {table} rows {left[0]} -> {right[0]}, "
-                    f"digest {'same' if left[1] == right[1] else 'differs'}"
-                )
-    return differences
+    """Print a unified diff of two dump files and return git's exit status.
+
+    baseline and candidate are paths. The dumps are one JSON object per
+    submission, written with sorted keys, so the diff is stable. Status 0
+    means they match and 1 means they differ. Any other status is git's own
+    failure.
+    """
+    completed = subprocess.run(
+        ["git", "diff", "--no-index", "--no-ext-diff", "--", baseline, candidate],
+        check=False,
+    )
+    return completed.returncode
 
 
 def psql_runner(args):
+    """Return a function that runs SQL via compose exec, or via local psql with --local."""
     if args.local:
         command = ["psql"]
     else:
@@ -137,6 +163,7 @@ def psql_runner(args):
         ]
 
     def run(sql):
+        """Execute sql and return tab-separated data rows, skipping lines without a tab."""
         out = subprocess.run(
             [*command, "-v", "ON_ERROR_STOP=1", "-tA", "-F", "\t", "-c", sql],
             check=True,
@@ -149,6 +176,7 @@ def psql_runner(args):
 
 
 def main(argv=None):
+    """dump writes JSON, compare prints a git diff, positions checks #437."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--compose-file", action="append")
     parser.add_argument("--service", default="postgis")
@@ -162,14 +190,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     if args.command == "compare":
-        with open(args.baseline, encoding="utf-8") as a, open(
-            args.candidate, encoding="utf-8"
-        ) as b:
-            differences = compare(json.load(a), json.load(b))
-        for line in differences:
-            print(line)
-        print("MATCH" if not differences else f"{len(differences)} difference(s)")
-        return 1 if differences else 0
+        return compare(args.baseline, args.candidate)
 
     run = psql_runner(args)
     if args.command == "dump":

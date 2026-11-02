@@ -217,6 +217,7 @@ def test_dataframe_to_buffer_and_migrate():
 
 
 def test_migrate_records_procedure_steps():
+    """A tagbase.step notice is stored, and a notice that is not JSON is skipped."""
     cur = mock.Mock()
     conn = mock.Mock()
     conn.notices = ["stale\n"]
@@ -238,6 +239,7 @@ def test_migrate_records_procedure_steps():
 
 
 def test_migration_steps_from_notices_ignores_non_lists():
+    """A connection double whose notices attribute is not a list parses as no steps."""
     assert pu.migration_steps_from_notices(mock.Mock()) == []
 
 
