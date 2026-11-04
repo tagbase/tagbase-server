@@ -1,0 +1,14 @@
+# Overlay for scripts/ingest-benchmark.py:
+#   docker compose -f docker-compose.yml -f docker-compose.bench.yml up -d
+# Keeps the benchmark database in a named volume instead of ./postgis-data,
+# which avoids bind-mount ownership failures on Docker Desktop. fswatch stays
+# down so files in its watch directory do not ingest during a benchmark.
+services:
+  fswatch:
+    profiles: ["fswatch"]
+  postgis:
+    volumes:
+      - tagbase-bench-pgdata:/var/lib/postgresql
+
+volumes:
+  tagbase-bench-pgdata:
