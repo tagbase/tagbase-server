@@ -1,4 +1,4 @@
-FROM grafana/alloy:v1.21.1@sha256:4039c971193053a84e53dd9ed3e7d4561c069256b024631cd3498a353ed7ece8
+FROM grafana/alloy:v1.21.3@sha256:8ab871206bd2d8f89277f53abffee5f452a293980788d52f85fa183a87a505a4
 
 # Named-volume WAL is often root-owned (git compose runs upstream Alloy as
 # root). Stay root for COPY + entrypoint chown, then drop to uid 473.
