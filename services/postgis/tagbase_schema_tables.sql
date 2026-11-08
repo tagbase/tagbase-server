@@ -1,5 +1,7 @@
--- Regenerated for test/CI PostGIS init (no CREATE ROLE/DATABASE; OWNER=tagbase).
--- Source: tagbase_schema.sql (tail -n +9, strip \connect, OWNER TO tagbase).
+-- Schema initialization for the Tagbase PostGIS container.
+-- Assumes the tagbase role and database already exist (no CREATE ROLE/DATABASE; OWNER=tagbase).
+-- docker-compose.yml and docker-compose.test.yml mount this file.
+-- services/postgis/Dockerfile copies it into the published PostGIS image.
 CREATE EXTENSION IF NOT EXISTS postgis;
 SET statement_timeout = 0;
 SET lock_timeout = 0;

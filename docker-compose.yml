@@ -236,8 +236,8 @@ services:
     volumes:
       - ./dbbackups:/backups
       - ./postgis-data:/var/lib/postgresql
-      # Tables-only SQL: kartoza already creates role/DB; full tagbase_schema.sql
-      # aborts on CREATE ROLE/DATABASE and never creates submission/etc.
+      # Kartoza already creates the role and database. This mount must not
+      # CREATE ROLE or CREATE DATABASE.
       - ./services/postgis/tagbase_schema_tables.sql:/docker-entrypoint-initdb.d/01-tagbase.sql
       # Ephemeral lock dir: a named volume survives `compose down` and can skip
       # init scripts after postgis-data is wiped (stale .entry_point.lock).
