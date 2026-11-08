@@ -2,7 +2,7 @@
 # optional Alloy + LGTM for observability smoke (profile: observability).
 services:
   postgis:
-    image: kartoza/postgis:18-3.6@sha256:5fa6f8e228a7496d544df3ab580cad9df1686b1f47d02c97f02056ecdc744739
+    image: kartoza/postgis:18-3.7@sha256:6b07ffc131b80e0be02d96d730bbd0b838bcac0cd745127dd453566765046285
     platform: linux/amd64
     environment:
       - ALLOW_IP_RANGE=0.0.0.0/0
@@ -12,6 +12,11 @@ services:
       - POSTGRES_USER=tagbase
       - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting
       - SCRIPTS_LOCKFILE_DIR=/opt/data/
+      - SHARED_BUFFERS=${POSTGRES_SHARED_BUFFERS:-1GB}
+      - WORK_MEM=${POSTGRES_WORK_MEM:-64MB}
+      - MAINTENANCE_WORK_MEM=${POSTGRES_MAINTENANCE_WORK_MEM:-512MB}
+      - EXTRA_CONF=max_wal_size = ${POSTGRES_MAX_WAL_SIZE:-8GB}\ncheckpoint_timeout = ${POSTGRES_CHECKPOINT_TIMEOUT:-15min}
+    shm_size: 1gb
     healthcheck:
       # Require tagbase schema (not just pg_isready) so dependents wait for 01-tagbase.sql.
       # Use compose interpolation (not a literal PGPASSWORD=...) to avoid CKV_SECRET_6.
@@ -28,8 +33,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      # Tables-only SQL: kartoza already creates role/DB; full tagbase_schema.sql
-      # aborts on CREATE ROLE/DATABASE and never creates submission/etc.
+      # Kartoza already creates the role and database. This mount must not
+      # CREATE ROLE or CREATE DATABASE.
       - ./services/postgis/tagbase_schema_tables.sql:/docker-entrypoint-initdb.d/01-tagbase.sql:ro
       - tagbase-test-pgdata:/var/lib/postgresql
       # Ephemeral lock dir: a named volume survives `compose down` and can skip
@@ -106,7 +111,7 @@ services:
 
   alloy:
     profiles: ["observability"]
-    image: grafana/alloy:v1.21.1@sha256:4039c971193053a84e53dd9ed3e7d4561c069256b024631cd3498a353ed7ece8
+    image: grafana/alloy:v1.21.3@sha256:8ab871206bd2d8f89277f53abffee5f452a293980788d52f85fa183a87a505a4
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
@@ -129,7 +134,7 @@ services:
 
   prometheus:
     profiles: ["observability"]
-    image: prom/prometheus:v3.15.1@sha256:fa3302279710be2f21a8301ec17a8b4f2301fd829bd113839b3b6b02b6f191a2
+    image: prom/prometheus:v3.16.0@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -171,7 +176,7 @@ services:
 
   grafana:
     profiles: ["observability"]
-    image: grafana/grafana:13.2.4@sha256:dbbc38ea21103cefb50396340cd88afec779c7e070b0a7bf5a75b4ce46651d3f
+    image: grafana/grafana:13.3.0@sha256:488984b716c0862639f91a698adbe2862677a5a07bad42da5f03f3030883b205
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin

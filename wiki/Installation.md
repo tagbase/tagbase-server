@@ -80,6 +80,20 @@ Expect a browser **certificate warning**. Nginx creates a **self-signed** cert o
 
 Postgres is **not** published on the host in this install (API and pgAdmin use the Docker network). Backups stay in the `dbbackups` volume.
 
+### Database memory settings
+
+The `postgis` service ships settings chosen for one ingest of a ~1 GB eTUFF file on a Docker VM with 8 GiB of memory. They are a starting point, not a tuning for many ingests at once. `work_mem` is per sort or hash node per backend, so 100 concurrent files can multiply it; lower `POSTGRES_WORK_MEM` for that workload. `shared_buffers` of 1 GB and 1 GiB of `/dev/shm` assume that VM size; reduce them on a smaller machine. Override them with these variables:
+
+| Variable                        | Default | Postgres setting       |
+| ------------------------------- | ------- | ---------------------- |
+| `POSTGRES_SHARED_BUFFERS`       | `1GB`   | `shared_buffers`       |
+| `POSTGRES_WORK_MEM`             | `64MB`  | `work_mem`             |
+| `POSTGRES_MAINTENANCE_WORK_MEM` | `512MB` | `maintenance_work_mem` |
+| `POSTGRES_MAX_WAL_SIZE`         | `8GB`   | `max_wal_size`         |
+| `POSTGRES_CHECKPOINT_TIMEOUT`   | `15min` | `checkpoint_timeout`   |
+
+The container also gets 1 GiB of `/dev/shm` for parallel sorts and hash joins. The values are written when the container is created, so `docker compose up -d` after a change applies them to an existing database volume. Check them with `SHOW shared_buffers;` in pgAdmin.
+
 ### Drop-folder ingest (eTUFF on disk)
 
 The published compose uses a **named volume** `staging-data` (empty until you copy files in or ingest over the API). Compose OCI **cannot** include host bind mounts.

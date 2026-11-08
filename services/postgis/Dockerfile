@@ -1,3 +1,3 @@
-FROM kartoza/postgis:18-3.6@sha256:5fa6f8e228a7496d544df3ab580cad9df1686b1f47d02c97f02056ecdc744739
+FROM kartoza/postgis:18-3.7@sha256:6b07ffc131b80e0be02d96d730bbd0b838bcac0cd745127dd453566765046285
 
 COPY tagbase_schema_tables.sql /docker-entrypoint-initdb.d/01-tagbase.sql
