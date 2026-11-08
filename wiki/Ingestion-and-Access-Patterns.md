@@ -34,6 +34,57 @@ Archives are opened with the Python `zipfile` and `tarfile` libraries. Other arc
 
 A synchronous request still walks the eTUFF members with [parmap](https://pypi.org/project/parmap/). The job worker runs one upload at a time. Parallelism beyond that single process is tracked as a follow-on issue.
 
+## Ingest timings
+
+Each successful ingest logs one `ingest.timings {json}` line from the ingest worker. It holds the Python phases in seconds (`read`, `build_rows`, `dataframe`, `csv_buffer`, `copy`, `procedure`) and `procedure_steps`: the duration in milliseconds and row count of every step of `sp_execute_data_migration`. The same steps are `migration.step` events on the `ingest.persist` span.
+
+```bash
+docker compose logs tagbase_server | grep 'ingest.timings'
+```
+
+## Benchmark large-file ingest
+
+[`scripts/ingest-benchmark.py`](https://github.com/tagbase/tagbase-server/blob/main/scripts/ingest-benchmark.py) measures the large ICCAT files tracked in [#476](https://github.com/tagbase/tagbase-server/issues/476). `TAGBASE_BENCH_DATA_DIR` must hold `eTUFF_ICCAT-20260928T014825Z-1-001.zip`, `-002.zip` and `-003.zip`. Run the stack with the benchmark overlay, which keeps the database in a named volume and leaves fswatch stopped:
+
+```bash
+export TAGBASE_BENCH_DATA_DIR=/path/to/smoke-zips
+COMPOSE="--compose-file docker-compose.yml --compose-file docker-compose.bench.yml"
+docker compose -f docker-compose.yml -f docker-compose.bench.yml up -d --build
+
+# Once, on an empty database: ingest the 39 smaller members (about 1 to 2 hours)
+# and archive the PostGIS data directory to snapshots/warm.tar.
+# The five large BFT files are left out of the archive.
+scripts/ingest-benchmark.py $COMPOSE snapshot
+
+# Each benchmark restores the archive and ingests one large file,
+# 2024BFT07891A_264262_23P2947.txt. Pass --files to ingest others.
+# --sample-memory records docker stats; leave it off for a timing run.
+scripts/ingest-benchmark.py $COMPOSE run --label=-my-change
+```
+
+The harness does not install SQL. A restored snapshot keeps the procedure it was archived with, and `settings.txt` records the md5 of that procedure. After a procedure edit, recreate the stack so init SQL reloads and rebuild `snapshots/warm.tar`, or apply the procedure yourself and pass `--skip-restore`.
+
+`data_time_series_date_time_index` and `data_time_series_pos_date_time_index` are database-wide. A large submission drops them until the migration rebuilds them, so this stack must not ingest anything else during a run.
+
+Results go to `$TAGBASE_BENCH_DATA_DIR/results/<time>-<git sha><label>/`: `run.tsv` (per-file phases and procedure steps in seconds), `timings.jsonl`, `settings.txt` and `hashes.json`. Peak memory columns are filled only with `--sample-memory`. A failed job is recorded and the run stops. A run has no timeout. Ctrl-C cancels a running `sp_execute_data_migration`.
+
+[`scripts/ingest-equivalence.py`](https://github.com/tagbase/tagbase-server/blob/main/scripts/ingest-equivalence.py) checks that a change leaves the data unchanged. Duplicate submissions are rejected, so each implementation starts from an empty database:
+
+1. Start with an empty database.
+2. Ingest the same input files using the baseline implementation.
+3. Run `dump baseline.json`.
+4. Restore an empty database.
+5. Ingest the same input files using the candidate implementation.
+6. Run `dump candidate.json`.
+7. Run `compare baseline.json candidate.json`.
+
+```bash
+scripts/ingest-equivalence.py compare baseline/hashes.json candidate/hashes.json
+scripts/ingest-equivalence.py $COMPOSE positions
+```
+
+`compare` prints `git diff --no-index` of the two dumps and exits with git's status. `positions` recomputes every `position_date_time` with the correlated subquery used before PR 437 and reports the rows that disagree.
+
 ## Use rsync
 
 [ISSUE-189](https://github.com/tagbase/tagbase-server/issues/189) offers the ability to use `rsync` to copy data to a `staging` location. The data is then automatically ingested into TagbaseDB via tagbase-server's REST API

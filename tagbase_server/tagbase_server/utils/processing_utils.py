@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import time
@@ -7,6 +8,7 @@ from io import StringIO
 
 import pandas as pd
 import psycopg2.extras
+from opentelemetry import trace
 from tzlocal import get_localzone
 
 from tagbase_server.telemetry import (
@@ -19,6 +21,49 @@ from tagbase_server.utils.db_utils import connect
 from tagbase_server.utils.io_utils import compute_file_sha256, make_hash_sha256
 
 logger = logging.getLogger(__name__)
+
+MIGRATION_STEP_PREFIX = "tagbase.step "
+
+
+def _record_timing(timings, phase, started):
+    """Store seconds since started under timings[phase], when timings is a dict.
+
+    Return those seconds either way. Callers log the returned value.
+    """
+    elapsed = round(time.perf_counter() - started, 3)
+    if timings is not None:
+        timings[phase] = elapsed
+    return elapsed
+
+
+def _clear_notices(conn):
+    """Drop psycopg2 notices so the next CALL's step lines are the only ones read.
+
+    A connection stand-in with no notices list, such as a test double, is left
+    alone.
+    """
+    notices = getattr(conn, "notices", None)
+    if isinstance(notices, list):
+        del notices[:]
+
+
+def migration_steps_from_notices(notices):
+    """Return the step objects from ``tagbase.step {json}`` notices, in order.
+
+    Each object has step, ms, and rows. A notice that is not valid JSON is
+    logged and skipped. Anything other than a list, such as a mock, yields
+    an empty list.
+    """
+    steps = []
+    for notice in notices if isinstance(notices, list) else []:
+        _, sep, payload = notice.partition(MIGRATION_STEP_PREFIX)
+        if not sep:
+            continue
+        try:
+            steps.append(json.loads(payload))
+        except ValueError:
+            logger.warning("Could not parse migration step notice: %s", notice.strip())
+    return steps
 
 
 def process_global_attributes_metadata(
@@ -398,8 +443,13 @@ def _resolve_variable_id(cur, conn, variable_name, tokens, variable_lookup):
 
 
 def _build_proc_observations(
-    cur, conn, file_content, submission_filename, submission_id, tag_id
+    cur, conn, file_content, submission_filename, submission_id, tag_id, timings=None
 ):
+    """Parse eTUFF observation lines into proc_observations rows.
+
+    timings, when set, receives build_rows in seconds. Lines without a
+    datetime are skipped and logged.
+    """
     proc_obs = []
     variable_lookup = {}
     s_time = time.perf_counter()
@@ -444,8 +494,7 @@ def _build_proc_observations(
         )
 
     len_proc_obs = len(proc_obs)
-    e_time = time.perf_counter()
-    sub_elapsed = round(e_time - s_time, 2)
+    sub_elapsed = _record_timing(timings, "build_rows", s_time)
     logger.info(
         "Built raw 'proc_observations' data structure from %s observations in: %s second(s)",
         len_proc_obs,
@@ -454,7 +503,12 @@ def _build_proc_observations(
     return proc_obs, len_proc_obs
 
 
-def _dataframe_to_buffer(proc_obs, len_proc_obs):
+def _dataframe_to_buffer(proc_obs, len_proc_obs, timings=None):
+    """Build the COPY buffer for proc_observations.
+
+    timings, when set, receives dataframe and csv_buffer in seconds. Building
+    the DataFrame is the peak-memory step for a file of tens of millions of rows.
+    """
     s_time = time.perf_counter()
     df = pd.DataFrame.from_records(
         proc_obs,
@@ -466,8 +520,7 @@ def _dataframe_to_buffer(proc_obs, len_proc_obs):
             "tag_id",
         ],
     )
-    e_time = time.perf_counter()
-    sub_elapsed = round(e_time - s_time, 2)
+    sub_elapsed = _record_timing(timings, "dataframe", s_time)
     logger.info(
         "Built Pandas DF from %s records. Time elapsed: %s second(s)",
         len_proc_obs,
@@ -480,8 +533,7 @@ def _dataframe_to_buffer(proc_obs, len_proc_obs):
     buffer = StringIO()
     df.to_csv(buffer, header=False, index=False)
     buffer.seek(0)
-    e_time = time.perf_counter()
-    sub_elapsed = round(e_time - s_time, 2)
+    sub_elapsed = _record_timing(timings, "csv_buffer", s_time)
     logger.info(
         "Copied Pandas DF to StringIO memory buffer. Time elapsed: %s second(s)",
         sub_elapsed,
@@ -490,14 +542,23 @@ def _dataframe_to_buffer(proc_obs, len_proc_obs):
 
 
 def _migrate_proc_observations(
-    cur, conn, buffer, submission_id, referencetrack_included
+    cur, conn, buffer, submission_id, referencetrack_included, timings=None
 ):
+    """COPY into proc_observations and call sp_execute_data_migration.
+
+    timings, when set, receives copy, procedure, and procedure_steps. Each
+    step is also a migration.step span event. Return the total seconds, or
+    False when the database call fails.
+    """
     s_time = time.perf_counter()
     logger.info(
         "Copying memory buffer to 'proc_observations' and executing data migration."
     )
     try:
         cur.copy_from(buffer, "proc_observations", sep=",")
+        _record_timing(timings, "copy", s_time)
+        call_start = time.perf_counter()
+        _clear_notices(conn)
         ref = bool(referencetrack_included)
         logger.debug(
             "Executing sp_execute_data_migration(%s, %s);",
@@ -511,9 +572,17 @@ def _migrate_proc_observations(
         logger.exception("Error migrating proc_observations")
         conn.rollback()
         return False
-    e_time = time.perf_counter()
-    sub_elapsed = round(e_time - s_time, 2)
-    return sub_elapsed
+    _record_timing(timings, "procedure", call_start)
+    steps = migration_steps_from_notices(getattr(conn, "notices", None))
+    span = trace.get_current_span()
+    for step in steps:
+        span.add_event(
+            "migration.step",
+            {k: v for k, v in step.items() if v is not None},
+        )
+    if timings is not None:
+        timings["procedure_steps"] = steps
+    return round(time.perf_counter() - s_time, 2)
 
 
 def _compute_submission_hashes(submission_filename, file_content, metadata_content):
@@ -562,8 +631,10 @@ def process_etuff_file(
             "database unavailable",
         )
     conn.autocommit = True
+    timings = {}
 
     with tracer.start_as_current_span("ingest.parse_etuff"):
+        read_start = time.perf_counter()
         try:
             (
                 instrument_name,
@@ -580,6 +651,7 @@ def process_etuff_file(
                 metadata_hash,
                 entire_file_hash,
             ) = _compute_submission_hashes(source_path, file_content, metadata_content)
+            _record_timing(timings, "read", read_start)
         except Exception:
             logger.exception("Error parsing etuff file: %s", submission_filename)
             _record("error", round(time.perf_counter() - start, 2))
@@ -652,11 +724,17 @@ def process_etuff_file(
                         submission_filename,
                         submission_id,
                         tag_id,
+                        timings,
                     )
                     insert_metadata(cur, metadata, tag_id)
-                    buffer = _dataframe_to_buffer(proc_obs, len_proc_obs)
+                    buffer = _dataframe_to_buffer(proc_obs, len_proc_obs, timings)
                     sub_elapsed = _migrate_proc_observations(
-                        cur, conn, buffer, submission_id, referencetrack_included
+                        cur,
+                        conn,
+                        buffer,
+                        submission_id,
+                        referencetrack_included,
+                        timings,
                     )
                     if sub_elapsed is False:
                         record_db_error("migrate_proc_observations")
@@ -688,4 +766,16 @@ def process_etuff_file(
         "Data file %s successfully ingested into Tagbase DB. Total time: %s second(s)",
         submission_filename,
         elapsed,
+    )
+    logger.info(
+        "ingest.timings %s",
+        json.dumps(
+            {
+                "file": submission_filename,
+                "submission_id": submission_id,
+                "rows": len_proc_obs,
+                "total": elapsed,
+                **timings,
+            }
+        ),
     )
