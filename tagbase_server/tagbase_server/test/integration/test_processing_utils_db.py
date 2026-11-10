@@ -153,10 +153,7 @@ def test_is_only_metadata_change_and_update(clean_db):
 MIGRATION_STEPS = [
     "defer_index",
     "time_series",
-    "position_lon",
-    "position_lat",
-    "position_lon_err",
-    "position_lat_err",
+    "position",
     "hist_bin_min",
     "hist_bin_max",
     "hist_bin_data",
@@ -186,8 +183,7 @@ def test_process_etuff_file_logs_phase_and_step_timings(clean_db, caplog):
     assert [s["step"] for s in steps] == MIGRATION_STEPS
     by_step = {s["step"]: s for s in steps}
     assert by_step["time_series"]["rows"] == 1
-    assert by_step["position_lon"]["rows"] == 1
-    assert by_step["position_lat"]["rows"] == 1
+    assert by_step["position"]["rows"] == 1
 
 
 def test_process_etuff_file_ingests_and_skips_duplicate(clean_db):
