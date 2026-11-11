@@ -67,10 +67,7 @@ PHASES = ["read", "build_rows", "dataframe", "csv_buffer", "copy", "procedure"]
 STEPS = [
     "defer_index",
     "time_series",
-    "position_lon",
-    "position_lat",
-    "position_lon_err",
-    "position_lat_err",
+    "position",
     "hist_bin_min",
     "hist_bin_max",
     "hist_bin_data",
