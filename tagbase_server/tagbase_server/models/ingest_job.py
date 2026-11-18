@@ -315,10 +315,6 @@ class IngestJob(Model):
             raise ValueError(
                 "Invalid value for `lines`, number of items must be less than or equal to `500`"
             )  # noqa: E501
-        if lines is not None and len(lines) < 0:
-            raise ValueError(
-                "Invalid value for `lines`, number of items must be greater than or equal to `0`"
-            )  # noqa: E501
 
         self._lines = lines
 

@@ -546,6 +546,7 @@ components:
         - id
         - status
         - files_done
+        - lines
       example:
         id: 4bf92f35-77b3-4da6-a3ce-929d0e0e4736
         status: succeeded
@@ -617,6 +618,8 @@ components:
           description: UTC time the line was logged, to the millisecond
           type: string
           format: date-time
+          minLength: 20
+          maxLength: 64
         text:
           description: The log line. A traceback keeps its line breaks.
           type: string
