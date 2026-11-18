@@ -6,17 +6,38 @@ the oldest queued row and updates it until the job is terminal.
 
 from __future__ import annotations
 
+import json
+import logging
 import os
+import re
+import time
 import uuid
+from collections.abc import Callable
+from datetime import datetime, timezone
 from typing import Any
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 from psycopg2.extras import RealDictCursor
 
 from tagbase_server.utils.db_utils import connect
 
+logger = logging.getLogger(__name__)
+
 RESTART_ERROR = "restarted before ingest finished"
 MISSING_FILE_ERROR = "upload file missing after restart"
 DEFAULT_RETENTION_DAYS = 30
+_LINE_CAP = 500
+_TEXT_MAX = 10000
+# Loki may stamp a line slightly before the job row's created_at.
+_START_MARGIN_SECONDS = 60
+# Total budget for the Loki read. urlopen's timeout applies per socket
+# operation, so the body is read in chunks against this deadline.
+_LOKI_TIMEOUT_SECONDS = 2
+_READ_CHUNK = 64 * 1024
+_JOB_ID = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
 
 _CLAIM_SQL = """
 UPDATE ingest_job
@@ -32,9 +53,29 @@ WHERE id = (
 RETURNING *
 """
 
+# Jobs ahead of a queued one, in _CLAIM_SQL order. NULL unless queued.
+_FETCH_SQL = """
+SELECT j.*,
+    CASE WHEN j.status = 'queued' THEN (
+        SELECT count(*)
+        FROM ingest_job q
+        WHERE q.status = 'running'
+            OR (
+                q.status = 'queued'
+                AND (q.created_at, q.updated_at) < (j.created_at, j.updated_at)
+            )
+    ) END AS queue_position
+FROM ingest_job j
+WHERE j.id = %s
+"""
+
 
 class IngestJobError(Exception):
     """The job table could not be read or written."""
+
+
+class LokiQueryError(Exception):
+    """Loki could not be queried for this job."""
 
 
 def stale_failures(jobs: list[dict[str, Any]], path_exists) -> list[tuple[str, str]]:
@@ -54,7 +95,101 @@ def stale_failures(jobs: list[dict[str, Any]], path_exists) -> list[tuple[str, s
     return failed
 
 
-def public_job(row: dict[str, Any]) -> dict[str, Any]:
+def loki_url() -> str:
+    """Base URL of the Loki that holds the worker's log lines."""
+    return os.environ.get("LOKI_URL", "http://loki:3100").rstrip("/")
+
+
+def _line_time(timestamp_ns: int) -> str:
+    """Loki stores nanoseconds since the epoch. Return UTC to the millisecond."""
+    when = datetime.fromtimestamp(timestamp_ns / 1_000_000_000, tz=timezone.utc)
+    return when.isoformat(timespec="milliseconds")
+
+
+def select_job_lines(payload: dict[str, Any], job_id: str) -> list[dict[str, str]]:
+    """Keep this job's most recent lines, oldest first, with Loki's time."""
+    rows: list[tuple[int, str]] = []
+    result = payload.get("data", {}).get("result", [])
+    for stream in result:
+        for value in stream.get("values", []):
+            if len(value) < 2:
+                continue
+            meta = value[2] if len(value) > 2 and isinstance(value[2], dict) else {}
+            tagged = meta.get("job_id")
+            line = str(value[1])
+            if tagged not in (None, "") and tagged != job_id:
+                continue
+            if tagged != job_id and f"job_id={job_id}" not in line:
+                continue
+            text = line.strip()
+            if not text:
+                continue
+            rows.append((int(value[0]), text[:_TEXT_MAX]))
+    rows.sort(key=lambda item: item[0])
+    seen: set[tuple[int, str]] = set()
+    lines: list[dict[str, str]] = []
+    for item in rows:
+        if item in seen:
+            continue
+        seen.add(item)
+        lines.append({"time": _line_time(item[0]), "text": item[1]})
+    return lines[-_LINE_CAP:]
+
+
+def _read_before(response, deadline: float) -> bytes:
+    chunks: list[bytes] = []
+    while True:
+        if time.monotonic() > deadline:
+            raise TimeoutError("loki read exceeded its time budget")
+        chunk = response.read(_READ_CHUNK)
+        if not chunk:
+            return b"".join(chunks)
+        chunks.append(chunk)
+
+
+def query_job_lines(job_id: str, since: datetime | None = None) -> list[dict[str, str]]:
+    """Read this job's most recent lines from Loki, oldest first.
+
+    ``since`` is the job's creation time. Without it the window is the job
+    retention period.
+    """
+    if not _JOB_ID.fullmatch(job_id):
+        raise LokiQueryError("invalid job id")
+    query = '{service_name="tagbase_server"} |= "job_id=%s"' % job_id
+    end = time.time()
+    if since is None:
+        start = end - DEFAULT_RETENTION_DAYS * 24 * 60 * 60
+    else:
+        start = since.timestamp() - _START_MARGIN_SECONDS
+    params = urlencode(
+        {
+            "query": query,
+            "start": str(int(start)),
+            "end": str(int(end) + 1),
+            "limit": str(_LINE_CAP),
+            "direction": "backward",
+        }
+    )
+    request = Request(f"{loki_url()}/loki/api/v1/query_range?{params}")
+    deadline = time.monotonic() + _LOKI_TIMEOUT_SECONDS
+    try:
+        with urlopen(request, timeout=_LOKI_TIMEOUT_SECONDS) as response:
+            raw = _read_before(response, deadline)
+        payload = json.loads(raw.decode("utf-8"))
+        if not isinstance(payload, dict) or payload.get("status") != "success":
+            raise LokiQueryError("loki query failed")
+        return select_job_lines(payload, job_id)
+    except LokiQueryError:
+        raise
+    except Exception as exc:
+        raise LokiQueryError(str(exc) or type(exc).__name__) from exc
+
+
+def public_job(
+    row: dict[str, Any],
+    *,
+    line_source: Callable[[str, datetime | None], list[dict[str, str]]] | None = None,
+) -> dict[str, Any]:
     job: dict[str, Any] = {
         "id": str(row["id"]),
         "status": row["status"],
@@ -64,6 +199,16 @@ def public_job(row: dict[str, Any]) -> dict[str, Any]:
         job["error"] = row["error"]
     if row["files_total"] is not None:
         job["files_total"] = row["files_total"]
+    if row["status"] == "queued" and row.get("queue_position") is not None:
+        job["queue_position"] = int(row["queue_position"])
+    source = query_job_lines if line_source is None else line_source
+    try:
+        job["lines"] = source(str(row["id"]), row.get("created_at"))
+        job["log_available"] = True
+    except LokiQueryError:
+        logger.warning("Ingest job %s log is unavailable", row["id"])
+        job["lines"] = []
+        job["log_available"] = False
     return job
 
 
@@ -91,7 +236,7 @@ def enqueue_job(
 def fetch_job(job_id: str) -> dict[str, Any] | None:
     with _connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT * FROM ingest_job WHERE id = %s", (job_id,))
+            cur.execute(_FETCH_SQL, (job_id,))
             row = cur.fetchone()
         conn.commit()
     if row is None:

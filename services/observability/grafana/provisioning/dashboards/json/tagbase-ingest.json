@@ -899,8 +899,8 @@
     "tags": [],
     "timeSettings": {
       "timezone": "browser",
-      "from": "2026-07-30T01:39:04.641Z",
-      "to": "2026-08-02T13:37:27.125Z",
+      "from": "now-15m",
+      "to": "now",
       "autoRefresh": "",
       "autoRefreshIntervals": [
         "5s",

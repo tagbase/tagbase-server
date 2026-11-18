@@ -28,6 +28,14 @@ Synchronous `POST /ingest` and `GET /ingest` still process the file inside the r
 
 `POST /ingest/jobs` accepts `.txt`, `.zip`, `.tar.gz`, and `.tgz` up to 2 GiB. The body is streamed to disk and the call returns HTTP 202 with a job id. Poll `GET /ingest/jobs/{job_id}` until `status` is `succeeded` or `failed`. The upload form and the fswatch service both use this job API.
 
+The job response includes `lines`: the most recent 500 log lines for that job only, returned oldest first. Each line has `time` (UTC, to the millisecond) and `text`, which keeps the line breaks of a traceback. The lines are read from Loki by job id, from the time the job was created. Lines older than Loki's retention are gone. If Loki cannot be read, `lines` is empty and `log_available` is `false`.
+
+While a file's measurements are being written, the worker logs `Writing measurements, still running elapsed=<seconds>s` every 15 seconds (`INGEST_HEARTBEAT_SECONDS`). The upload page shows the latest one on the job card.
+
+While a job is `queued`, the response includes `queue_position`: the number of jobs ahead of it, counting the job that is running. The upload page shows it as "Queued, N ahead".
+
+When a job succeeds, its last line is `ingest.summary files=<n> loaded=<n> metadata_only=<n> duplicates=<n> skipped_lines=<n> seconds=<s>`. `duplicates` counts files already ingested, which are skipped. `skipped_lines` counts observation lines without a date and time. The upload page turns this line into the job's summary, and labels a job "Skipped: already ingested" when every file was a duplicate. Its log shows readable lines by default; "Technical details" shows the raw lines, including hashes.
+
 Archives are opened with the Python `zipfile` and `tarfile` libraries. Other archive types are rejected. Extraction refuses path traversal, symlink members, and encrypted ZIP members, and it stops when a configurable member count (default 10,000) or uncompressed size (default 10 GiB) is exceeded.
 
 ## Submit multiple files at once

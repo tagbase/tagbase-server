@@ -551,6 +551,10 @@ components:
         status: succeeded
         files_done: 1
         files_total: 1
+        log_available: true
+        lines:
+          - time: "2026-11-08T17:24:28.105+00:00"
+            text: Processing etuff file example.txt job_id=4bf92f35-77b3-4da6-a3ce-929d0e0e4736
       properties:
         id:
           description: Ingest job id
@@ -585,7 +589,41 @@ components:
           format: int32
           minimum: 0
           maximum: 10000
+        queue_position:
+          description: Present while queued. Jobs ahead of this one, counting the running job.
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 2147483647
+        lines:
+          description: The most recent log lines for this job (up to 500), oldest first
+          type: array
+          minItems: 0
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/IngestJobLogLine"
+        log_available:
+          description: False when the log store could not be read
+          type: boolean
       title: IngestJob
+      type: object
+    IngestJobLogLine:
+      description: One ingest log line and when it was logged
+      required:
+        - time
+        - text
+      properties:
+        time:
+          description: UTC time the line was logged, to the millisecond
+          type: string
+          format: date-time
+        text:
+          description: The log line. A traceback keeps its line breaks.
+          type: string
+          minLength: 1
+          maxLength: 10000
+          pattern: ^(?!\s*$)[\s\S]+$
+      title: IngestJobLogLine
       type: object
     Metadata:
       description: Contains the ingested tag metadata consistent with the eTUFF specification

@@ -295,6 +295,7 @@ services:
       - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://alloy:4317}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-tagbase_server}
+      - LOKI_URL
     expose:
       - 5433
     hostname: tagbase_server

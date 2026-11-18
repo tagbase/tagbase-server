@@ -2,33 +2,301 @@
   max-width: 42rem;
 }
 
-.upload-drop-zone {
-  border: 2px dashed var(--bs-border-color);
-  cursor: pointer;
-  transition:
-    background-color 0.15s,
-    border-color 0.15s;
-}
-
-.upload-drop-zone:hover,
-.upload-drop-zone.is-dragging,
-.upload-drop-zone:focus-within {
-  background: var(--bs-tertiary-bg);
-  border-color: var(--bs-primary);
-}
-
-#file {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-}
-
 #status {
   white-space: pre-wrap;
 }
 
-#progress {
-  width: 0%;
+.dropzone .dz-preview {
+  display: block;
+  margin: 0.75rem 0 0;
+  min-height: 0;
+  width: 100%;
+}
+
+.dropzone .dz-preview .dz-details {
+  opacity: 1;
+  padding: 0;
+  position: static;
+  text-align: left;
+}
+
+.dropzone .dz-preview .dz-details .dz-filename,
+.dropzone .dz-preview .dz-details .dz-filename:not(:hover) {
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+}
+
+.dropzone .dz-preview .dz-details .dz-filename span {
+  overflow-wrap: anywhere;
+}
+
+.dropzone .dz-preview .dz-image,
+.dropzone .dz-preview .dz-success-mark,
+.dropzone .dz-preview .dz-error-mark {
+  display: none;
+}
+
+.dropzone .dz-preview .dz-progress,
+.dropzone .dz-preview.dz-complete .dz-progress,
+.dropzone .dz-preview:not(.dz-processing) .dz-progress {
+  animation: none;
+  background: var(--bs-secondary-bg);
+  border: 0;
+  border-radius: 999px;
+  height: 0.5rem;
+  left: auto;
+  margin: 0.4rem 0 0;
+  opacity: 1;
+  position: static;
+  right: auto;
+  top: auto;
+}
+
+.dropzone .dz-preview .dz-progress .dz-upload {
+  background: var(--bs-primary);
+  border-radius: inherit;
+}
+
+.dropzone .dz-preview .dz-error-message {
+  margin-top: 0.4rem;
+  opacity: 1;
+  position: static;
+  width: auto;
+}
+
+.dropzone .dz-preview .dz-error-message::after {
+  content: none;
+}
+
+#jobs {
+  margin-top: 2.5rem;
+}
+
+.job-card {
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.job-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.job-ticker {
+  align-items: center;
+  column-gap: 0.75rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  margin-top: 0.75rem;
+}
+
+.job-stage {
+  grid-column: 2;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.job-stage.is-done {
+  color: var(--bs-success-text-emphasis);
+  font-weight: 600;
+}
+
+.job-stage.is-skipped {
+  color: var(--bs-secondary-color);
+  font-weight: 600;
+}
+
+.job-stage.is-failed {
+  color: var(--bs-danger-text-emphasis);
+  font-weight: 600;
+}
+
+.job-pulse {
+  animation: job-pulse 1.2s ease-in-out infinite;
+  background: var(--bs-primary);
+  border-radius: 50%;
+  grid-column: 1;
+  height: 0.7rem;
+  width: 0.7rem;
+}
+
+.job-pulse.is-done,
+.job-pulse.is-failed {
+  animation: none;
+  opacity: 1;
+}
+
+.job-pulse.is-done {
+  background: var(--bs-success);
+}
+
+.job-pulse.is-failed {
+  background: var(--bs-danger);
+}
+
+.job-count {
+  align-items: flex-end;
+  background: var(--bs-primary-bg-subtle);
+  border: 1px solid var(--bs-primary-border-subtle);
+  border-radius: 0.6rem;
+  color: var(--bs-primary-text-emphasis);
+  display: flex;
+  flex-direction: column;
+  grid-column: 3;
+  max-width: 16rem;
+  padding: 0.35rem 0.7rem;
+}
+
+.job-count-line {
+  align-items: baseline;
+  display: flex;
+  font-variant-numeric: tabular-nums;
+  gap: 0.35rem;
+}
+
+.job-count-kicker,
+.job-count-of {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.job-count-current {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.job-count-total {
+  font-weight: 700;
+}
+
+.job-member {
+  font-size: 0.75rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.job-file-time {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.job-count.is-advance {
+  animation: job-count-advance 0.45s ease;
+}
+
+.job-elapsed {
+  grid-column: 4;
+  white-space: nowrap;
+}
+
+@media (width < 36rem) {
+  .job-ticker {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    row-gap: 0.6rem;
+  }
+
+  .job-elapsed {
+    grid-column: 3;
+  }
+
+  .job-count {
+    align-items: flex-start;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    max-width: none;
+  }
+
+  .job-member {
+    text-align: left;
+  }
+
+  .job-file-time {
+    text-align: left;
+  }
+}
+
+.job-log-toggle {
+  background: transparent;
+  border: 0;
+  color: var(--bs-primary);
+  font-size: 0.875rem;
+  margin-top: 0.75rem;
+  padding: 0;
+}
+
+.job-log-toggle::before {
+  content: "▸ ";
+}
+
+.job-log-toggle.is-open::before {
+  content: "▾ ";
+}
+
+.job-summary {
+  color: var(--bs-secondary-color);
+}
+
+.job-warning {
+  color: var(--bs-warning-text-emphasis);
+}
+
+.job-log-panel {
+  margin-top: 0.5rem;
+}
+
+.job-log-mode {
+  background: transparent;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.4rem;
+  color: var(--bs-secondary-color);
+  font-size: 0.75rem;
+  margin-bottom: 0.4rem;
+  padding: 0.1rem 0.5rem;
+}
+
+.job-log-mode[aria-pressed="true"] {
+  background: var(--bs-secondary-bg);
+  color: var(--bs-body-color);
+}
+
+.job-log-panel pre {
+  background: var(--bs-tertiary-bg);
+  border-radius: 0.4rem;
+  font-size: 0.8rem;
+  margin: 0;
+  max-height: 14rem;
+  overflow: auto;
+  padding: 0.75rem;
+  white-space: pre;
+}
+
+@keyframes job-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes job-count-advance {
+  from {
+    transform: scale(1.06);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .job-pulse,
+  .job-count.is-advance {
+    animation: none;
+  }
 }

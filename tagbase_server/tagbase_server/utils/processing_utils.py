@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import threading
 import time
 from datetime import datetime as dt
 from datetime import timezone
@@ -11,6 +12,11 @@ import psycopg2.extras
 from opentelemetry import trace
 from tzlocal import get_localzone
 
+from tagbase_server.ingest_log import (
+    current_job_id,
+    heartbeat_seconds,
+    heartbeat_while,
+)
 from tagbase_server.telemetry import (
     get_tracer,
     record_db_error,
@@ -447,10 +453,11 @@ def _build_proc_observations(
 ):
     """Parse eTUFF observation lines into proc_observations rows.
 
-    timings, when set, receives build_rows in seconds. Lines without a
-    datetime are skipped and logged.
+    timings, when set, receives build_rows in seconds and skipped_lines, the
+    number of lines without a datetime. Those lines are skipped and logged.
     """
     proc_obs = []
+    skipped = 0
     variable_lookup = {}
     s_time = time.perf_counter()
     num_lines_content = len(file_content)
@@ -482,6 +489,7 @@ def _build_proc_observations(
             stripped_line = line.strip("\n")
             msg = f"*{submission_filename}* _line:{line_number}_ - No datetime... skipping line: {stripped_line}"
             logger.warning(msg)
+            skipped += 1
             continue
         proc_obs.append(
             [
@@ -494,6 +502,8 @@ def _build_proc_observations(
         )
 
     len_proc_obs = len(proc_obs)
+    if timings is not None:
+        timings["skipped_lines"] = skipped
     sub_elapsed = _record_timing(timings, "build_rows", s_time)
     logger.info(
         "Built raw 'proc_observations' data structure from %s observations in: %s second(s)",
@@ -565,9 +575,26 @@ def _migrate_proc_observations(
             int(submission_id),
             ref,
         )
-        cur.execute(
-            "CALL sp_execute_data_migration(%s, %s);", (int(submission_id), ref)
-        )
+        stop_beat = threading.Event()
+        job_id = current_job_id.get()
+        beater = None
+        if job_id:
+            beater = threading.Thread(
+                target=heartbeat_while,
+                args=(stop_beat, call_start, job_id, heartbeat_seconds()),
+                name="ingest-heartbeat",
+                daemon=True,
+            )
+            beater.start()
+        try:
+            cur.execute(
+                "CALL sp_execute_data_migration(%s, %s);",
+                (int(submission_id), ref),
+            )
+        finally:
+            stop_beat.set()
+            if beater is not None:
+                beater.join(timeout=1)
     except (Exception, psycopg2.DatabaseError):
         logger.exception("Error migrating proc_observations")
         conn.rollback()
@@ -600,11 +627,26 @@ def _compute_submission_hashes(submission_filename, file_content, metadata_conte
 
 
 def process_etuff_file(
-    file, version=None, notes=None, count_request=True, submission_name=None
+    file,
+    version=None,
+    notes=None,
+    count_request=True,
+    submission_name=None,
+    stats=None,
 ):
+    """Ingest one eTUFF file.
+
+    stats, when a dict, receives outcome (duplicate, metadata_only or ingested)
+    and skipped_lines once the file is done.
+    """
     start = time.perf_counter()
     source_path = file
     submission_filename = submission_name or os.path.basename(source_path)
+
+    def _outcome(outcome, skipped_lines=0):
+        if stats is not None:
+            stats["outcome"] = outcome
+            stats["skipped_lines"] = skipped_lines
 
     def _record(outcome, duration):
         if count_request:
@@ -668,6 +710,7 @@ def process_etuff_file(
                             entire_file_hash,
                         )
                         _record("duplicate", round(time.perf_counter() - start, 2))
+                        _outcome("duplicate")
                         return 1
 
                     dataset_id = get_dataset_id(
@@ -715,6 +758,7 @@ def process_etuff_file(
                             metadata_hash,
                         )
                         _record("metadata_only", round(time.perf_counter() - start, 2))
+                        _outcome("metadata_only")
                         return 1
 
                     proc_obs, len_proc_obs = _build_proc_observations(
@@ -762,6 +806,7 @@ def process_etuff_file(
     finish = time.perf_counter()
     elapsed = round(finish - start, 2)
     _record("success", elapsed)
+    _outcome("ingested", timings.get("skipped_lines", 0))
     logger.info(
         "Data file %s successfully ingested into Tagbase DB. Total time: %s second(s)",
         submission_filename,

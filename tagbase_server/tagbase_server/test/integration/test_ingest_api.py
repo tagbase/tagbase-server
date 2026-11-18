@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from tagbase_server.ingest_jobs import claim_next_job, enqueue_job, fetch_job
 from tagbase_server.test.helpers import (
     API_PREFIX,
     ETUFF_FIXTURE,
@@ -187,3 +188,20 @@ def test_post_ingest_job_zip_reaches_succeeded(client, clean_db, etuff_zip_bytes
         client.get(f"{API_PREFIX}/tags", headers={"Accept": "application/json"})
     )
     assert listed["tags"][0]["filename"] == "minimal-etuff.txt"
+
+
+def test_queued_jobs_report_how_many_are_ahead(clean_db, monkeypatch):
+    monkeypatch.setenv("LOKI_URL", "http://127.0.0.1:9")
+    first = enqueue_job(
+        source_path="/tmp/a.txt", filename="a.txt", version=None, notes=None
+    )
+    second = enqueue_job(
+        source_path="/tmp/b.txt", filename="b.txt", version=None, notes=None
+    )
+
+    assert fetch_job(first)["queue_position"] == 0
+    assert fetch_job(second)["queue_position"] == 1
+
+    assert str(claim_next_job()["id"]) == first
+    assert "queue_position" not in fetch_job(first)
+    assert fetch_job(second)["queue_position"] == 1

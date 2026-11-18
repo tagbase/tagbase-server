@@ -20,3 +20,7 @@ compose-diagram --file docker-compose.yml --direction=TB --nodesep=1.5
 ```
 
 The file is then written to `docker-compose.png`.
+
+## Runtime dependency on Loki
+
+`tagbase_server` reads from Loki at request time. `GET /tagbase/api/v0/ingest/jobs/{job_id}` queries Loki (`LOKI_URL`, default `http://loki:3100`) for that job's log lines. The ingest worker's lines reach Loki over OTLP through Alloy (`otelcol.exporter.loki`), in both the git and the published stack, and Loki labels them `service_name=tagbase_server` from `OTEL_SERVICE_NAME`. If Loki is down, the job API still answers, with `log_available: false`, and ingest is not affected.

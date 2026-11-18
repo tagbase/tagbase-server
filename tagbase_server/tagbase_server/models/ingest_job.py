@@ -8,6 +8,7 @@ from typing import Dict, List  # noqa: F401
 
 from tagbase_server import util
 from tagbase_server.models.base_model_ import Model
+from tagbase_server.models.ingest_job_log_line import IngestJobLogLine  # noqa: E501
 
 
 class IngestJob(Model):
@@ -17,7 +18,15 @@ class IngestJob(Model):
     """
 
     def __init__(
-        self, id=None, status=None, error=None, files_total=None, files_done=None
+        self,
+        id=None,
+        status=None,
+        error=None,
+        files_total=None,
+        files_done=None,
+        queue_position=None,
+        lines=None,
+        log_available=None,
     ):  # noqa: E501
         """IngestJob - a model defined in OpenAPI
 
@@ -31,6 +40,12 @@ class IngestJob(Model):
         :type files_total: int
         :param files_done: The files_done of this IngestJob.  # noqa: E501
         :type files_done: int
+        :param queue_position: The queue_position of this IngestJob.  # noqa: E501
+        :type queue_position: int
+        :param lines: The lines of this IngestJob.  # noqa: E501
+        :type lines: List[IngestJobLogLine]
+        :param log_available: The log_available of this IngestJob.  # noqa: E501
+        :type log_available: bool
         """
         self.openapi_types = {
             "id": str,
@@ -38,6 +53,9 @@ class IngestJob(Model):
             "error": str,
             "files_total": int,
             "files_done": int,
+            "queue_position": int,
+            "lines": List[IngestJobLogLine],
+            "log_available": bool,
         }
 
         self.attribute_map = {
@@ -46,6 +64,9 @@ class IngestJob(Model):
             "error": "error",
             "files_total": "files_total",
             "files_done": "files_done",
+            "queue_position": "queue_position",
+            "lines": "lines",
+            "log_available": "log_available",
         }
 
         self._id = id
@@ -53,6 +74,9 @@ class IngestJob(Model):
         self._error = error
         self._files_total = files_total
         self._files_done = files_done
+        self._queue_position = queue_position
+        self._lines = lines
+        self._log_available = log_available
 
     @classmethod
     def from_dict(cls, dikt) -> "IngestJob":
@@ -235,3 +259,87 @@ class IngestJob(Model):
             )  # noqa: E501
 
         self._files_done = files_done
+
+    @property
+    def queue_position(self) -> int:
+        """Gets the queue_position of this IngestJob.
+
+        Present while queued. Jobs ahead of this one, counting the running job.  # noqa: E501
+
+        :return: The queue_position of this IngestJob.
+        :rtype: int
+        """
+        return self._queue_position
+
+    @queue_position.setter
+    def queue_position(self, queue_position: int):
+        """Sets the queue_position of this IngestJob.
+
+        Present while queued. Jobs ahead of this one, counting the running job.  # noqa: E501
+
+        :param queue_position: The queue_position of this IngestJob.
+        :type queue_position: int
+        """
+        if queue_position is not None and queue_position > 2147483647:  # noqa: E501
+            raise ValueError(
+                "Invalid value for `queue_position`, must be a value less than or equal to `2147483647`"
+            )  # noqa: E501
+        if queue_position is not None and queue_position < 0:  # noqa: E501
+            raise ValueError(
+                "Invalid value for `queue_position`, must be a value greater than or equal to `0`"
+            )  # noqa: E501
+
+        self._queue_position = queue_position
+
+    @property
+    def lines(self) -> List[IngestJobLogLine]:
+        """Gets the lines of this IngestJob.
+
+        The most recent log lines for this job (up to 500), oldest first  # noqa: E501
+
+        :return: The lines of this IngestJob.
+        :rtype: List[IngestJobLogLine]
+        """
+        return self._lines
+
+    @lines.setter
+    def lines(self, lines: List[IngestJobLogLine]):
+        """Sets the lines of this IngestJob.
+
+        The most recent log lines for this job (up to 500), oldest first  # noqa: E501
+
+        :param lines: The lines of this IngestJob.
+        :type lines: List[IngestJobLogLine]
+        """
+        if lines is not None and len(lines) > 500:
+            raise ValueError(
+                "Invalid value for `lines`, number of items must be less than or equal to `500`"
+            )  # noqa: E501
+        if lines is not None and len(lines) < 0:
+            raise ValueError(
+                "Invalid value for `lines`, number of items must be greater than or equal to `0`"
+            )  # noqa: E501
+
+        self._lines = lines
+
+    @property
+    def log_available(self) -> bool:
+        """Gets the log_available of this IngestJob.
+
+        False when the log store could not be read  # noqa: E501
+
+        :return: The log_available of this IngestJob.
+        :rtype: bool
+        """
+        return self._log_available
+
+    @log_available.setter
+    def log_available(self, log_available: bool):
+        """Sets the log_available of this IngestJob.
+
+        False when the log store could not be read  # noqa: E501
+
+        :param log_available: The log_available of this IngestJob.
+        :type log_available: bool
+        """
+        self._log_available = log_available
