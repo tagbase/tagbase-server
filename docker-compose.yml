@@ -223,7 +223,7 @@ services:
       retries: 10
       start_period: 30s
     hostname: postgis
-    image: kartoza/postgis:18-3.7@sha256:6b07ffc131b80e0be02d96d730bbd0b838bcac0cd745127dd453566765046285
+    image: kartoza/postgis:18-3.7@sha256:5dc2a3879045cbf833427200fb880bdbfa59fecd68861f76f2b45ff4f9beeb24
     platform: linux/amd64
     labels:
       "docker_compose_diagram.cluster": "Internal Network"
@@ -245,7 +245,7 @@ services:
         target: /opt/data
 
   db-migrate:
-    image: kartoza/postgis:18-3.7@sha256:6b07ffc131b80e0be02d96d730bbd0b838bcac0cd745127dd453566765046285
+    image: kartoza/postgis:18-3.7@sha256:5dc2a3879045cbf833427200fb880bdbfa59fecd68861f76f2b45ff4f9beeb24
     platform: linux/amd64
     depends_on:
       postgis:
