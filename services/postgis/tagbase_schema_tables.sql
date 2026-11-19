@@ -1515,6 +1515,9 @@ CREATE TABLE ingest_job (
     error text,
     files_total integer,
     files_done integer NOT NULL DEFAULT 0,
+    stage text,
+    current_member text,
+    summary jsonb,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );

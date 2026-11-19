@@ -267,6 +267,10 @@ services:
       - -c
       - >-
         BEGIN;
+        ALTER TABLE public.ingest_job
+          ADD COLUMN IF NOT EXISTS stage text,
+          ADD COLUMN IF NOT EXISTS current_member text,
+          ADD COLUMN IF NOT EXISTS summary jsonb;
         LOCK TABLE public.submission IN SHARE ROW EXCLUSIVE MODE;
         SELECT setval(
           pg_get_serial_sequence('public.submission', 'submission_id'),
@@ -274,6 +278,12 @@ services:
           COUNT(*) > 0
         )
         FROM public.submission;
+        SELECT setval(
+          pg_get_serial_sequence('public.observation_types', 'variable_id'),
+          COALESCE(MAX(variable_id), 1),
+          COUNT(*) > 0
+        )
+        FROM public.observation_types;
         COMMIT;
 
     networks:
@@ -395,6 +405,7 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_AUTH_BASIC_ENABLED=false
       - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_SECURITY_ALLOW_EMBEDDING=true
       - GF_USERS_DEFAULT_THEME=dark
       - GF_SERVER_ROOT_URL=https://localhost/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true

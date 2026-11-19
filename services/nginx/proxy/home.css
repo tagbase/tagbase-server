@@ -1,0 +1,68 @@
+.home {
+  max-width: 46rem;
+}
+
+.home-card {
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem 1.1rem;
+  text-decoration: none;
+}
+
+.home-card:hover,
+.home-card:focus-visible {
+  border-color: var(--bs-primary);
+  color: inherit;
+}
+
+.home-card-primary {
+  margin-bottom: 0.75rem;
+}
+
+.home-kicker {
+  color: var(--bs-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.home-card-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.home-card-text {
+  color: var(--bs-secondary-color);
+}
+
+.home-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr;
+}
+
+.home-section {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  margin-top: 2rem;
+}
+
+.home-more {
+  display: flex;
+  gap: 1.25rem;
+  margin-bottom: 0;
+  margin-top: 2rem;
+}
+
+@media (width >= 768px) {
+  .home-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

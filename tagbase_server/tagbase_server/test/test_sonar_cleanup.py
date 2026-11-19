@@ -6,6 +6,7 @@ from datetime import timezone
 from io import StringIO
 from unittest import mock
 
+import psycopg2
 import pytest
 
 from tagbase_server.__main__ import configure_cors, parse_cors_origins
@@ -177,15 +178,28 @@ def test_resolve_variable_id_cache_and_lookup():
 def test_resolve_variable_id_insert_and_exception():
     cur = mock.Mock()
     conn = mock.Mock()
-    # lookup miss, INSERT raises, then fallback SELECT
-    cur.fetchone.side_effect = [None, (7,)]
-    cur.execute.side_effect = [None, Exception("dup"), None]
+    # The name is new, the sequence collides, and the fallback lookup is empty.
+    # The sequence is advanced and the insert is tried again.
+    statements = []
+
+    def execute(sql, params=None):
+        text = " ".join(str(sql).split())
+        statements.append(text)
+        inserts = [item for item in statements if item.startswith("INSERT")]
+        if text.startswith("INSERT") and len(inserts) == 1:
+            raise psycopg2.errors.UniqueViolation("duplicate key")
+
+    cur.execute.side_effect = execute
+    cur.fetchone.side_effect = [None, None, (137,)]
     lookup = {}
     assert (
         pu._resolve_variable_id(cur, conn, "lon", ["", "", "", "lon", "deg"], lookup)
-        == 7
+        == 137
     )
-    conn.rollback.assert_called_once()
+    assert any("setval" in item for item in statements)
+    assert any(item == "ROLLBACK TO SAVEPOINT resolve_variable" for item in statements)
+    conn.rollback.assert_not_called()
+    assert lookup["lon"] == 137
 
 
 def test_resolve_variable_id_insert_returning():

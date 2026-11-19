@@ -2,82 +2,90 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>tagbase-server</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tagbase</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <link href="home.css" rel="stylesheet" />
   </head>
-  <body>
-    <h1>
-      Welcome to
-      <a href="https://github.com/tagbase/tagbase-server" target="_blank"
-        >tagbase server</a
-      >
-    </h1>
+  <body class="bg-body-tertiary">
+    <main class="container py-5 home">
+      <header class="mb-4">
+        <h1 class="mb-2">Tagbase</h1>
+        <p class="text-body-secondary mb-0">
+          Load eTUFF data, then look at it through the API or the database.
+        </p>
+      </header>
 
-    <!--img src="./tagbase.gif" alt="Tagbase logo"-->
+      <a class="home-card home-card-primary" href="./upload.html">
+        <span class="home-kicker">Start here</span>
+        <span class="home-card-title">Upload data</span>
+        <span class="home-card-text">
+          Add eTUFF files. This page follows each file until it finishes.
+        </span>
+      </a>
 
-    <h1>Navigation</h1>
-    <ul>
-      <li>
-        <b><a href="./docs" target="_blank">/docs</a></b
-        >: visualize and interact with tagbase-server REST APIs.
-      </li>
-      <li>
-        <b><a href="./pgadmin4/" target="_blank">/pgadmin4/</a></b
-        >: administration and development platform for Tagbase PostGIS
-        instances.
-      </li>
-      <li>
-        <b
-          ><a href="./tagbase/api/v0/ui/" target="_blank"
-            >/tagbase/api/v0/ui/</a
-          ></b
-        >: interactive REST API.
-      </li>
-      <li>
-        <b><a href="./upload.html" target="_blank">/upload.html</a></b
-        >: File upload page.
-      </li>
-    </ul>
+      <div class="home-grid">
+        <a class="home-card" href="./tagbase/api/v0/ui/">
+          <span class="home-card-title">Interactive API</span>
+          <span class="home-card-text"
+            >Browse and try the REST API in your browser.</span
+          >
+        </a>
+        <a class="home-card" href="./pgadmin4/">
+          <span class="home-card-title">Database</span>
+          <span class="home-card-text">Browse the PostGIS database.</span>
+        </a>
+      </div>
 
-    <h1>Observability</h1>
-    <p>
-      Requires the LGTM services (always started with the git compose stack).
-      Protected by the same nginx basic auth.
-    </p>
-    <ul>
-      <li>
-        <b><a href="./grafana/" target="_blank">/grafana/</a></b
-        >: Grafana (dashboards, Explore).
-      </li>
-      <li>
-        <b><a href="./alloy/" target="_blank">/alloy/</a></b
-        >: Grafana Alloy UI.
-      </li>
-      <li>
-        <b><a href="./prometheus/" target="_blank">/prometheus/</a></b
-        >: Prometheus.
-      </li>
-      <li>
-        <b><a href="./grafana/explore" target="_blank">/grafana/explore</a></b
-        >: Loki logs &amp; Tempo traces (via Grafana).
-      </li>
-    </ul>
+      <h2 class="home-section">Observability</h2>
+      <div class="home-grid">
+        <a class="home-card" href="./grafana/">
+          <span class="home-card-title">Grafana</span>
+          <span class="home-card-text"
+            >Dashboards and metrics, including ingest.</span
+          >
+        </a>
+        <a
+          class="home-card"
+          href="./grafana/explore?schemaVersion=1&amp;panes=%7B%22lok%22%3A%7B%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22expr%22%3A%22%7Bservice_name%3D%5C%22tagbase_server%5C%22%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22%7D%7D%7D&amp;orgId=1"
+        >
+          <span class="home-card-title">Logs</span>
+          <span class="home-card-text"
+            >Search the service logs in Grafana.</span
+          >
+        </a>
+        <a
+          class="home-card"
+          href="./grafana/explore?schemaVersion=1&amp;panes=%7B%22tem%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22tagbase_server%5C%22%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-6h%22%2C%22to%22%3A%22now%22%7D%7D%7D&amp;orgId=1"
+        >
+          <span class="home-card-title">Traces</span>
+          <span class="home-card-text">Follow a request through Grafana.</span>
+        </a>
+        <a class="home-card" href="./alloy/">
+          <span class="home-card-title">Alloy</span>
+          <span class="home-card-text">The telemetry pipeline UI.</span>
+        </a>
+      </div>
 
-    <h1>Documentation and Support</h1>
-    <ul>
-      <li>
+      <p class="home-more">
         <a
           href="https://github.com/tagbase/tagbase-server/wiki/"
           target="_blank"
-          >wiki documentation</a
+          rel="noopener"
+          >Documentation</a
         >
-      </li>
-      <li>
         <a
           href="https://github.com/tagbase/tagbase-server/issues"
           target="_blank"
-          >report issues/bug tracker</a
+          rel="noopener"
+          >Report an issue</a
         >
-      </li>
-    </ul>
+      </p>
+    </main>
   </body>
 </html>
