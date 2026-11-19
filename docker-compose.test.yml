@@ -2,7 +2,7 @@
 # optional Alloy + LGTM for observability smoke (profile: observability).
 services:
   postgis:
-    image: kartoza/postgis:18-3.7@sha256:6b07ffc131b80e0be02d96d730bbd0b838bcac0cd745127dd453566765046285
+    image: kartoza/postgis:18-3.7@sha256:5dc2a3879045cbf833427200fb880bdbfa59fecd68861f76f2b45ff4f9beeb24
     platform: linux/amd64
     environment:
       - ALLOW_IP_RANGE=0.0.0.0/0
@@ -118,7 +118,7 @@ services:
       - --storage.path=/var/lib/alloy/data
       - /etc/alloy/config.alloy
     volumes:
-      - ./services/observability/config.local.alloy:/etc/alloy/config.alloy:ro
+      - ./services/observability/config.test.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - tagbase-test-alloy:/var/lib/alloy/data
     expose:
@@ -182,6 +182,7 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_AUTH_BASIC_ENABLED=false
       - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_SECURITY_ALLOW_EMBEDDING=true
       - GF_SERVER_ROOT_URL=https://localhost/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/json/tagbase-ingest.json

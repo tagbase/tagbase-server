@@ -40,7 +40,7 @@ PREFIX_FILES = (
     ROOT / "services" / "nginx" / "config" / "nginx.conf",
     ROOT / "services" / "nginx" / "config" / "nginx.test.conf",
     ROOT / "services" / "nginx" / "proxy" / "index.html",
-    ROOT / "services" / "nginx" / "proxy" / "upload.html",
+    ROOT / "services" / "nginx" / "proxy" / "upload.js",
     ROOT / "docker-compose.test.yml",
     ROOT / ".github" / "workflows" / "build.yml",
     ROOT / "tagbase_server" / "README.md",

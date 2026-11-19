@@ -223,7 +223,7 @@ services:
       retries: 10
       start_period: 30s
     hostname: postgis
-    image: kartoza/postgis:18-3.7@sha256:6b07ffc131b80e0be02d96d730bbd0b838bcac0cd745127dd453566765046285
+    image: kartoza/postgis:18-3.7@sha256:5dc2a3879045cbf833427200fb880bdbfa59fecd68861f76f2b45ff4f9beeb24
     platform: linux/amd64
     labels:
       "docker_compose_diagram.cluster": "Internal Network"
@@ -245,7 +245,7 @@ services:
         target: /opt/data
 
   db-migrate:
-    image: kartoza/postgis:18-3.7@sha256:6b07ffc131b80e0be02d96d730bbd0b838bcac0cd745127dd453566765046285
+    image: kartoza/postgis:18-3.7@sha256:5dc2a3879045cbf833427200fb880bdbfa59fecd68861f76f2b45ff4f9beeb24
     platform: linux/amd64
     depends_on:
       postgis:
@@ -267,6 +267,10 @@ services:
       - -c
       - >-
         BEGIN;
+        ALTER TABLE public.ingest_job
+          ADD COLUMN IF NOT EXISTS stage text,
+          ADD COLUMN IF NOT EXISTS current_member text,
+          ADD COLUMN IF NOT EXISTS summary jsonb;
         LOCK TABLE public.submission IN SHARE ROW EXCLUSIVE MODE;
         SELECT setval(
           pg_get_serial_sequence('public.submission', 'submission_id'),
@@ -274,6 +278,12 @@ services:
           COUNT(*) > 0
         )
         FROM public.submission;
+        SELECT setval(
+          pg_get_serial_sequence('public.observation_types', 'variable_id'),
+          COALESCE(MAX(variable_id), 1),
+          COUNT(*) > 0
+        )
+        FROM public.observation_types;
         COMMIT;
 
     networks:
@@ -395,6 +405,7 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_AUTH_BASIC_ENABLED=false
       - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_SECURITY_ALLOW_EMBEDDING=true
       - GF_USERS_DEFAULT_THEME=dark
       - GF_SERVER_ROOT_URL=https://localhost/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true

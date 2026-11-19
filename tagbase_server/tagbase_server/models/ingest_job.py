@@ -17,7 +17,18 @@ class IngestJob(Model):
     """
 
     def __init__(
-        self, id=None, status=None, error=None, files_total=None, files_done=None
+        self,
+        id=None,
+        status=None,
+        error=None,
+        files_total=None,
+        files_done=None,
+        queue_position=None,
+        stage=None,
+        current_member=None,
+        summary=None,
+        created_at=None,
+        updated_at=None,
     ):  # noqa: E501
         """IngestJob - a model defined in OpenAPI
 
@@ -31,6 +42,18 @@ class IngestJob(Model):
         :type files_total: int
         :param files_done: The files_done of this IngestJob.  # noqa: E501
         :type files_done: int
+        :param queue_position: The queue_position of this IngestJob.  # noqa: E501
+        :type queue_position: int
+        :param stage: The stage of this IngestJob.  # noqa: E501
+        :type stage: str
+        :param current_member: The current_member of this IngestJob.  # noqa: E501
+        :type current_member: str
+        :param summary: The summary of this IngestJob.  # noqa: E501
+        :type summary: object
+        :param created_at: The created_at of this IngestJob.  # noqa: E501
+        :type created_at: str
+        :param updated_at: The updated_at of this IngestJob.  # noqa: E501
+        :type updated_at: str
         """
         self.openapi_types = {
             "id": str,
@@ -38,6 +61,12 @@ class IngestJob(Model):
             "error": str,
             "files_total": int,
             "files_done": int,
+            "queue_position": int,
+            "stage": str,
+            "current_member": str,
+            "summary": object,
+            "created_at": str,
+            "updated_at": str,
         }
 
         self.attribute_map = {
@@ -46,6 +75,12 @@ class IngestJob(Model):
             "error": "error",
             "files_total": "files_total",
             "files_done": "files_done",
+            "queue_position": "queue_position",
+            "stage": "stage",
+            "current_member": "current_member",
+            "summary": "summary",
+            "created_at": "created_at",
+            "updated_at": "updated_at",
         }
 
         self._id = id
@@ -53,6 +88,12 @@ class IngestJob(Model):
         self._error = error
         self._files_total = files_total
         self._files_done = files_done
+        self._queue_position = queue_position
+        self._stage = stage
+        self._current_member = current_member
+        self._summary = summary
+        self._created_at = created_at
+        self._updated_at = updated_at
 
     @classmethod
     def from_dict(cls, dikt) -> "IngestJob":
@@ -235,3 +276,144 @@ class IngestJob(Model):
             )  # noqa: E501
 
         self._files_done = files_done
+
+    @property
+    def queue_position(self) -> int:
+        """Gets the queue_position of this IngestJob.
+
+        Present while queued. Jobs ahead of this one, counting the running job.  # noqa: E501
+
+        :return: The queue_position of this IngestJob.
+        :rtype: int
+        """
+        return self._queue_position
+
+    @queue_position.setter
+    def queue_position(self, queue_position: int):
+        """Sets the queue_position of this IngestJob.
+
+        Present while queued. Jobs ahead of this one, counting the running job.  # noqa: E501
+
+        :param queue_position: The queue_position of this IngestJob.
+        :type queue_position: int
+        """
+        if queue_position is not None and queue_position > 2147483647:  # noqa: E501
+            raise ValueError(
+                "Invalid value for `queue_position`, must be a value less than or equal to `2147483647`"
+            )  # noqa: E501
+        if queue_position is not None and queue_position < 0:  # noqa: E501
+            raise ValueError(
+                "Invalid value for `queue_position`, must be a value greater than or equal to `0`"
+            )  # noqa: E501
+
+        self._queue_position = queue_position
+
+    @property
+    def stage(self) -> str:
+        """Gets the stage of this IngestJob.
+
+        What the ingest is doing now, while running  # noqa: E501
+
+        :return: The stage of this IngestJob.
+        :rtype: str
+        """
+        return self._stage
+
+    @stage.setter
+    def stage(self, stage: str):
+        """Sets the stage of this IngestJob.
+
+        What the ingest is doing now, while running  # noqa: E501
+
+        :param stage: The stage of this IngestJob.
+        :type stage: str
+        """
+        self._stage = stage
+
+    @property
+    def current_member(self) -> str:
+        """Gets the current_member of this IngestJob.
+
+        Name of the eTUFF member being ingested, while running  # noqa: E501
+
+        :return: The current_member of this IngestJob.
+        :rtype: str
+        """
+        return self._current_member
+
+    @current_member.setter
+    def current_member(self, current_member: str):
+        """Sets the current_member of this IngestJob.
+
+        Name of the eTUFF member being ingested, while running  # noqa: E501
+
+        :param current_member: The current_member of this IngestJob.
+        :type current_member: str
+        """
+        self._current_member = current_member
+
+    @property
+    def summary(self) -> object:
+        """Gets the summary of this IngestJob.
+
+        Totals for a finished job  # noqa: E501
+
+        :return: The summary of this IngestJob.
+        :rtype: object
+        """
+        return self._summary
+
+    @summary.setter
+    def summary(self, summary: object):
+        """Sets the summary of this IngestJob.
+
+        Totals for a finished job  # noqa: E501
+
+        :param summary: The summary of this IngestJob.
+        :type summary: object
+        """
+        self._summary = summary
+
+    @property
+    def created_at(self) -> str:
+        """Gets the created_at of this IngestJob.
+
+        When the job was accepted, UTC to the millisecond  # noqa: E501
+
+        :return: The created_at of this IngestJob.
+        :rtype: str
+        """
+        return self._created_at
+
+    @created_at.setter
+    def created_at(self, created_at: str):
+        """Sets the created_at of this IngestJob.
+
+        When the job was accepted, UTC to the millisecond  # noqa: E501
+
+        :param created_at: The created_at of this IngestJob.
+        :type created_at: str
+        """
+        self._created_at = created_at
+
+    @property
+    def updated_at(self) -> str:
+        """Gets the updated_at of this IngestJob.
+
+        When the job row last changed, UTC to the millisecond  # noqa: E501
+
+        :return: The updated_at of this IngestJob.
+        :rtype: str
+        """
+        return self._updated_at
+
+    @updated_at.setter
+    def updated_at(self, updated_at: str):
+        """Sets the updated_at of this IngestJob.
+
+        When the job row last changed, UTC to the millisecond  # noqa: E501
+
+        :param updated_at: The updated_at of this IngestJob.
+        :type updated_at: str
+        """
+        self._updated_at = updated_at

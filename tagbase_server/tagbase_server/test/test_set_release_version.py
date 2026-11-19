@@ -20,3 +20,13 @@ def test_api_prefix_zero_and_one():
 def test_parse_version_strips_v():
     assert _mod.parse_version("v0.15.0") == "0.15.0"
     assert _mod.parse_version("0.15.0") == "0.15.0"
+
+
+def test_prefix_files_still_contain_api_prefix():
+    """Each PREFIX_FILES entry except api_prefix.py must still match PREFIX_RE."""
+    for path in _mod.PREFIX_FILES:
+        if path.name == "api_prefix.py":
+            continue
+        assert path.exists(), f"{path} is listed in PREFIX_FILES but does not exist"
+        text = path.read_text(encoding="utf-8")
+        assert _mod.PREFIX_RE.search(text), f"{path} has no API prefix to rewrite"

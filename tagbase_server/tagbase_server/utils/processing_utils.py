@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import threading
 import time
 from datetime import datetime as dt
 from datetime import timezone
@@ -11,6 +12,12 @@ import psycopg2.extras
 from opentelemetry import trace
 from tzlocal import get_localzone
 
+from tagbase_server.ingest_jobs import STAGE_WRITING, set_stage
+from tagbase_server.ingest_log import (
+    current_job_id,
+    heartbeat_seconds,
+    heartbeat_while,
+)
 from tagbase_server.telemetry import (
     get_tracer,
     record_db_error,
@@ -396,6 +403,58 @@ def update_submission_metadata(
     logger.info("Updated metadata attributes: %s", metadata)
 
 
+_INSERT_OBSERVATION_TYPE = """
+    INSERT INTO observation_types (variable_name, variable_units)
+    VALUES (%s, %s)
+    ON CONFLICT (variable_name) DO UPDATE
+    SET variable_units = EXCLUDED.variable_units
+    RETURNING variable_id
+"""
+
+# The catalog load inserts explicit ids, which does not move this sequence.
+# The same statement is in db-migrate and the catalog sync.
+_ADVANCE_OBSERVATION_TYPE_SEQ = """
+    SELECT setval(
+        pg_get_serial_sequence('public.observation_types', 'variable_id'),
+        COALESCE(MAX(variable_id), 1),
+        COUNT(*) > 0
+    )
+    FROM public.observation_types
+"""
+
+
+def _insert_observation_type(cur, variable_name, units):
+    """Insert one observation type. A stale variable_id sequence is moved past the loaded ids.
+
+    The savepoint keeps a primary-key collision from aborting the submission
+    transaction that is already open.
+    """
+    cur.execute("SAVEPOINT resolve_variable")
+    try:
+        cur.execute(_INSERT_OBSERVATION_TYPE, (variable_name, units))
+        variable_id = cur.fetchone()[0]
+    except psycopg2.errors.UniqueViolation:
+        cur.execute("ROLLBACK TO SAVEPOINT resolve_variable")
+        cur.execute(
+            "SELECT variable_id FROM observation_types WHERE variable_name = %s",
+            (variable_name,),
+        )
+        row = cur.fetchone()
+        if row:
+            variable_id = row[0]
+        else:
+            logger.warning(
+                "observation_types sequence was behind the loaded ids; "
+                "advanced it and inserted '%s'",
+                variable_name,
+            )
+            cur.execute(_ADVANCE_OBSERVATION_TYPE_SEQ)
+            cur.execute(_INSERT_OBSERVATION_TYPE, (variable_name, units))
+            variable_id = cur.fetchone()[0]
+    cur.execute("RELEASE SAVEPOINT resolve_variable")
+    return variable_id
+
+
 def _resolve_variable_id(cur, conn, variable_name, tokens, variable_lookup):
     if variable_name in variable_lookup:
         return variable_lookup[variable_name]
@@ -408,36 +467,9 @@ def _resolve_variable_id(cur, conn, variable_name, tokens, variable_lookup):
     if row:
         variable_id = row[0]
     else:
-        try:
-            logger.debug(
-                "variable_name=%s\ttokens=%s",
-                variable_name,
-                tokens,
-            )
-            cur.execute(
-                "INSERT INTO observation_types (variable_name, variable_units) "
-                "VALUES (%s, %s) "
-                "ON CONFLICT (variable_name) DO UPDATE "
-                "SET variable_units = EXCLUDED.variable_units "
-                "RETURNING variable_id",
-                (variable_name, tokens[4].strip()),
-            )
-            variable_id = cur.fetchone()[0]
-        except (
-            Exception,
-            psycopg2.DatabaseError,
-        ):
-            logger.exception(
-                "variable_id '%s' already exists in 'observation_types'. tokens: '%s'",
-                variable_name,
-                tokens,
-            )
-            conn.rollback()
-            cur.execute(
-                "SELECT variable_id FROM observation_types WHERE variable_name = %s",
-                (variable_name,),
-            )
-            variable_id = cur.fetchone()[0]
+        logger.debug("variable_name=%s\ttokens=%s", variable_name, tokens)
+        units = tokens[4].strip() if len(tokens) > 4 else None
+        variable_id = _insert_observation_type(cur, variable_name, units)
     variable_lookup[variable_name] = variable_id
     return variable_id
 
@@ -447,10 +479,11 @@ def _build_proc_observations(
 ):
     """Parse eTUFF observation lines into proc_observations rows.
 
-    timings, when set, receives build_rows in seconds. Lines without a
-    datetime are skipped and logged.
+    timings, when set, receives build_rows in seconds and skipped_lines, the
+    number of lines without a datetime. Those lines are skipped and logged.
     """
     proc_obs = []
+    skipped = 0
     variable_lookup = {}
     s_time = time.perf_counter()
     num_lines_content = len(file_content)
@@ -482,6 +515,7 @@ def _build_proc_observations(
             stripped_line = line.strip("\n")
             msg = f"*{submission_filename}* _line:{line_number}_ - No datetime... skipping line: {stripped_line}"
             logger.warning(msg)
+            skipped += 1
             continue
         proc_obs.append(
             [
@@ -494,6 +528,8 @@ def _build_proc_observations(
         )
 
     len_proc_obs = len(proc_obs)
+    if timings is not None:
+        timings["skipped_lines"] = skipped
     sub_elapsed = _record_timing(timings, "build_rows", s_time)
     logger.info(
         "Built raw 'proc_observations' data structure from %s observations in: %s second(s)",
@@ -541,6 +577,16 @@ def _dataframe_to_buffer(proc_obs, len_proc_obs, timings=None):
     return buffer
 
 
+def _mark_writing(job_id: str) -> None:
+    """Show the ingest job as writing measurements. A failure must not stop the write."""
+    try:
+        set_stage(job_id, STAGE_WRITING)
+    except Exception:
+        logger.warning(
+            "Could not record the stage of ingest job %s", job_id, exc_info=True
+        )
+
+
 def _migrate_proc_observations(
     cur, conn, buffer, submission_id, referencetrack_included, timings=None
 ):
@@ -565,9 +611,33 @@ def _migrate_proc_observations(
             int(submission_id),
             ref,
         )
-        cur.execute(
-            "CALL sp_execute_data_migration(%s, %s);", (int(submission_id), ref)
-        )
+        stop_beat = threading.Event()
+        job_id = current_job_id.get()
+        beater = None
+        if job_id:
+            _mark_writing(job_id)
+            beater = threading.Thread(
+                target=heartbeat_while,
+                args=(
+                    stop_beat,
+                    call_start,
+                    job_id,
+                    heartbeat_seconds(),
+                    lambda: _mark_writing(job_id),
+                ),
+                name="ingest-heartbeat",
+                daemon=True,
+            )
+            beater.start()
+        try:
+            cur.execute(
+                "CALL sp_execute_data_migration(%s, %s);",
+                (int(submission_id), ref),
+            )
+        finally:
+            stop_beat.set()
+            if beater is not None:
+                beater.join(timeout=1)
     except (Exception, psycopg2.DatabaseError):
         logger.exception("Error migrating proc_observations")
         conn.rollback()
@@ -600,11 +670,26 @@ def _compute_submission_hashes(submission_filename, file_content, metadata_conte
 
 
 def process_etuff_file(
-    file, version=None, notes=None, count_request=True, submission_name=None
+    file,
+    version=None,
+    notes=None,
+    count_request=True,
+    submission_name=None,
+    stats=None,
 ):
+    """Ingest one eTUFF file.
+
+    stats, when a dict, receives outcome (duplicate, metadata_only or ingested)
+    and skipped_lines once the file is done.
+    """
     start = time.perf_counter()
     source_path = file
     submission_filename = submission_name or os.path.basename(source_path)
+
+    def _outcome(outcome, skipped_lines=0):
+        if stats is not None:
+            stats["outcome"] = outcome
+            stats["skipped_lines"] = skipped_lines
 
     def _record(outcome, duration):
         if count_request:
@@ -668,6 +753,7 @@ def process_etuff_file(
                             entire_file_hash,
                         )
                         _record("duplicate", round(time.perf_counter() - start, 2))
+                        _outcome("duplicate")
                         return 1
 
                     dataset_id = get_dataset_id(
@@ -715,6 +801,7 @@ def process_etuff_file(
                             metadata_hash,
                         )
                         _record("metadata_only", round(time.perf_counter() - start, 2))
+                        _outcome("metadata_only")
                         return 1
 
                     proc_obs, len_proc_obs = _build_proc_observations(
@@ -762,6 +849,7 @@ def process_etuff_file(
     finish = time.perf_counter()
     elapsed = round(finish - start, 2)
     _record("success", elapsed)
+    _outcome("ingested", timings.get("skipped_lines", 0))
     logger.info(
         "Data file %s successfully ingested into Tagbase DB. Total time: %s second(s)",
         submission_filename,

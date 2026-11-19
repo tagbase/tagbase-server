@@ -184,6 +184,53 @@ def test_process_etuff_file_logs_phase_and_step_timings(clean_db, caplog):
     by_step = {s["step"]: s for s in steps}
     assert by_step["time_series"]["rows"] == 1
     assert by_step["position"]["rows"] == 1
+    with clean_db.cursor() as cur:
+        cur.execute("SELECT lat, lon, lat_err, lon_err FROM data_position")
+        assert cur.fetchall() == [("-34.142", "22.2", None, None)]
+
+
+def _etuff_with_rows(tmp_path, extra_rows=(), drop_variable=None):
+    """Write the minimal fixture to tmp_path with rows added or a variable removed."""
+    lines = ETUFF_FIXTURE.read_text().splitlines()
+    header = [line for line in lines if not line.startswith("2012-")]
+    rows = [line for line in lines if line.startswith("2012-")]
+    if drop_variable is not None:
+        rows = [line for line in rows if f",{drop_variable}," not in line]
+    path = tmp_path / "edited-etuff.txt"
+    path.write_text("\n".join(header + rows + list(extra_rows)) + "\n")
+    return str(path)
+
+
+def test_position_without_latitude_aborts_the_submission(clean_db, tmp_path):
+    path = _etuff_with_rows(tmp_path, drop_variable="latitude")
+    # count_request=True: a failed migration is reported as 1, not raised.
+    assert pu.process_etuff_file(path, version="1") == 1
+    with clean_db.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM data_position")
+        assert cur.fetchone()[0] == 0
+
+
+def test_error_only_timestamp_stays_in_proc_observations(clean_db, tmp_path):
+    path = _etuff_with_rows(
+        tmp_path,
+        extra_rows=[
+            "2012-03-16 18:31:39,5,0.5,longitudeError,degree",
+            "2012-03-16 18:31:39,6,0.3,latitudeError,degree",
+            "2012-03-16 18:32:39,7,1.5,longitudeError,degree",
+        ],
+    )
+    assert pu.process_etuff_file(path, version="1") is None
+    with clean_db.cursor() as cur:
+        cur.execute("SELECT lat, lon, lat_err, lon_err FROM data_position")
+        assert cur.fetchall() == [("-34.142", "22.2", "0.3", "0.5")]
+        cur.execute("""
+            SELECT o.variable_name, p.variable_value
+            FROM proc_observations p
+            JOIN observation_types o USING (variable_id)
+            WHERE p.submission_id = (SELECT MAX(submission_id) FROM submission)
+              AND o.variable_name IN ('longitudeError', 'latitudeError')
+            """)
+        assert cur.fetchall() == [("longitudeError", "1.5")]
 
 
 def test_process_etuff_file_ingests_and_skips_duplicate(clean_db):
