@@ -31,6 +31,10 @@ SCRIPT = Path(__file__).with_name("upload_page_sanity.mjs")
 CHROME_FLAGS = [
     "--headless=new",
     "--disable-gpu",
+    # Ubuntu 24.04 runners block the user namespaces Chrome's sandbox needs,
+    # so the browser stays up and never writes DevToolsActivePort.
+    "--no-sandbox",
+    "--disable-dev-shm-usage",
     "--ignore-certificate-errors",
     "--no-first-run",
     "--no-default-browser-check",
@@ -80,6 +84,7 @@ def _find_chrome():
 
 
 def _start_chrome(chrome, profile, log_path):
+    profile.mkdir(parents=True, exist_ok=True)
     with open(log_path, "w", encoding="utf-8") as log:
         proc = subprocess.Popen(
             [chrome, *CHROME_FLAGS, f"--user-data-dir={profile}", "about:blank"],
@@ -87,7 +92,7 @@ def _start_chrome(chrome, profile, log_path):
             stderr=subprocess.STDOUT,
         )
     port_file = profile / "DevToolsActivePort"
-    deadline = time.monotonic() + 10
+    deadline = time.monotonic() + 30
     while time.monotonic() < deadline:
         if port_file.exists() and port_file.stat().st_size > 0:
             return proc, port_file.read_text(encoding="utf-8").splitlines()[0]
@@ -96,8 +101,12 @@ def _start_chrome(chrome, profile, log_path):
                 f"Chrome exited before DevTools was ready:\n{log_path.read_text()}"
             )
         time.sleep(0.2)
+    still_running = proc.poll() is None
     proc.kill()
-    raise AssertionError(f"Chrome DevTools port was not ready:\n{log_path.read_text()}")
+    raise AssertionError(
+        f"Chrome DevTools port was not ready (running={still_running}):\n"
+        f"{log_path.read_text()}"
+    )
 
 
 @pytest.mark.skipif(
