@@ -3,6 +3,9 @@
   "extends": ["config:best-practices", ":separateMultipleMajorReleases"],
   "timezone": "America/Los_Angeles",
   "schedule": ["before 9am on Monday"],
+  "vulnerabilityAlerts": {
+    "enabled": false
+  },
   "prConcurrentLimit": 5,
   "prHourlyLimit": 2,
   "labels": ["dependencies"],
