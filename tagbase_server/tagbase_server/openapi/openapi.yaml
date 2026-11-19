@@ -609,7 +609,7 @@ components:
           maxLength: 1000
           pattern: ^(?!\s*$).+$
         summary:
-          $ref: "#/components/schemas/IngestJobSummary"
+          $ref: "#/components/schemas/IngestTotals"
         created_at:
           description: When the job was accepted, UTC to the millisecond
           type: string
@@ -624,7 +624,7 @@ components:
           maxLength: 64
       title: IngestJob
       type: object
-    IngestJobSummary:
+    IngestTotals:
       description: Totals for a finished ingest job
       type: object
       properties:
