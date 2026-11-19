@@ -20,6 +20,18 @@ _Avoid_: MIME type, content-type (for this parameter)
 A recorded attempt to ingest a specific eTUFF source for a tag/dataset, including hashes used for duplicate detection.
 _Avoid_: upload job, ingest request (when referring to the persisted row)
 
+**Ingest job**:
+One accepted upload (a single file or an archive) queued in `ingest_job` and run by the ingest worker. A job produces one Submission per eTUFF member it loads.
+_Avoid_: upload job, task
+
+**Member**:
+One eTUFF file inside an ingest job. A single-file job has one member; an archive has one per eTUFF file it contains.
+_Avoid_: entry, part
+
+**Job log line**:
+A worker log line tagged with `job_id=<uuid>`, shown on demand in a Grafana panel for that job. It is telemetry, not a domain observation. The job API does not read it; job status comes from the `ingest_job` row.
+_Avoid_: event, observation
+
 ## Ops telemetry (not domain observations)
 
 These terms describe runtime observability. They must not be confused with eTUFF **observations** (tag measurement rows).

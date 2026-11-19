@@ -1,22 +1,27 @@
 """Queued ingest jobs.
 
 A request stores the upload and inserts one row. The ingest process claims
-the oldest queued row and updates it until the job is terminal.
+the oldest queued row and updates it until the job is terminal. The row holds
+what the upload page shows: the stage, the current member, and the summary.
+Log lines stay in Loki and are read through Grafana.
 """
 
 from __future__ import annotations
 
 import os
 import uuid
+from datetime import datetime
 from typing import Any
 
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import Json, RealDictCursor
 
 from tagbase_server.utils.db_utils import connect
 
 RESTART_ERROR = "restarted before ingest finished"
 MISSING_FILE_ERROR = "upload file missing after restart"
 DEFAULT_RETENTION_DAYS = 30
+STAGE_READING = "Reading the file"
+STAGE_WRITING = "Writing measurements"
 
 _CLAIM_SQL = """
 UPDATE ingest_job
@@ -30,6 +35,22 @@ WHERE id = (
     LIMIT 1
 )
 RETURNING *
+"""
+
+# Jobs ahead of a queued one, in _CLAIM_SQL order. NULL unless queued.
+_FETCH_SQL = """
+SELECT j.*,
+    CASE WHEN j.status = 'queued' THEN (
+        SELECT count(*)
+        FROM ingest_job q
+        WHERE q.status = 'running'
+            OR (
+                q.status = 'queued'
+                AND (q.created_at, q.updated_at) < (j.created_at, j.updated_at)
+            )
+    ) END AS queue_position
+FROM ingest_job j
+WHERE j.id = %s
 """
 
 
@@ -54,6 +75,13 @@ def stale_failures(jobs: list[dict[str, Any]], path_exists) -> list[tuple[str, s
     return failed
 
 
+def _iso(value: Any) -> str:
+    """Datetimes leave the API as UTC ISO 8601 to the millisecond."""
+    if isinstance(value, datetime):
+        return value.isoformat(timespec="milliseconds")
+    return str(value)
+
+
 def public_job(row: dict[str, Any]) -> dict[str, Any]:
     job: dict[str, Any] = {
         "id": str(row["id"]),
@@ -64,6 +92,18 @@ def public_job(row: dict[str, Any]) -> dict[str, Any]:
         job["error"] = row["error"]
     if row["files_total"] is not None:
         job["files_total"] = row["files_total"]
+    if row["status"] == "queued" and row.get("queue_position") is not None:
+        job["queue_position"] = int(row["queue_position"])
+    if row.get("stage"):
+        job["stage"] = row["stage"]
+    if row.get("current_member"):
+        job["current_member"] = row["current_member"]
+    if row.get("summary") is not None:
+        job["summary"] = row["summary"]
+    if row.get("created_at") is not None:
+        job["created_at"] = _iso(row["created_at"])
+    if row.get("updated_at") is not None:
+        job["updated_at"] = _iso(row["updated_at"])
     return job
 
 
@@ -91,7 +131,7 @@ def enqueue_job(
 def fetch_job(job_id: str) -> dict[str, Any] | None:
     with _connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT * FROM ingest_job WHERE id = %s", (job_id,))
+            cur.execute(_FETCH_SQL, (job_id,))
             row = cur.fetchone()
         conn.commit()
     if row is None:
@@ -167,16 +207,43 @@ def set_progress(job_id: str, *, files_total: int, files_done: int) -> None:
         conn.commit()
 
 
-def finish_job(job_id: str, *, status: str, error: str | None) -> None:
+def set_stage(job_id: str, stage: str, member: str | None = None) -> None:
+    """Record what a running job is doing. A member name replaces the current one.
+
+    Only running rows change, so a late heartbeat cannot rewrite a finished job.
+    """
     with _connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 UPDATE ingest_job
-                SET status = %s, error = %s, updated_at = now()
+                SET stage = %s,
+                    current_member = COALESCE(%s, current_member),
+                    updated_at = now()
+                WHERE id = %s AND status = 'running'
+                """,
+                (stage, member, job_id),
+            )
+        conn.commit()
+
+
+def finish_job(
+    job_id: str,
+    *,
+    status: str,
+    error: str | None,
+    summary: dict[str, Any] | None = None,
+) -> None:
+    with _connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE ingest_job
+                SET status = %s, error = %s, summary = %s,
+                    stage = NULL, current_member = NULL, updated_at = now()
                 WHERE id = %s
                 """,
-                (status, error, job_id),
+                (status, error, Json(summary) if summary is not None else None, job_id),
             )
         conn.commit()
 

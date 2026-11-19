@@ -10,16 +10,19 @@ Developers who change code should clone the git repository and use `docker compo
 
 The stack is reached only through **nginx** (HTTPS). Grafana, Alloy, Prometheus, Loki, Tempo, the API, and pgAdmin are not published as extra host ports in the operator install.
 
-| What             | URL / port                                                             |
-| ---------------- | ---------------------------------------------------------------------- |
-| Landing          | [https://localhost/](https://localhost/)                               |
-| OpenAPI UI       | [https://localhost/docs](https://localhost/docs)                       |
-| REST API (0.x)   | [https://localhost/tagbase/api/v0](https://localhost/tagbase/api/v0)   |
-| pgAdmin          | [https://localhost/pgadmin4/](https://localhost/pgadmin4/)             |
-| Grafana          | [https://localhost/grafana/](https://localhost/grafana/)               |
-| Alloy            | [https://localhost/alloy/](https://localhost/alloy/)                   |
-| Prometheus       | [https://localhost/prometheus/](https://localhost/prometheus/)         |
-| Loki / Tempo UIs | [https://localhost/grafana/explore](https://localhost/grafana/explore) |
+The landing page links to each of these.
+
+| What            | URL / port                                                                   |
+| --------------- | ---------------------------------------------------------------------------- |
+| Landing         | [https://localhost/](https://localhost/)                                     |
+| Upload          | [https://localhost/upload.html](https://localhost/upload.html)               |
+| Interactive API | [https://localhost/tagbase/api/v0/ui/](https://localhost/tagbase/api/v0/ui/) |
+| REST API (0.x)  | [https://localhost/tagbase/api/v0](https://localhost/tagbase/api/v0)         |
+| pgAdmin         | [https://localhost/pgadmin4/](https://localhost/pgadmin4/)                   |
+| Grafana         | [https://localhost/grafana/](https://localhost/grafana/)                     |
+| Alloy           | [https://localhost/alloy/](https://localhost/alloy/)                         |
+| Logs            | Landing page. Grafana Explore opens Loki.                                    |
+| Traces          | Landing page. Grafana Explore opens Tempo.                                   |
 
 HTTP **80** redirects to HTTPS **443** and serves Let’s Encrypt HTTP-01 if you enable that profile. Nothing listens on port **81**.
 
@@ -139,7 +142,7 @@ docker compose -f oci://ghcr.io/tagbase/tagbase-stack:vX.Y.Z down -v
 
 All browser routes need **nginx basic auth** (`NGINX_USER` / `NGINX_PASS`). Grafana and pgAdmin are anonymous **behind** that gateway; do not expose them on the host.
 
-**OpenAPI** is the ingest contract (GET/POST, `file` / `ftp` / `http` / `https`, `.txt` / archives). Start at [https://localhost/docs](https://localhost/docs).
+**Interactive API** is the ingest contract (GET/POST, `file` / `ftp` / `http` / `https`, `.txt` / archives). Start at [https://localhost/tagbase/api/v0/ui/](https://localhost/tagbase/api/v0/ui/).
 
 **pgAdmin:** [https://localhost/pgadmin4/](https://localhost/pgadmin4/) — nginx auth only (no second email/password prompt). The saved `tagbase` connection is already registered:
 

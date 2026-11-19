@@ -10,6 +10,11 @@
       integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
       crossorigin="anonymous"
     />
+    <link
+      href="dropzone.css"
+      rel="stylesheet"
+      integrity="sha384-asD8pW//1IYJd67ZZn/Eyo31U/YtixrhsNyn90jnZTEIgTpYfE2mkwGYVWHwg2vD"
+    />
     <link href="upload.css" rel="stylesheet" />
   </head>
   <body class="bg-body-tertiary">
@@ -22,63 +27,33 @@
         them until the server finishes.
       </p>
       <form id="upload-form" class="vstack gap-3">
-        <label
-          for="file"
-          id="drop-zone"
-          class="upload-drop-zone d-block rounded p-4 text-center"
+        <div id="ingest-details" class="vstack gap-3">
+          <div>
+            <label for="version" class="form-label"
+              >Version
+              <span class="text-body-secondary">(optional)</span></label
+            ><input id="version" class="form-control" type="text" />
+          </div>
+          <div>
+            <label for="notes" class="form-label"
+              >Notes <span class="text-body-secondary">(optional)</span></label
+            ><textarea id="notes" class="form-control" rows="4"></textarea>
+          </div>
+        </div>
+        <div id="drop-zone" class="dropzone">
+          <div class="dz-default dz-message">
+            <button class="dz-button" type="button">
+              Drop files here to upload
+            </button>
+          </div>
+        </div>
+        <button
+          id="abort"
+          class="btn btn-outline-secondary align-self-start d-none"
+          type="button"
         >
-          <span class="d-block fw-semibold">Drop files here</span>
-          <span class="d-block text-body-secondary small"
-            >or click to browse</span
-          >
-          <span
-            id="file-name"
-            class="d-block mt-2 small text-primary fw-medium"
-          ></span>
-          <input
-            id="file"
-            type="file"
-            multiple
-            required
-            accept=".txt,.zip,.tar.gz,.tgz"
-          />
-        </label>
-        <div>
-          <label for="version" class="form-label"
-            >Version <span class="text-body-secondary">(optional)</span></label
-          ><input id="version" class="form-control" type="text" />
-        </div>
-        <div>
-          <label for="notes" class="form-label"
-            >Notes <span class="text-body-secondary">(optional)</span></label
-          ><textarea id="notes" class="form-control" rows="4"></textarea>
-        </div>
-        <div class="d-flex gap-2">
-          <button
-            id="submit"
-            class="btn btn-primary align-self-start"
-            type="submit"
-          >
-            Upload
-          </button>
-          <button
-            id="abort"
-            class="btn btn-outline-secondary d-none"
-            type="button"
-          >
-            Abort upload
-          </button>
-          <button
-            id="stop-monitor"
-            class="btn btn-outline-secondary d-none"
-            type="button"
-          >
-            Stop monitoring
-          </button>
-        </div>
-        <div id="progress-wrap" class="progress d-none">
-          <div id="progress" class="progress-bar" role="progressbar"></div>
-        </div>
+          Abort upload
+        </button>
       </form>
       <div
         id="status"
@@ -86,7 +61,13 @@
         role="status"
         aria-live="polite"
       ></div>
+      <div id="jobs" class="vstack gap-3"></div>
     </main>
+    <script
+      src="dropzone-min.js"
+      integrity="sha384-wHTterC8uaPhGVKg8kmSlqcmI8CCFkOI+Mn51O3udobTBX0vQLs6a18vJqh0AnW3"
+      defer
+    ></script>
     <script src="upload.js" defer></script>
   </body>
 </html>
