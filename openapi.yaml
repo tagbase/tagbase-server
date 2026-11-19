@@ -601,43 +601,67 @@ components:
           type: string
           minLength: 1
           maxLength: 200
+          pattern: ^(?!\s*$).+$
         current_member:
           description: Name of the eTUFF member being ingested. Present while running.
           type: string
           minLength: 1
           maxLength: 1000
+          pattern: ^(?!\s*$).+$
         summary:
-          description: Totals for a finished job. Present once the job succeeds.
-          type: object
-          properties:
-            files:
-              type: integer
-              minimum: 0
-            loaded:
-              type: integer
-              minimum: 0
-            metadata_only:
-              type: integer
-              minimum: 0
-            duplicates:
-              type: integer
-              minimum: 0
-            skipped_lines:
-              type: integer
-              minimum: 0
-            seconds:
-              type: number
-              minimum: 0
+          $ref: "#/components/schemas/IngestJobSummary"
         created_at:
           description: When the job was accepted, UTC to the millisecond
           type: string
           format: date-time
+          minLength: 20
+          maxLength: 64
         updated_at:
           description: When the job row last changed, UTC to the millisecond
           type: string
           format: date-time
+          minLength: 20
+          maxLength: 64
       title: IngestJob
       type: object
+    IngestJobSummary:
+      description: Totals for a finished ingest job
+      type: object
+      properties:
+        files:
+          description: eTUFF members in the upload
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 10000
+        loaded:
+          description: Members written as new submissions
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 10000
+        metadata_only:
+          description: Members stored without measurement rows
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 10000
+        duplicates:
+          description: Members already present and not written again
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 10000
+        skipped_lines:
+          description: Input lines the parser did not turn into rows
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 2147483647
+        seconds:
+          description: Seconds spent ingesting the upload
+          type: number
+          minimum: 0
     Metadata:
       description: Contains the ingested tag metadata consistent with the eTUFF specification
       example:
