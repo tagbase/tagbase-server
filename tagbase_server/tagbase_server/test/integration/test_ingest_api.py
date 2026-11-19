@@ -190,8 +190,7 @@ def test_post_ingest_job_zip_reaches_succeeded(client, clean_db, etuff_zip_bytes
     assert listed["tags"][0]["filename"] == "minimal-etuff.txt"
 
 
-def test_queued_jobs_report_how_many_are_ahead(clean_db, monkeypatch):
-    monkeypatch.setenv("LOKI_URL", "http://127.0.0.1:9")
+def test_queued_jobs_report_how_many_are_ahead(clean_db):
     first = enqueue_job(
         source_path="/tmp/a.txt", filename="a.txt", version=None, notes=None
     )

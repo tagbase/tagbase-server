@@ -5,13 +5,16 @@ from __future__ import annotations
 import logging
 import os
 import time
+from typing import Any
 
 from tagbase_server.archives import PreparedIngest, materialize
 from tagbase_server.ingest_jobs import (
+    STAGE_READING,
     claim_next_job,
     finish_job,
     recover_stale_jobs,
     set_progress,
+    set_stage,
 )
 from tagbase_server.ingest_log import current_job_id, install_job_tagging
 from tagbase_server.utils.processing_utils import process_etuff_file
@@ -22,18 +25,21 @@ install_job_tagging()
 _POLL_SECONDS = 3
 
 
-def run_job(job: dict) -> None:
-    """Ingest every member. The first error fails the job and stops the queue."""
+def run_job(job: dict) -> dict[str, Any]:
+    """Ingest every member and return the job summary.
+
+    The first error fails the job and stops the queue.
+    """
     job_id = str(job["id"])
     token = current_job_id.set(job_id)
     try:
-        _run_job(job, job_id)
+        return _run_job(job, job_id)
     finally:
         current_job_id.reset(token)
 
 
-def summary_line(files: int, outcomes: list[dict], seconds: float) -> str:
-    """The job's last log line. The upload page parses its key=value pairs."""
+def summary_stats(files: int, outcomes: list[dict], seconds: float) -> dict[str, Any]:
+    """Totals for a finished job. The job row keeps them for the upload page."""
     counts = {"ingested": 0, "metadata_only": 0, "duplicate": 0}
     skipped = 0
     for stats in outcomes:
@@ -41,14 +47,30 @@ def summary_line(files: int, outcomes: list[dict], seconds: float) -> str:
         if outcome in counts:
             counts[outcome] += 1
         skipped += int(stats.get("skipped_lines") or 0)
+    return {
+        "files": files,
+        "loaded": counts["ingested"],
+        "metadata_only": counts["metadata_only"],
+        "duplicates": counts["duplicate"],
+        "skipped_lines": skipped,
+        "seconds": round(seconds, 2),
+    }
+
+
+def _format_summary(stats: dict[str, Any]) -> str:
     return (
-        f"ingest.summary files={files} loaded={counts['ingested']} "
-        f"metadata_only={counts['metadata_only']} duplicates={counts['duplicate']} "
-        f"skipped_lines={skipped} seconds={round(seconds, 2)}"
+        f"ingest.summary files={stats['files']} loaded={stats['loaded']} "
+        f"metadata_only={stats['metadata_only']} duplicates={stats['duplicates']} "
+        f"skipped_lines={stats['skipped_lines']} seconds={stats['seconds']}"
     )
 
 
-def _run_job(job: dict, job_id: str) -> None:
+def summary_line(files: int, outcomes: list[dict], seconds: float) -> str:
+    """The job's last log line, which the Grafana job-log panel shows."""
+    return _format_summary(summary_stats(files, outcomes, seconds))
+
+
+def _run_job(job: dict, job_id: str) -> dict[str, Any]:
     started = time.perf_counter()
     logical = job.get("filename") or os.path.basename(job["source_path"])
     prepared = materialize(job["source_path"], logical)
@@ -68,6 +90,7 @@ def _run_job(job: dict, job_id: str) -> None:
                 len(members),
                 name,
             )
+        set_stage(job_id, STAGE_READING, member=name)
         stats: dict = {}
         process_etuff_file(
             member,
@@ -79,9 +102,9 @@ def _run_job(job: dict, job_id: str) -> None:
         )
         outcomes.append(stats)
         set_progress(job_id, files_total=len(members), files_done=done)
-    logger.info(
-        "%s", summary_line(len(members), outcomes, time.perf_counter() - started)
-    )
+    summary = summary_stats(len(members), outcomes, time.perf_counter() - started)
+    logger.info("%s", _format_summary(summary))
+    return summary
 
 
 def _discard_job_files(job: dict) -> None:
@@ -111,12 +134,12 @@ def process_next() -> bool:
     job_id = str(job["id"])
     token = current_job_id.set(job_id)
     try:
-        run_job(job)
+        summary = run_job(job)
     except Exception as exc:
         logger.exception("Ingest job %s failed", job_id)
         finish_job(job_id, status="failed", error=str(exc))
     else:
-        finish_job(job_id, status="succeeded", error=None)
+        finish_job(job_id, status="succeeded", error=None, summary=summary)
     finally:
         _discard_job_files(job)
         current_job_id.reset(token)

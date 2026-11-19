@@ -29,7 +29,7 @@ One eTUFF file inside an ingest job. A single-file job has one member; an archiv
 _Avoid_: entry, part
 
 **Job log line**:
-A worker log line tagged with `job_id=<uuid>`, read back from Loki for the job API's `lines`. It is telemetry, not a domain observation.
+A worker log line tagged with `job_id=<uuid>`, shown on demand in a Grafana panel for that job. It is telemetry, not a domain observation. The job API does not read it; job status comes from the `ingest_job` row.
 _Avoid_: event, observation
 
 ## Ops telemetry (not domain observations)

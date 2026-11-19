@@ -12,6 +12,7 @@ import psycopg2.extras
 from opentelemetry import trace
 from tzlocal import get_localzone
 
+from tagbase_server.ingest_jobs import STAGE_WRITING, set_stage
 from tagbase_server.ingest_log import (
     current_job_id,
     heartbeat_seconds,
@@ -402,6 +403,58 @@ def update_submission_metadata(
     logger.info("Updated metadata attributes: %s", metadata)
 
 
+_INSERT_OBSERVATION_TYPE = """
+    INSERT INTO observation_types (variable_name, variable_units)
+    VALUES (%s, %s)
+    ON CONFLICT (variable_name) DO UPDATE
+    SET variable_units = EXCLUDED.variable_units
+    RETURNING variable_id
+"""
+
+# The catalog load inserts explicit ids, which does not move this sequence.
+# The same statement is in db-migrate and the catalog sync.
+_ADVANCE_OBSERVATION_TYPE_SEQ = """
+    SELECT setval(
+        pg_get_serial_sequence('public.observation_types', 'variable_id'),
+        COALESCE(MAX(variable_id), 1),
+        COUNT(*) > 0
+    )
+    FROM public.observation_types
+"""
+
+
+def _insert_observation_type(cur, variable_name, units):
+    """Insert one observation type. A stale variable_id sequence is moved past the loaded ids.
+
+    The savepoint keeps a primary-key collision from aborting the submission
+    transaction that is already open.
+    """
+    cur.execute("SAVEPOINT resolve_variable")
+    try:
+        cur.execute(_INSERT_OBSERVATION_TYPE, (variable_name, units))
+        variable_id = cur.fetchone()[0]
+    except psycopg2.errors.UniqueViolation:
+        cur.execute("ROLLBACK TO SAVEPOINT resolve_variable")
+        cur.execute(
+            "SELECT variable_id FROM observation_types WHERE variable_name = %s",
+            (variable_name,),
+        )
+        row = cur.fetchone()
+        if row:
+            variable_id = row[0]
+        else:
+            logger.warning(
+                "observation_types sequence was behind the loaded ids; "
+                "advanced it and inserted '%s'",
+                variable_name,
+            )
+            cur.execute(_ADVANCE_OBSERVATION_TYPE_SEQ)
+            cur.execute(_INSERT_OBSERVATION_TYPE, (variable_name, units))
+            variable_id = cur.fetchone()[0]
+    cur.execute("RELEASE SAVEPOINT resolve_variable")
+    return variable_id
+
+
 def _resolve_variable_id(cur, conn, variable_name, tokens, variable_lookup):
     if variable_name in variable_lookup:
         return variable_lookup[variable_name]
@@ -414,36 +467,9 @@ def _resolve_variable_id(cur, conn, variable_name, tokens, variable_lookup):
     if row:
         variable_id = row[0]
     else:
-        try:
-            logger.debug(
-                "variable_name=%s\ttokens=%s",
-                variable_name,
-                tokens,
-            )
-            cur.execute(
-                "INSERT INTO observation_types (variable_name, variable_units) "
-                "VALUES (%s, %s) "
-                "ON CONFLICT (variable_name) DO UPDATE "
-                "SET variable_units = EXCLUDED.variable_units "
-                "RETURNING variable_id",
-                (variable_name, tokens[4].strip()),
-            )
-            variable_id = cur.fetchone()[0]
-        except (
-            Exception,
-            psycopg2.DatabaseError,
-        ):
-            logger.exception(
-                "variable_id '%s' already exists in 'observation_types'. tokens: '%s'",
-                variable_name,
-                tokens,
-            )
-            conn.rollback()
-            cur.execute(
-                "SELECT variable_id FROM observation_types WHERE variable_name = %s",
-                (variable_name,),
-            )
-            variable_id = cur.fetchone()[0]
+        logger.debug("variable_name=%s\ttokens=%s", variable_name, tokens)
+        units = tokens[4].strip() if len(tokens) > 4 else None
+        variable_id = _insert_observation_type(cur, variable_name, units)
     variable_lookup[variable_name] = variable_id
     return variable_id
 
@@ -551,6 +577,16 @@ def _dataframe_to_buffer(proc_obs, len_proc_obs, timings=None):
     return buffer
 
 
+def _mark_writing(job_id: str) -> None:
+    """Show the ingest job as writing measurements. A failure must not stop the write."""
+    try:
+        set_stage(job_id, STAGE_WRITING)
+    except Exception:
+        logger.warning(
+            "Could not record the stage of ingest job %s", job_id, exc_info=True
+        )
+
+
 def _migrate_proc_observations(
     cur, conn, buffer, submission_id, referencetrack_included, timings=None
 ):
@@ -579,9 +615,16 @@ def _migrate_proc_observations(
         job_id = current_job_id.get()
         beater = None
         if job_id:
+            _mark_writing(job_id)
             beater = threading.Thread(
                 target=heartbeat_while,
-                args=(stop_beat, call_start, job_id, heartbeat_seconds()),
+                args=(
+                    stop_beat,
+                    call_start,
+                    job_id,
+                    heartbeat_seconds(),
+                    lambda: _mark_writing(job_id),
+                ),
                 name="ingest-heartbeat",
                 daemon=True,
             )

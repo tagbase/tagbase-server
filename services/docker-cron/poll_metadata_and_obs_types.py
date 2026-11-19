@@ -65,6 +65,19 @@ def pull_resource(connection=None, key=None, param=None):
                 cur.execute(
                     f"INSERT INTO {param} SELECT * FROM {tmp} ON CONFLICT DO NOTHING;"
                 )
+                # Explicit ids in the catalog do not move the sequence, so the
+                # next ingest insert would reuse variable_id 1.
+                if param == "observation_types":
+                    cur.execute("""
+                        SELECT setval(
+                            pg_get_serial_sequence(
+                                'public.observation_types', 'variable_id'
+                            ),
+                            COALESCE(MAX(variable_id), 1),
+                            COUNT(*) > 0
+                        )
+                        FROM public.observation_types
+                        """)
                 connection.commit()
             except (Exception, psycopg2.DatabaseError) as error:
                 print("Error writing data to table:", param, error)

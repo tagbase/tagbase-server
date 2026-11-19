@@ -2,6 +2,12 @@
   max-width: 42rem;
 }
 
+/* The form stays narrow. An open log uses the width of the window so a
+   line stays on one row instead of wrapping inside the form column. */
+.upload-container:has(.job-log-panel:not([hidden])) {
+  max-width: min(90rem, calc(100vw - 2rem));
+}
+
 #status {
   white-space: pre-wrap;
 }
@@ -146,7 +152,7 @@
   display: flex;
   flex-direction: column;
   grid-column: 3;
-  max-width: 16rem;
+  max-width: 24rem;
   padding: 0.35rem 0.7rem;
 }
 
@@ -175,17 +181,14 @@
   font-weight: 700;
 }
 
+/* The whole name stays visible. It wraps only at the breaks set in nameParts;
+   break-word splits a single token only if it is wider than the chip. */
 .job-member {
   font-size: 0.75rem;
   font-weight: 500;
-  overflow-wrap: anywhere;
+  max-width: 100%;
+  overflow-wrap: break-word;
   text-align: right;
-}
-
-.job-file-time {
-  font-size: 0.8rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
 }
 
 .job-count.is-advance {
@@ -217,10 +220,14 @@
   .job-member {
     text-align: left;
   }
+}
 
-  .job-file-time {
-    text-align: left;
-  }
+.job-log-actions {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin-top: 0.75rem;
 }
 
 .job-log-toggle {
@@ -228,7 +235,6 @@
   border: 0;
   color: var(--bs-primary);
   font-size: 0.875rem;
-  margin-top: 0.75rem;
   padding: 0;
 }
 
@@ -252,30 +258,30 @@
   margin-top: 0.5rem;
 }
 
-.job-log-mode {
+.job-log-open,
+.job-log-back {
+  display: inline-block;
+  margin-right: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.job-log-back {
   background: transparent;
+  border: 0;
+  color: var(--bs-primary);
+  padding: 0;
+}
+
+.job-log-back[hidden] {
+  display: none;
+}
+
+.job-log-frame {
   border: 1px solid var(--bs-border-color);
   border-radius: 0.4rem;
-  color: var(--bs-secondary-color);
-  font-size: 0.75rem;
-  margin-bottom: 0.4rem;
-  padding: 0.1rem 0.5rem;
-}
-
-.job-log-mode[aria-pressed="true"] {
-  background: var(--bs-secondary-bg);
-  color: var(--bs-body-color);
-}
-
-.job-log-panel pre {
-  background: var(--bs-tertiary-bg);
-  border-radius: 0.4rem;
-  font-size: 0.8rem;
-  margin: 0;
-  max-height: 14rem;
-  overflow: auto;
-  padding: 0.75rem;
-  white-space: pre;
+  display: block;
+  height: 24rem;
+  width: 100%;
 }
 
 @keyframes job-pulse {

@@ -1,19 +1,16 @@
 # coding: utf-8
 
-import json
 import logging
 import threading
 import time
 from datetime import datetime, timezone
-from email.message import Message
 from unittest.mock import MagicMock, patch
-from urllib.error import HTTPError
-from urllib.parse import parse_qs, urlparse
-from urllib.request import Request
 
 import psycopg2
 import pytest
+from psycopg2.extras import Json
 
+import tagbase_server.ingest_jobs as jobs_module
 from tagbase_server.archives import PreparedIngest
 from tagbase_server.ingest_jobs import (
     _CLAIM_SQL,
@@ -21,11 +18,12 @@ from tagbase_server.ingest_jobs import (
     DEFAULT_RETENTION_DAYS,
     MISSING_FILE_ERROR,
     RESTART_ERROR,
-    LokiQueryError,
+    STAGE_READING,
+    STAGE_WRITING,
+    finish_job,
     public_job,
-    query_job_lines,
     retention_days,
-    select_job_lines,
+    set_stage,
     stale_failures,
 )
 from tagbase_server.ingest_log import HEARTBEAT_TEXT, current_job_id, heartbeat_while
@@ -35,14 +33,34 @@ from tagbase_server.ingest_worker import (
     process_next,
     run_job,
     summary_line,
+    summary_stats,
 )
 from tagbase_server.models.ingest_job import IngestJob
-from tagbase_server.models.ingest_job_log_line import IngestJobLogLine
 from tagbase_server.utils import processing_utils as pu
 from tagbase_server.utils.processing_utils import _migrate_proc_observations
 
 JOB_A = "11111111-1111-1111-1111-111111111111"
 JOB_B = "22222222-2222-2222-2222-222222222222"
+
+
+def _mock_connection(mock_connect):
+    conn = MagicMock()
+    mock_connect.return_value = conn
+    conn.__enter__.return_value = conn
+    conn.cursor.return_value.__enter__.return_value = MagicMock()
+    return conn
+
+
+def _job_row(**extra):
+    row = {
+        "id": JOB_A,
+        "status": "running",
+        "files_done": 0,
+        "error": None,
+        "files_total": 1,
+    }
+    row.update(extra)
+    return row
 
 
 def test_stale_failures_marks_running_and_missing_queued_files():
@@ -91,6 +109,7 @@ def test_run_job_stops_on_the_first_member_error():
         patch("tagbase_server.ingest_worker.materialize", return_value=prepared),
         patch("tagbase_server.ingest_worker.process_etuff_file", side_effect=_ingest),
         patch("tagbase_server.ingest_worker.set_progress") as progress,
+        patch("tagbase_server.ingest_worker.set_stage"),
         patch("tagbase_server.ingest_worker.finish_job") as finish,
     ):
         with pytest.raises(RuntimeError, match="bad member"):
@@ -161,158 +180,128 @@ def test_process_next_deletes_the_staged_file_after_success(tmp_path):
     source = tmp_path / "one.txt"
     source.write_text("etuff", encoding="utf-8")
     job = {"id": "job-3", "source_path": str(source), "filename": "one.txt"}
+    summary = {"files": 1, "loaded": 1, "metadata_only": 0, "duplicates": 0}
     claims = iter([job])
     with (
         patch(
             "tagbase_server.ingest_worker.claim_next_job",
             side_effect=lambda: next(claims, None),
         ),
-        patch("tagbase_server.ingest_worker.run_job"),
+        patch("tagbase_server.ingest_worker.run_job", return_value=summary),
         patch("tagbase_server.ingest_worker.finish_job") as finish,
     ):
         assert process_next() is True
-    finish.assert_called_once_with("job-3", status="succeeded", error=None)
+    finish.assert_called_once_with(
+        "job-3", status="succeeded", error=None, summary=summary
+    )
     assert not source.exists()
 
 
-def _loki_payload():
-    return {
-        "status": "success",
-        "data": {
-            "resultType": "streams",
-            "result": [
-                {
-                    "stream": {"service_name": "tagbase_server"},
-                    "values": [
-                        [
-                            "200",
-                            (
-                                "Built Pandas DF from 3 records. "
-                                f"Time elapsed: 1 second(s) job_id={JOB_A}"
-                            ),
-                            {"job_id": JOB_A},
-                        ],
-                        [
-                            "100",
-                            f"Processing etuff file: a.txt job_id={JOB_A}",
-                            {"job_id": JOB_A},
-                        ],
-                        [
-                            "300",
-                            f"Processing etuff file: b.txt job_id={JOB_B}",
-                            {"job_id": JOB_B},
-                        ],
-                        ["400", "gunicorn access line", {}],
-                    ],
-                }
-            ],
-        },
-    }
-
-
-class _LokiResponse:
-    def __init__(self, payload=None, raw=None):
-        self._raw = raw if raw is not None else json.dumps(payload).encode()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *_args):
-        return False
-
-    def read(self, size=-1):
-        if size is None or size < 0:
-            size = len(self._raw)
-        chunk, self._raw = self._raw[:size], self._raw[size:]
-        return chunk
-
-
-def _job_row(**extra):
-    row = {
-        "id": JOB_A,
-        "status": "running",
-        "files_done": 0,
-        "error": None,
-        "files_total": 1,
-    }
-    row.update(extra)
-    return row
-
-
-def test_public_job_returns_only_this_jobs_lines(monkeypatch):
-    seen = []
-
-    def fake_open(req, timeout=2):
-        assert isinstance(req, Request)
-        seen.append(req.full_url)
-        return _LokiResponse(_loki_payload())
-
-    monkeypatch.setattr("tagbase_server.ingest_jobs.urlopen", fake_open)
+def test_public_job_carries_the_stage_member_and_timestamps_from_the_row():
+    created = datetime(2026, 11, 8, 17, 0, 0, 123000, tzinfo=timezone.utc)
     job = public_job(
-        {
-            "id": JOB_A,
-            "status": "running",
-            "files_done": 0,
-            "error": None,
-            "files_total": 1,
-        }
+        _job_row(
+            stage="Reading the file",
+            current_member="b.txt",
+            created_at=created,
+            updated_at=created,
+        )
     )
 
-    assert job["log_available"] is True
-    assert [line["text"] for line in job["lines"]] == [
-        f"Processing etuff file: a.txt job_id={JOB_A}",
-        "Built Pandas DF from 3 records. Time elapsed: 1 second(s) " f"job_id={JOB_A}",
-    ]
-    assert all(JOB_B not in line["text"] for line in job["lines"])
-    assert job["lines"][0]["time"] == "1970-01-01T00:00:00.000+00:00"
-    assert JOB_A in seen[0]
-    assert JOB_B not in seen[0]
+    assert job["stage"] == "Reading the file"
+    assert job["current_member"] == "b.txt"
+    assert job["created_at"] == "2026-11-08T17:00:00.123+00:00"
+    assert job["updated_at"] == "2026-11-08T17:00:00.123+00:00"
 
 
-def test_line_time_is_utc_to_the_millisecond():
-    payload = {
-        "data": {
-            "result": [
-                {
-                    "values": [
-                        [
-                            "1794158668105532416",
-                            f"Processing etuff file: a.txt job_id={JOB_A}",
-                            {"job_id": JOB_A},
-                        ]
-                    ]
-                }
-            ]
-        }
+def test_public_job_returns_the_summary_once_finished_without_a_stage():
+    summary = {
+        "files": 2,
+        "loaded": 0,
+        "metadata_only": 0,
+        "duplicates": 2,
+        "skipped_lines": 3,
+        "seconds": 4.5,
     }
-
-    (line,) = select_job_lines(payload, JOB_A)
-    assert line["time"] == "2026-11-08T17:24:28.105+00:00"
-
-
-def test_public_job_reports_log_unavailable_when_loki_fails():
-    def fail(_job_id, _since):
-        raise LokiQueryError("down")
-
     job = public_job(
-        {
-            "id": JOB_A,
-            "status": "running",
-            "files_done": 0,
-            "error": None,
-            "files_total": 1,
-        },
-        line_source=fail,
+        _job_row(status="succeeded", stage=None, current_member=None, summary=summary)
     )
 
-    assert job["log_available"] is False
-    assert job["lines"] == []
-    assert job["status"] == "running"
+    assert job["summary"] == summary
+    assert "stage" not in job
+    assert "current_member" not in job
 
 
-def test_query_job_lines_rejects_a_non_uuid():
-    with pytest.raises(LokiQueryError):
-        query_job_lines("job-1")
+def test_the_job_api_no_longer_reads_loki():
+    assert not hasattr(jobs_module, "urlopen")
+    assert not hasattr(jobs_module, "query_job_lines")
+
+
+def test_queue_position_is_only_reported_while_queued():
+    queued = public_job(_job_row(status="queued", queue_position=3))
+    running = public_job(_job_row(status="running", queue_position=None))
+    stale = public_job(_job_row(status="succeeded", queue_position=2))
+
+    assert queued["queue_position"] == 3
+    assert "queue_position" not in running
+    assert "queue_position" not in stale
+
+
+def test_queue_position_counts_the_running_job_and_earlier_queued_jobs():
+    assert "q.status = 'running'" in _FETCH_SQL
+    assert "(q.created_at, q.updated_at) < (j.created_at, j.updated_at)" in _FETCH_SQL
+
+
+@patch("tagbase_server.ingest_jobs.connect")
+def test_set_stage_only_touches_a_running_job(mock_connect):
+    conn = _mock_connection(mock_connect)
+    cur = conn.cursor.return_value.__enter__.return_value
+
+    set_stage(JOB_A, STAGE_READING, member="b.txt")
+
+    sql, params = cur.execute.call_args.args
+    assert "AND status = 'running'" in sql
+    assert params == (STAGE_READING, "b.txt", JOB_A)
+    conn.commit.assert_called_once()
+
+
+@patch("tagbase_server.ingest_jobs.connect")
+def test_set_stage_without_a_member_keeps_the_current_one(mock_connect):
+    conn = _mock_connection(mock_connect)
+    cur = conn.cursor.return_value.__enter__.return_value
+
+    set_stage(JOB_A, STAGE_WRITING)
+
+    sql, params = cur.execute.call_args.args
+    assert "COALESCE(%s, current_member)" in sql
+    assert params == (STAGE_WRITING, None, JOB_A)
+
+
+@patch("tagbase_server.ingest_jobs.connect")
+def test_finish_job_stores_the_summary_and_clears_the_stage(mock_connect):
+    conn = _mock_connection(mock_connect)
+    cur = conn.cursor.return_value.__enter__.return_value
+    summary = {"files": 1, "loaded": 1, "metadata_only": 0, "duplicates": 0}
+
+    finish_job(JOB_A, status="succeeded", error=None, summary=summary)
+
+    sql, params = cur.execute.call_args.args
+    assert "stage = NULL" in sql
+    status, error, stored, job_id = params
+    assert (status, error, job_id) == ("succeeded", None, JOB_A)
+    assert isinstance(stored, Json)
+    assert stored.adapted == summary
+
+
+@patch("tagbase_server.ingest_jobs.connect")
+def test_finish_job_without_a_summary_stores_null(mock_connect):
+    conn = _mock_connection(mock_connect)
+    cur = conn.cursor.return_value.__enter__.return_value
+
+    finish_job(JOB_A, status="failed", error="boom")
+
+    _sql, params = cur.execute.call_args.args
+    assert params[2] is None
 
 
 def test_run_job_logs_file_counter_for_a_zip(caplog):
@@ -332,12 +321,41 @@ def test_run_job_logs_file_counter_for_a_zip(caplog):
         patch("tagbase_server.ingest_worker.materialize", return_value=prepared),
         patch("tagbase_server.ingest_worker.process_etuff_file"),
         patch("tagbase_server.ingest_worker.set_progress"),
+        patch("tagbase_server.ingest_worker.set_stage"),
     ):
         run_job(job)
 
     assert "ingest.file index=1 total=2 member=a.txt" in caplog.text
     assert "ingest.file index=2 total=2 member=b.txt" in caplog.text
     assert "job_id=job-1" in caplog.text
+
+
+def test_run_job_records_the_stage_of_each_member_and_returns_the_summary():
+    job = {
+        "id": JOB_A,
+        "source_path": "/tmp/archive.zip",
+        "version": None,
+        "notes": None,
+    }
+    prepared = PreparedIngest(
+        files=["/tmp/staged-a", "/tmp/staged-b"],
+        workspace=None,
+        names=["a.txt", "b.txt"],
+    )
+    with (
+        patch("tagbase_server.ingest_worker.materialize", return_value=prepared),
+        patch("tagbase_server.ingest_worker.process_etuff_file"),
+        patch("tagbase_server.ingest_worker.set_progress"),
+        patch("tagbase_server.ingest_worker.set_stage") as stage,
+    ):
+        summary = run_job(job)
+
+    assert [call.kwargs["member"] for call in stage.call_args_list] == [
+        "a.txt",
+        "b.txt",
+    ]
+    assert all(call.args[1] == STAGE_READING for call in stage.call_args_list)
+    assert summary["files"] == 2
 
 
 def test_run_job_omits_file_counter_for_one_file(caplog):
@@ -358,93 +376,11 @@ def test_run_job_omits_file_counter_for_one_file(caplog):
         patch("tagbase_server.ingest_worker.materialize", return_value=prepared),
         patch("tagbase_server.ingest_worker.process_etuff_file"),
         patch("tagbase_server.ingest_worker.set_progress"),
+        patch("tagbase_server.ingest_worker.set_stage"),
     ):
         run_job(job)
 
     assert "ingest.file" not in caplog.text
-
-
-def test_query_reads_the_most_recent_lines_since_the_job_was_created(monkeypatch):
-    seen = []
-
-    def fake_open(req, timeout=2):
-        seen.append(req.full_url)
-        return _LokiResponse(_loki_payload())
-
-    monkeypatch.setattr("tagbase_server.ingest_jobs.urlopen", fake_open)
-    created = datetime(2026, 11, 8, 17, 0, tzinfo=timezone.utc)
-    public_job(_job_row(created_at=created))
-
-    params = parse_qs(urlparse(seen[0]).query)
-    assert params["direction"] == ["backward"]
-    assert params["limit"] == ["500"]
-    assert params["start"] == [str(int(created.timestamp()) - 60)]
-    assert params["query"] == [f'{{service_name="tagbase_server"}} |= "job_id={JOB_A}"']
-
-
-def test_select_keeps_the_most_recent_500_oldest_first():
-    values = [[str(n), f"line {n} job_id={JOB_A}"] for n in range(600, 0, -1)]
-    payload = {"data": {"result": [{"values": values}]}}
-
-    lines = select_job_lines(payload, JOB_A)
-
-    assert len(lines) == 500
-    assert lines[0]["text"] == f"line 101 job_id={JOB_A}"
-    assert lines[-1]["text"] == f"line 600 job_id={JOB_A}"
-
-
-def _http_error(*_args, **_kwargs):
-    raise HTTPError("http://loki", 500, "boom", Message(), None)
-
-
-def _timeout(*_args, **_kwargs):
-    raise TimeoutError("timed out")
-
-
-@pytest.mark.parametrize(
-    "opener",
-    [
-        _http_error,
-        _timeout,
-        lambda *_a, **_k: _LokiResponse(raw=b"not json"),
-        lambda *_a, **_k: _LokiResponse(raw=b"\xff\xfe\xfa"),
-        lambda *_a, **_k: _LokiResponse(raw=b"[1, 2]"),
-        lambda *_a, **_k: _LokiResponse({"status": "error"}),
-        lambda *_a, **_k: _LokiResponse(
-            {
-                "status": "success",
-                "data": {"result": [{"values": [["soon", f"x job_id={JOB_A}"]]}]},
-            }
-        ),
-    ],
-    ids=[
-        "non-200",
-        "timeout",
-        "bad-json",
-        "bad-bytes",
-        "not-an-object",
-        "loki-error",
-        "bad-timestamp",
-    ],
-)
-def test_any_loki_failure_reports_log_unavailable(monkeypatch, opener):
-    monkeypatch.setattr("tagbase_server.ingest_jobs.urlopen", opener)
-
-    job = public_job(_job_row())
-
-    assert job["log_available"] is False
-    assert job["lines"] == []
-
-
-def test_loki_read_stops_at_its_time_budget(monkeypatch):
-    monkeypatch.setattr("tagbase_server.ingest_jobs._LOKI_TIMEOUT_SECONDS", -1)
-    monkeypatch.setattr(
-        "tagbase_server.ingest_jobs.urlopen",
-        lambda *_a, **_k: _LokiResponse(_loki_payload()),
-    )
-
-    with pytest.raises(LokiQueryError, match="time budget"):
-        query_job_lines(JOB_A)
 
 
 def test_heartbeat_logs_job_tagged_lines_until_stopped(caplog):
@@ -466,6 +402,21 @@ def test_heartbeat_logs_job_tagged_lines_until_stopped(caplog):
     assert current_job_id.get() is None
 
 
+def test_heartbeat_calls_on_beat_after_each_line():
+    beats = []
+    stop = threading.Event()
+    thread = threading.Thread(
+        target=heartbeat_while,
+        args=(stop, time.perf_counter(), JOB_A, 0.01, lambda: beats.append(1)),
+    )
+    thread.start()
+    time.sleep(0.1)
+    stop.set()
+    thread.join(timeout=1)
+
+    assert len(beats) >= 2
+
+
 def _heartbeats_alive():
     return [t for t in threading.enumerate() if t.name == "ingest-heartbeat"]
 
@@ -476,6 +427,10 @@ def test_heartbeat_runs_during_the_call_and_stops_after_it(
 ):
     monkeypatch.setenv("INGEST_HEARTBEAT_SECONDS", "0.01")
     caplog.set_level(logging.INFO, logger="tagbase_server.ingest_log")
+    stages = []
+    monkeypatch.setattr(
+        pu, "set_stage", lambda _job_id, stage, member=None: stages.append(stage)
+    )
     cur = MagicMock()
 
     def blocked_call(sql, _params=None):
@@ -495,8 +450,18 @@ def test_heartbeat_runs_during_the_call_and_stops_after_it(
     assert (result is False) is call_fails
     assert HEARTBEAT_TEXT in caplog.text
     assert f"job_id={JOB_A}" in caplog.text
+    assert stages and set(stages) == {STAGE_WRITING}
     time.sleep(0.05)
     assert _heartbeats_alive() == []
+
+
+def test_a_failed_stage_update_does_not_stop_the_write(monkeypatch):
+    def unreachable(*_args, **_kwargs):
+        raise psycopg2.OperationalError("db down")
+
+    monkeypatch.setattr(pu, "set_stage", unreachable)
+
+    pu._mark_writing(JOB_A)
 
 
 def test_tagging_covers_every_module_logger(caplog):
@@ -535,28 +500,10 @@ def test_a_bad_format_string_does_not_raise_into_ingest(caplog):
     assert f"job_id={JOB_A}" in caplog.text
 
 
-def test_job_lines_cap_at_500_in_the_model():
-    line = IngestJobLogLine()
-    line.time = datetime(2026, 11, 8, tzinfo=timezone.utc)
-    line.text = "Traceback (most recent call last):\n  File x"
-    job = IngestJob()
-    job.lines = [line] * 500
-    with pytest.raises(ValueError, match="500"):
-        job.lines = [line] * 501
-
-
 def test_job_filter_leaves_lines_alone_without_a_job(caplog):
     caplog.set_level(logging.INFO, logger="tagbase_server.ingest_worker")
     worker_logger.info("Processing etuff file: a.txt")
     assert "job_id=" not in caplog.text
-
-
-def _mock_connection(mock_connect):
-    conn = MagicMock()
-    mock_connect.return_value = conn
-    conn.__enter__.return_value = conn
-    conn.cursor.return_value.__enter__.return_value = MagicMock()
-    return conn
 
 
 @patch("tagbase_server.utils.processing_utils.detect_duplicate_file", return_value=True)
@@ -661,6 +608,7 @@ def test_run_job_logs_a_job_tagged_summary_last(caplog):
         patch("tagbase_server.ingest_worker.materialize", return_value=prepared),
         patch("tagbase_server.ingest_worker.process_etuff_file", side_effect=_ingest),
         patch("tagbase_server.ingest_worker.set_progress"),
+        patch("tagbase_server.ingest_worker.set_stage"),
     ):
         run_job(job)
 
@@ -672,6 +620,27 @@ def test_run_job_logs_a_job_tagged_summary_last(caplog):
     assert last.endswith(f"job_id={JOB_A}")
 
 
+def test_summary_stats_counts_each_outcome_and_the_skipped_lines():
+    stats = summary_stats(
+        3,
+        [
+            {"outcome": "ingested", "skipped_lines": 2},
+            {"outcome": "duplicate"},
+            {"outcome": "metadata_only"},
+        ],
+        4.5,
+    )
+
+    assert stats == {
+        "files": 3,
+        "loaded": 1,
+        "metadata_only": 1,
+        "duplicates": 1,
+        "skipped_lines": 2,
+        "seconds": 4.5,
+    }
+
+
 def test_summary_counts_nothing_for_unknown_outcomes():
     assert summary_line(1, [{}], 0.123) == (
         "ingest.summary files=1 loaded=0 metadata_only=0 duplicates=0 "
@@ -679,33 +648,16 @@ def test_summary_counts_nothing_for_unknown_outcomes():
     )
 
 
-def _no_lines(*_args):
-    return []
-
-
-def test_queue_position_is_only_reported_while_queued():
-    queued = public_job(
-        _job_row(status="queued", queue_position=3), line_source=_no_lines
-    )
-    running = public_job(
-        _job_row(status="running", queue_position=None), line_source=_no_lines
-    )
-    stale = public_job(
-        _job_row(status="succeeded", queue_position=2), line_source=_no_lines
-    )
-
-    assert queued["queue_position"] == 3
-    assert "queue_position" not in running
-    assert "queue_position" not in stale
-
-
-def test_queue_position_counts_the_running_job_and_earlier_queued_jobs():
-    assert "q.status = 'running'" in _FETCH_SQL
-    assert "(q.created_at, q.updated_at) < (j.created_at, j.updated_at)" in _FETCH_SQL
-
-
 def test_model_rejects_a_negative_queue_position():
     job = IngestJob()
     job.queue_position = 0
     with pytest.raises(ValueError, match="greater than or equal to `0`"):
         job.queue_position = -1
+
+
+def test_model_carries_the_stage_and_summary_fields():
+    job = IngestJob(stage=STAGE_WRITING, current_member="b.txt", summary={"files": 2})
+
+    assert job.stage == STAGE_WRITING
+    assert job.current_member == "b.txt"
+    assert job.summary == {"files": 2}

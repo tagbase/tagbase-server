@@ -8,7 +8,6 @@ from typing import Dict, List  # noqa: F401
 
 from tagbase_server import util
 from tagbase_server.models.base_model_ import Model
-from tagbase_server.models.ingest_job_log_line import IngestJobLogLine  # noqa: E501
 
 
 class IngestJob(Model):
@@ -25,8 +24,11 @@ class IngestJob(Model):
         files_total=None,
         files_done=None,
         queue_position=None,
-        lines=None,
-        log_available=None,
+        stage=None,
+        current_member=None,
+        summary=None,
+        created_at=None,
+        updated_at=None,
     ):  # noqa: E501
         """IngestJob - a model defined in OpenAPI
 
@@ -42,10 +44,16 @@ class IngestJob(Model):
         :type files_done: int
         :param queue_position: The queue_position of this IngestJob.  # noqa: E501
         :type queue_position: int
-        :param lines: The lines of this IngestJob.  # noqa: E501
-        :type lines: List[IngestJobLogLine]
-        :param log_available: The log_available of this IngestJob.  # noqa: E501
-        :type log_available: bool
+        :param stage: The stage of this IngestJob.  # noqa: E501
+        :type stage: str
+        :param current_member: The current_member of this IngestJob.  # noqa: E501
+        :type current_member: str
+        :param summary: The summary of this IngestJob.  # noqa: E501
+        :type summary: object
+        :param created_at: The created_at of this IngestJob.  # noqa: E501
+        :type created_at: str
+        :param updated_at: The updated_at of this IngestJob.  # noqa: E501
+        :type updated_at: str
         """
         self.openapi_types = {
             "id": str,
@@ -54,8 +62,11 @@ class IngestJob(Model):
             "files_total": int,
             "files_done": int,
             "queue_position": int,
-            "lines": List[IngestJobLogLine],
-            "log_available": bool,
+            "stage": str,
+            "current_member": str,
+            "summary": object,
+            "created_at": str,
+            "updated_at": str,
         }
 
         self.attribute_map = {
@@ -65,8 +76,11 @@ class IngestJob(Model):
             "files_total": "files_total",
             "files_done": "files_done",
             "queue_position": "queue_position",
-            "lines": "lines",
-            "log_available": "log_available",
+            "stage": "stage",
+            "current_member": "current_member",
+            "summary": "summary",
+            "created_at": "created_at",
+            "updated_at": "updated_at",
         }
 
         self._id = id
@@ -75,8 +89,11 @@ class IngestJob(Model):
         self._files_total = files_total
         self._files_done = files_done
         self._queue_position = queue_position
-        self._lines = lines
-        self._log_available = log_available
+        self._stage = stage
+        self._current_member = current_member
+        self._summary = summary
+        self._created_at = created_at
+        self._updated_at = updated_at
 
     @classmethod
     def from_dict(cls, dikt) -> "IngestJob":
@@ -292,50 +309,111 @@ class IngestJob(Model):
         self._queue_position = queue_position
 
     @property
-    def lines(self) -> List[IngestJobLogLine]:
-        """Gets the lines of this IngestJob.
+    def stage(self) -> str:
+        """Gets the stage of this IngestJob.
 
-        The most recent log lines for this job (up to 500), oldest first  # noqa: E501
+        What the ingest is doing now, while running  # noqa: E501
 
-        :return: The lines of this IngestJob.
-        :rtype: List[IngestJobLogLine]
+        :return: The stage of this IngestJob.
+        :rtype: str
         """
-        return self._lines
+        return self._stage
 
-    @lines.setter
-    def lines(self, lines: List[IngestJobLogLine]):
-        """Sets the lines of this IngestJob.
+    @stage.setter
+    def stage(self, stage: str):
+        """Sets the stage of this IngestJob.
 
-        The most recent log lines for this job (up to 500), oldest first  # noqa: E501
+        What the ingest is doing now, while running  # noqa: E501
 
-        :param lines: The lines of this IngestJob.
-        :type lines: List[IngestJobLogLine]
+        :param stage: The stage of this IngestJob.
+        :type stage: str
         """
-        if lines is not None and len(lines) > 500:
-            raise ValueError(
-                "Invalid value for `lines`, number of items must be less than or equal to `500`"
-            )  # noqa: E501
-
-        self._lines = lines
+        self._stage = stage
 
     @property
-    def log_available(self) -> bool:
-        """Gets the log_available of this IngestJob.
+    def current_member(self) -> str:
+        """Gets the current_member of this IngestJob.
 
-        False when the log store could not be read  # noqa: E501
+        Name of the eTUFF member being ingested, while running  # noqa: E501
 
-        :return: The log_available of this IngestJob.
-        :rtype: bool
+        :return: The current_member of this IngestJob.
+        :rtype: str
         """
-        return self._log_available
+        return self._current_member
 
-    @log_available.setter
-    def log_available(self, log_available: bool):
-        """Sets the log_available of this IngestJob.
+    @current_member.setter
+    def current_member(self, current_member: str):
+        """Sets the current_member of this IngestJob.
 
-        False when the log store could not be read  # noqa: E501
+        Name of the eTUFF member being ingested, while running  # noqa: E501
 
-        :param log_available: The log_available of this IngestJob.
-        :type log_available: bool
+        :param current_member: The current_member of this IngestJob.
+        :type current_member: str
         """
-        self._log_available = log_available
+        self._current_member = current_member
+
+    @property
+    def summary(self) -> object:
+        """Gets the summary of this IngestJob.
+
+        Totals for a finished job  # noqa: E501
+
+        :return: The summary of this IngestJob.
+        :rtype: object
+        """
+        return self._summary
+
+    @summary.setter
+    def summary(self, summary: object):
+        """Sets the summary of this IngestJob.
+
+        Totals for a finished job  # noqa: E501
+
+        :param summary: The summary of this IngestJob.
+        :type summary: object
+        """
+        self._summary = summary
+
+    @property
+    def created_at(self) -> str:
+        """Gets the created_at of this IngestJob.
+
+        When the job was accepted, UTC to the millisecond  # noqa: E501
+
+        :return: The created_at of this IngestJob.
+        :rtype: str
+        """
+        return self._created_at
+
+    @created_at.setter
+    def created_at(self, created_at: str):
+        """Sets the created_at of this IngestJob.
+
+        When the job was accepted, UTC to the millisecond  # noqa: E501
+
+        :param created_at: The created_at of this IngestJob.
+        :type created_at: str
+        """
+        self._created_at = created_at
+
+    @property
+    def updated_at(self) -> str:
+        """Gets the updated_at of this IngestJob.
+
+        When the job row last changed, UTC to the millisecond  # noqa: E501
+
+        :return: The updated_at of this IngestJob.
+        :rtype: str
+        """
+        return self._updated_at
+
+    @updated_at.setter
+    def updated_at(self, updated_at: str):
+        """Sets the updated_at of this IngestJob.
+
+        When the job row last changed, UTC to the millisecond  # noqa: E501
+
+        :param updated_at: The updated_at of this IngestJob.
+        :type updated_at: str
+        """
+        self._updated_at = updated_at

@@ -546,16 +546,16 @@ components:
         - id
         - status
         - files_done
-        - lines
+        - created_at
       example:
         id: 4bf92f35-77b3-4da6-a3ce-929d0e0e4736
-        status: succeeded
+        status: running
         files_done: 1
-        files_total: 1
-        log_available: true
-        lines:
-          - time: "2026-11-08T17:24:28.105+00:00"
-            text: Processing etuff file example.txt job_id=4bf92f35-77b3-4da6-a3ce-929d0e0e4736
+        files_total: 3
+        stage: Reading the file
+        current_member: b.txt
+        created_at: "2026-11-08T17:24:28.105+00:00"
+        updated_at: "2026-11-08T17:25:03.418+00:00"
       properties:
         id:
           description: Ingest job id
@@ -596,37 +596,47 @@ components:
           format: int32
           minimum: 0
           maximum: 2147483647
-        lines:
-          description: The most recent log lines for this job (up to 500), oldest first
-          type: array
-          minItems: 0
-          maxItems: 500
-          items:
-            $ref: "#/components/schemas/IngestJobLogLine"
-        log_available:
-          description: False when the log store could not be read
-          type: boolean
-      title: IngestJob
-      type: object
-    IngestJobLogLine:
-      description: One ingest log line and when it was logged
-      required:
-        - time
-        - text
-      properties:
-        time:
-          description: UTC time the line was logged, to the millisecond
-          type: string
-          format: date-time
-          minLength: 20
-          maxLength: 64
-        text:
-          description: The log line. A traceback keeps its line breaks.
+        stage:
+          description: What the ingest is doing now. Present while running.
           type: string
           minLength: 1
-          maxLength: 10000
-          pattern: ^(?!\s*$)[\s\S]+$
-      title: IngestJobLogLine
+          maxLength: 200
+        current_member:
+          description: Name of the eTUFF member being ingested. Present while running.
+          type: string
+          minLength: 1
+          maxLength: 1000
+        summary:
+          description: Totals for a finished job. Present once the job succeeds.
+          type: object
+          properties:
+            files:
+              type: integer
+              minimum: 0
+            loaded:
+              type: integer
+              minimum: 0
+            metadata_only:
+              type: integer
+              minimum: 0
+            duplicates:
+              type: integer
+              minimum: 0
+            skipped_lines:
+              type: integer
+              minimum: 0
+            seconds:
+              type: number
+              minimum: 0
+        created_at:
+          description: When the job was accepted, UTC to the millisecond
+          type: string
+          format: date-time
+        updated_at:
+          description: When the job row last changed, UTC to the millisecond
+          type: string
+          format: date-time
+      title: IngestJob
       type: object
     Metadata:
       description: Contains the ingested tag metadata consistent with the eTUFF specification
