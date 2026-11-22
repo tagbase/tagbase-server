@@ -1181,6 +1181,8 @@ DECLARE
   ts_rows bigint;
   defer_date_index boolean;
   step_start timestamp with time zone := clock_timestamp();
+  missing_coordinate_count bigint;
+  earliest_missing_coordinate timestamp with time zone;
   step_rows bigint;
 BEGIN
  --\connect tagbase
@@ -1233,88 +1235,69 @@ BEGIN
  ORDER BY variable_id, date_time;
  GET DIAGNOSTICS step_rows = ROW_COUNT;
  step_start := tagbase_migration_step('time_series', step_start, step_rows);
+ -- Guard: a position timestamp is one with a longitude or a latitude
+ -- observation. data_position.lat and lon are NOT NULL, so each such
+ -- timestamp must carry both. Abort the submission explicitly (the whole
+ -- migration rolls back) and name the earliest offending timestamp. An
+ -- observation that is only longitudeError or latitudeError is not a
+ -- position, so it does not trigger this guard.
+ SELECT count(*), min(o.date_time) INTO missing_coordinate_count, earliest_missing_coordinate
+ FROM (
+   SELECT a.date_time
+   FROM proc_observations a
+   JOIN observation_types c USING (variable_id)
+   WHERE a.submission_id = submission_id_param
+     AND c.variable_name IN ('longitude',
+                             'latitude')
+   GROUP BY a.date_time
+   HAVING bool_or(c.variable_name = 'longitude')
+          IS DISTINCT FROM bool_or(c.variable_name = 'latitude')) o;
+ IF missing_coordinate_count > 0 THEN
+   RAISE EXCEPTION 'submission %: % position timestamp(s) lack longitude or latitude (earliest: %)',
+                   submission_id_param, missing_coordinate_count, earliest_missing_coordinate;
+ END IF;
  -- -- data_position
+ -- One pass: the four observation kinds share the same rows, so a grouped
+ -- insert with FILTER aggregation replaces the placeholder insert (lat = 0.0)
+ -- and the three per-row lat/err updates, which each maintained
+ -- data_position_latlontime_index once per row.
+ -- Only timestamps that carry a longitude move. The guard above guarantees
+ -- those also carry a latitude. An error-only timestamp is not a position,
+ -- so its longitudeError/latitudeError rows stay in proc_observations.
  WITH moved_rows AS
    ( DELETE
     FROM proc_observations a USING submission b,
                                    observation_types c
-    WHERE c.variable_name = 'longitude'
+    WHERE c.variable_name IN ('longitude',
+                              'latitude',
+                              'longitudeError',
+                              'latitudeError')
       AND a.submission_id = b.submission_id
       AND b.submission_id = submission_id_param
-      AND a.variable_id = c.variable_id RETURNING a.date_time,
-                                                  a.variable_id,
+      AND a.variable_id = c.variable_id
+      AND a.date_time IN (SELECT p.date_time
+                          FROM proc_observations p
+                          JOIN observation_types t USING (variable_id)
+                          WHERE p.submission_id = submission_id_param
+                            AND t.variable_name = 'longitude') RETURNING a.date_time,
                                                   a.variable_value,
                                                   a.submission_id,
                                                   b.tag_id,
-                                                  cast(('0.0') AS double precision) AS initial_lat,
-                                                  is_reference_track_param)
- INSERT INTO data_position (date_time, lat, lon, submission_id, tag_id, flag_as_reference)
+                                                  c.variable_name)
+ INSERT INTO data_position (date_time, lat, lon, lat_err, lon_err, submission_id, tag_id, flag_as_reference)
  SELECT date_time,
-        initial_lat,
-        variable_value,
+        max(variable_value) FILTER (WHERE variable_name = 'latitude'),
+        max(variable_value) FILTER (WHERE variable_name = 'longitude'),
+        max(variable_value) FILTER (WHERE variable_name = 'latitudeError'),
+        max(variable_value) FILTER (WHERE variable_name = 'longitudeError'),
         submission_id,
         tag_id,
-        moved_rows.is_reference_track_param
- FROM moved_rows;
- GET DIAGNOSTICS step_rows = ROW_COUNT;
- step_start := tagbase_migration_step('position_lon', step_start, step_rows);
- WITH moved_rows AS
-   ( DELETE
-    FROM proc_observations a USING data_position b,
-                                   observation_types c
-    WHERE a.submission_id = b.submission_id
-      AND b.submission_id = submission_id_param
-      AND a.date_time = b.date_time
-      AND a.variable_id = c.variable_id
-      AND c.variable_name = 'latitude' RETURNING a.date_time,
-                                                 a.variable_id,
-                                                 a.variable_value,
-                                                 a.submission_id)
- UPDATE data_position
- SET lat = moved_rows.variable_value
+        is_reference_track_param
  FROM moved_rows
- WHERE data_position.date_time = moved_rows.date_time
-   AND data_position.submission_id = moved_rows.submission_id;
+ GROUP BY date_time, submission_id, tag_id
+ ORDER BY date_time;
  GET DIAGNOSTICS step_rows = ROW_COUNT;
- step_start := tagbase_migration_step('position_lat', step_start, step_rows);
- WITH moved_rows AS
-   ( DELETE
-    FROM proc_observations a USING data_position b,
-                                   observation_types c
-    WHERE a.submission_id = b.submission_id
-      AND b.submission_id = submission_id_param
-      AND a.date_time = b.date_time
-      AND a.variable_id = c.variable_id
-      AND c.variable_name = 'longitudeError' RETURNING a.date_time,
-                                                 a.variable_id,
-                                                 a.variable_value,
-                                                 a.submission_id)
- UPDATE data_position
- SET lon_err = moved_rows.variable_value
- FROM moved_rows
- WHERE data_position.date_time = moved_rows.date_time
-   AND data_position.submission_id = moved_rows.submission_id;
- GET DIAGNOSTICS step_rows = ROW_COUNT;
- step_start := tagbase_migration_step('position_lon_err', step_start, step_rows);
- WITH moved_rows AS
-   ( DELETE
-    FROM proc_observations a USING data_position b,
-                                   observation_types c
-    WHERE a.submission_id = b.submission_id
-      AND b.submission_id = submission_id_param
-      AND a.date_time = b.date_time
-      AND a.variable_id = c.variable_id
-      AND c.variable_name = 'latitudeError' RETURNING a.date_time,
-                                                 a.variable_id,
-                                                 a.variable_value,
-                                                 a.submission_id)
- UPDATE data_position
- SET lat_err = moved_rows.variable_value
- FROM moved_rows
- WHERE data_position.date_time = moved_rows.date_time
-   AND data_position.submission_id = moved_rows.submission_id;
- GET DIAGNOSTICS step_rows = ROW_COUNT;
- step_start := tagbase_migration_step('position_lat_err', step_start, step_rows);
+ step_start := tagbase_migration_step('position', step_start, step_rows);
  -- -- data_histogram_bin_info
  WITH moved_rows AS
    ( DELETE
