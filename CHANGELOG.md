@@ -1,3 +1,22 @@
+# [0.19.0](https://github.com/tagbase/tagbase-server/compare/v0.18.0...v0.19.0) (2026-11-24)
+
+
+### Bug Fixes
+
+* **deps:** align OpenTelemetry pins and keep them in one Renovate group ([#499](https://github.com/tagbase/tagbase-server/issues/499)) ([1f916c3](https://github.com/tagbase/tagbase-server/commit/1f916c3e8a7306f96b7e7e34a70565bc19be241c))
+* keep upload.js in the release API-prefix rewrite ([#498](https://github.com/tagbase/tagbase-server/issues/498)) ([de7dcf6](https://github.com/tagbase/tagbase-server/commit/de7dcf6c64a4630be82e760eb81c227e74f404f7))
+
+
+### Features
+
+* **ingest:** show per-job progress and logs on the upload page ([#497](https://github.com/tagbase/tagbase-server/issues/497)) ([41623c8](https://github.com/tagbase/tagbase-server/commit/41623c86e2f48df443702edbb23a52b4fa6d9f2b))
+* simplify getting lat/long while ingesting ([9c5a734](https://github.com/tagbase/tagbase-server/commit/9c5a734fa0611fe175b9104236269ac6a324b168))
+
+
+### Performance Improvements
+
+* **ingest:** sort time-series inserts and tune Postgres ([#483](https://github.com/tagbase/tagbase-server/issues/483)) ([6987923](https://github.com/tagbase/tagbase-server/commit/69879231a36adab361d157de2aeafd07779d4841))
+
 # [0.18.0](https://github.com/tagbase/tagbase-server/compare/v0.17.0...v0.18.0) (2026-10-22)
 
 
