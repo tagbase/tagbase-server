@@ -50,6 +50,7 @@
         "grafana/loki",
         "grafana/tempo",
         "grafana/grafana",
+        "grafana/pyroscope",
         "prom/prometheus"
       ],
       "groupName": "observability stack"

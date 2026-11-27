@@ -119,3 +119,19 @@ loki.source.syslog "incoming" {
 
 	forward_to = [loki.write.local.receiver]
 }
+
+// Ingest profiles. The worker pushes to :4040 only when profiling is enabled.
+pyroscope.receive_http "ingest" {
+	http {
+		listen_address = "0.0.0.0"
+		listen_port    = 4040
+	}
+
+	forward_to = [pyroscope.write.local.receiver]
+}
+
+pyroscope.write "local" {
+	endpoint {
+		url = "http://pyroscope:4040"
+	}
+}

@@ -156,12 +156,14 @@ def process_available() -> int:
 
 
 def main() -> None:
+    from tagbase_server.profiling import setup_profiling
     from tagbase_server.telemetry import setup_telemetry
 
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
     )
     setup_telemetry(flask_app=None)
+    setup_profiling("ingest_worker")
     logger.info("Ingest worker starting")
     recover_stale_jobs()
     while True:

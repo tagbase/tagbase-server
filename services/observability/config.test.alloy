@@ -129,3 +129,19 @@ loki.source.syslog "incoming" {
 
 	forward_to = [loki.write.local.receiver]
 }
+
+// Same profile path as config.local.alloy. The test stack runs Pyroscope too.
+pyroscope.receive_http "ingest" {
+	http {
+		listen_address = "0.0.0.0"
+		listen_port    = 4040
+	}
+
+	forward_to = [pyroscope.write.local.receiver]
+}
+
+pyroscope.write "local" {
+	endpoint {
+		url = "http://pyroscope:4040"
+	}
+}

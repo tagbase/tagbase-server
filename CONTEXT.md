@@ -37,8 +37,19 @@ _Avoid_: event, observation
 These terms describe runtime observability. They must not be confused with eTUFF **observations** (tag measurement rows).
 
 **Telemetry**:
-Metrics, logs, and traces emitted about service behavior (latency, errors, ingest pipeline).
+Metrics, logs, traces, and profiles emitted about service behavior (latency, errors, ingest pipeline).
 _Avoid_: observations (when meaning ops signals)
+
+**Profile**:
+Wall-clock stack samples and sampled heap allocations from the `tagbase_server` ingest worker and API workers. Only collected with the profiling image and `TAGBASE_PYROSCOPE_ENABLED=true`.
+_Avoid_: observation, CPU profile (samples are wall-clock)
+
+**Pyroscope**:
+Grafana Pyroscope — the profile store. Alloy forwards profiles to the local container (`https://localhost/pyroscope/`) or to Grafana Cloud Profiles when `PYROSCOPE_*` is set.
+
+**Ingest phase**:
+The `phase` label on profile samples inside one file ingest: `read`, `resolve`, `metadata`, `build_rows`, `dataframe`, `csv_buffer`, `copy`, `procedure`. Used to filter flame graphs; it is not a job status.
+_Avoid_: stage, step (when meaning job status)
 
 **OTLP**:
 OpenTelemetry Protocol — the wire format used to export telemetry from `tagbase_server` to Alloy.

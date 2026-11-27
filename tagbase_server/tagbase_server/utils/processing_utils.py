@@ -18,6 +18,7 @@ from tagbase_server.ingest_log import (
     heartbeat_seconds,
     heartbeat_while,
 )
+from tagbase_server.profiling import phase
 from tagbase_server.telemetry import (
     get_tracer,
     record_db_error,
@@ -492,40 +493,41 @@ def _build_proc_observations(
         num_lines_content,
     )
 
-    for counter in range(0, num_lines_content):
-        line = file_content[counter]
-        line_number = counter + 1
-        tokens = line.split(",")
-        tokens = [token.replace('"', "") for token in tokens]
-        # Skip blank / non-observation lines (e.g. trailing comments) safely.
-        if len(tokens) < 4 or not any(t.strip() for t in tokens):
-            continue
+    with phase("build_rows", submission_id=submission_id):
+        for counter in range(0, num_lines_content):
+            line = file_content[counter]
+            line_number = counter + 1
+            tokens = line.split(",")
+            tokens = [token.replace('"', "") for token in tokens]
+            # Skip blank / non-observation lines (e.g. trailing comments) safely.
+            if len(tokens) < 4 or not any(t.strip() for t in tokens):
+                continue
 
-        variable_name = tokens[3]
-        variable_id = _resolve_variable_id(
-            cur, conn, variable_name, tokens, variable_lookup
-        )
-        if tokens[0] != '""' and tokens[0] != "":
-            if tokens[0].startswith('"'):
-                tokens[0].replace('"', "")
-            date_time = dt.strptime(tokens[0], "%Y-%m-%d %H:%M:%S").astimezone(
-                timezone.utc
+            variable_name = tokens[3]
+            variable_id = _resolve_variable_id(
+                cur, conn, variable_name, tokens, variable_lookup
             )
-        else:
-            stripped_line = line.strip("\n")
-            msg = f"*{submission_filename}* _line:{line_number}_ - No datetime... skipping line: {stripped_line}"
-            logger.warning(msg)
-            skipped += 1
-            continue
-        proc_obs.append(
-            [
-                date_time,
-                variable_id,
-                tokens[2],
-                submission_id,
-                tag_id,
-            ]
-        )
+            if tokens[0] != '""' and tokens[0] != "":
+                if tokens[0].startswith('"'):
+                    tokens[0].replace('"', "")
+                date_time = dt.strptime(tokens[0], "%Y-%m-%d %H:%M:%S").astimezone(
+                    timezone.utc
+                )
+            else:
+                stripped_line = line.strip("\n")
+                msg = f"*{submission_filename}* _line:{line_number}_ - No datetime... skipping line: {stripped_line}"
+                logger.warning(msg)
+                skipped += 1
+                continue
+            proc_obs.append(
+                [
+                    date_time,
+                    variable_id,
+                    tokens[2],
+                    submission_id,
+                    tag_id,
+                ]
+            )
 
     len_proc_obs = len(proc_obs)
     if timings is not None:
@@ -539,24 +541,25 @@ def _build_proc_observations(
     return proc_obs, len_proc_obs
 
 
-def _dataframe_to_buffer(proc_obs, len_proc_obs, timings=None):
+def _dataframe_to_buffer(proc_obs, len_proc_obs, timings=None, submission_id=None):
     """Build the COPY buffer for proc_observations.
 
     timings, when set, receives dataframe and csv_buffer in seconds. Building
     the DataFrame is the peak-memory step for a file of tens of millions of rows.
     """
-    s_time = time.perf_counter()
-    df = pd.DataFrame.from_records(
-        proc_obs,
-        columns=[
-            "date_time",
-            "variable_id",
-            "variable_value",
-            "submission_id",
-            "tag_id",
-        ],
-    )
-    sub_elapsed = _record_timing(timings, "dataframe", s_time)
+    with phase("dataframe", submission_id=submission_id):
+        s_time = time.perf_counter()
+        df = pd.DataFrame.from_records(
+            proc_obs,
+            columns=[
+                "date_time",
+                "variable_id",
+                "variable_value",
+                "submission_id",
+                "tag_id",
+            ],
+        )
+        sub_elapsed = _record_timing(timings, "dataframe", s_time)
     logger.info(
         "Built Pandas DF from %s records. Time elapsed: %s second(s)",
         len_proc_obs,
@@ -565,11 +568,12 @@ def _dataframe_to_buffer(proc_obs, len_proc_obs, timings=None):
     logger.debug("DF Info: %s", df.info)
     logger.debug("DF Memory Usage: %s", df.memory_usage(True))
 
-    s_time = time.perf_counter()
-    buffer = StringIO()
-    df.to_csv(buffer, header=False, index=False)
-    buffer.seek(0)
-    sub_elapsed = _record_timing(timings, "csv_buffer", s_time)
+    with phase("csv_buffer", submission_id=submission_id):
+        s_time = time.perf_counter()
+        buffer = StringIO()
+        df.to_csv(buffer, header=False, index=False)
+        buffer.seek(0)
+        sub_elapsed = _record_timing(timings, "csv_buffer", s_time)
     logger.info(
         "Copied Pandas DF to StringIO memory buffer. Time elapsed: %s second(s)",
         sub_elapsed,
@@ -601,7 +605,8 @@ def _migrate_proc_observations(
         "Copying memory buffer to 'proc_observations' and executing data migration."
     )
     try:
-        cur.copy_from(buffer, "proc_observations", sep=",")
+        with phase("copy", submission_id=submission_id):
+            cur.copy_from(buffer, "proc_observations", sep=",")
         _record_timing(timings, "copy", s_time)
         call_start = time.perf_counter()
         _clear_notices(conn)
@@ -630,10 +635,11 @@ def _migrate_proc_observations(
             )
             beater.start()
         try:
-            cur.execute(
-                "CALL sp_execute_data_migration(%s, %s);",
-                (int(submission_id), ref),
-            )
+            with phase("procedure", submission_id=submission_id):
+                cur.execute(
+                    "CALL sp_execute_data_migration(%s, %s);",
+                    (int(submission_id), ref),
+                )
         finally:
             stop_beat.set()
             if beater is not None:
@@ -718,7 +724,10 @@ def process_etuff_file(
     conn.autocommit = True
     timings = {}
 
-    with tracer.start_as_current_span("ingest.parse_etuff"):
+    with (
+        tracer.start_as_current_span("ingest.parse_etuff"),
+        phase("read", file=submission_filename),
+    ):
         read_start = time.perf_counter()
         try:
             (
@@ -746,50 +755,52 @@ def process_etuff_file(
         with conn.cursor() as cur:
             with tracer.start_as_current_span("ingest.persist") as persist_span:
                 try:
-                    if detect_duplicate_file(cur, entire_file_hash):
-                        logger.info(
-                            "Data file '%s' with SHA256 hash '%s' identified as exact duplicate. No ingestion performed.",
-                            submission_filename,
-                            entire_file_hash,
+                    with phase("resolve", file=submission_filename):
+                        if detect_duplicate_file(cur, entire_file_hash):
+                            logger.info(
+                                "Data file '%s' with SHA256 hash '%s' identified as exact duplicate. No ingestion performed.",
+                                submission_filename,
+                                entire_file_hash,
+                            )
+                            _record("duplicate", round(time.perf_counter() - start, 2))
+                            _outcome("duplicate")
+                            return 1
+
+                        dataset_id = get_dataset_id(
+                            cur, instrument_name, serial_number, ptt, platform
                         )
-                        _record("duplicate", round(time.perf_counter() - start, 2))
-                        _outcome("duplicate")
-                        return 1
-
-                    dataset_id = get_dataset_id(
-                        cur, instrument_name, serial_number, ptt, platform
-                    )
-                    tag_id = get_tag_id(cur, dataset_id)
-                    submission_id = get_submission_id(
-                        cur,
-                        tag_id,
-                        dataset_id,
-                        content_hash,
-                    )
-
-                    if not submission_id:
-                        submission_id = insert_new_submission(
+                        tag_id = get_tag_id(cur, dataset_id)
+                        submission_id = get_submission_id(
                             cur,
                             tag_id,
-                            submission_filename,
-                            notes,
-                            version,
-                            entire_file_hash,
                             dataset_id,
-                            metadata_hash,
                             content_hash,
                         )
+
+                        if not submission_id:
+                            submission_id = insert_new_submission(
+                                cur,
+                                tag_id,
+                                submission_filename,
+                                notes,
+                                version,
+                                entire_file_hash,
+                                dataset_id,
+                                metadata_hash,
+                                content_hash,
+                            )
 
                     persist_span.set_attribute("tag_id", tag_id)
                     persist_span.set_attribute("submission_id", submission_id)
 
-                    metadata = process_global_attributes_metadata(
-                        metadata_content,
-                        cur,
-                        submission_id,
-                        submission_filename,
-                        number_global_attributes_lines,
-                    )
+                    with phase("metadata", submission_id=submission_id):
+                        metadata = process_global_attributes_metadata(
+                            metadata_content,
+                            cur,
+                            submission_id,
+                            submission_filename,
+                            number_global_attributes_lines,
+                        )
 
                     if is_only_metadata_change(cur, metadata_hash, content_hash):
                         update_submission_metadata(
@@ -813,8 +824,14 @@ def process_etuff_file(
                         tag_id,
                         timings,
                     )
-                    insert_metadata(cur, metadata, tag_id)
-                    buffer = _dataframe_to_buffer(proc_obs, len_proc_obs, timings)
+                    with phase("metadata", submission_id=submission_id):
+                        insert_metadata(cur, metadata, tag_id)
+                    buffer = _dataframe_to_buffer(
+                        proc_obs,
+                        len_proc_obs,
+                        timings,
+                        submission_id=submission_id,
+                    )
                     sub_elapsed = _migrate_proc_observations(
                         cur,
                         conn,
