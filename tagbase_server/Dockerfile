@@ -1,6 +1,7 @@
 # Digest stays on the default so the profiling overlay can swap the base image.
 # pyroscope-io publishes no CPython 3.15 wheel, so that overlay uses 3.14.
 ARG BASE_IMAGE=python:3.15-slim-bookworm@sha256:96599df822d0e1c6bb700014a05c7f3c8cabc6e0f7ff3c4f9f69cee033b4b5d9
+# checkov:skip=CKV_DOCKER_7: tag and digest are on ARG BASE_IMAGE; FROM uses the ARG so the profiling overlay can swap it
 # hadolint ignore=DL3006
 FROM ${BASE_IMAGE}
 
