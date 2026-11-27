@@ -724,32 +724,32 @@ def process_etuff_file(
     conn.autocommit = True
     timings = {}
 
-    with tracer.start_as_current_span("ingest.parse_etuff"):
-        with phase("read", file=submission_filename):
-            read_start = time.perf_counter()
-            try:
-                (
-                    instrument_name,
-                    serial_number,
-                    ptt,
-                    platform,
-                    referencetrack_included,
-                    file_content,
-                    metadata_content,
-                    number_global_attributes_lines,
-                ) = get_dataset_properties(source_path)
-                (
-                    content_hash,
-                    metadata_hash,
-                    entire_file_hash,
-                ) = _compute_submission_hashes(
-                    source_path, file_content, metadata_content
-                )
-                _record_timing(timings, "read", read_start)
-            except Exception:
-                logger.exception("Error parsing etuff file: %s", submission_filename)
-                _record("error", round(time.perf_counter() - start, 2))
-                raise
+    with (
+        tracer.start_as_current_span("ingest.parse_etuff"),
+        phase("read", file=submission_filename),
+    ):
+        read_start = time.perf_counter()
+        try:
+            (
+                instrument_name,
+                serial_number,
+                ptt,
+                platform,
+                referencetrack_included,
+                file_content,
+                metadata_content,
+                number_global_attributes_lines,
+            ) = get_dataset_properties(source_path)
+            (
+                content_hash,
+                metadata_hash,
+                entire_file_hash,
+            ) = _compute_submission_hashes(source_path, file_content, metadata_content)
+            _record_timing(timings, "read", read_start)
+        except Exception:
+            logger.exception("Error parsing etuff file: %s", submission_filename)
+            _record("error", round(time.perf_counter() - start, 2))
+            raise
 
     with conn:
         with conn.cursor() as cur:
