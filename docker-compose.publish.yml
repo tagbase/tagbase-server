@@ -251,6 +251,10 @@ services:
       - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://alloy:4317}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-tagbase_server}
+      # The published image has no Pyroscope SDK; enabling this only logs a warning.
+      - TAGBASE_PYROSCOPE_ENABLED=${TAGBASE_PYROSCOPE_ENABLED:-false}
+      - PYROSCOPE_SERVER_ADDRESS=${PYROSCOPE_SERVER_ADDRESS:-http://alloy:4040}
+      - PYROSCOPE_APPLICATION_NAME=${PYROSCOPE_APPLICATION_NAME:-tagbase_server}
     expose:
       - 5433
     hostname: tagbase_server
@@ -285,6 +289,7 @@ services:
       - "514:1514/udp"
     expose:
       - "12345"
+      - "4040"
       - "4317"
       - "4318"
       - "1514/udp"
@@ -295,6 +300,7 @@ services:
       - prometheus
       - loki
       - tempo
+      - pyroscope
 
   prometheus:
     image: ghcr.io/tagbase/tagbase-prometheus:${TAGBASE_VERSION:-latest}
@@ -362,6 +368,31 @@ services:
       - prometheus
       - loki
       - tempo
+      - pyroscope
+
+  pyroscope:
+    image: grafana/pyroscope:2.4.4@sha256:288da0b9b73193b5aee0843b6f1f5d033ee697d4afa280efb95de338d1409870
+    # Same flags as docker-compose.yml. Distroless image, so it runs as root
+    # to write the named volume.
+    user: "0:0"
+    command:
+      - -config.file=/etc/pyroscope/config.yaml
+      - -server.http-listen-address=0.0.0.0
+      - -api.base-url=https://localhost/pyroscope
+      - -ingester.min-ready-duration=0
+      - -metastore.min-ready-duration=0
+      - -segment-writer.min-ready-duration=0
+      - -enable-query-backend-from=1970-01-01T00:00:00Z
+      - -usage-stats.enabled=false
+      - -self-profiling.disable-push=true
+    logging: *syslog
+    volumes:
+      - pyroscope-data:/data
+    expose:
+      - "4040"
+    networks:
+      - internal-network
+    restart: unless-stopped
 
 networks:
   internal-network:
@@ -372,6 +403,7 @@ volumes:
   loki-data:
   tempo-data:
   grafana-data:
+  pyroscope-data:
   nginx-certs:
   acme-www:
   lego-data:

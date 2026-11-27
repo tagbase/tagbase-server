@@ -6,6 +6,8 @@ import sys
 import types
 from unittest import mock
 
+from opentelemetry.sdk.trace import TracerProvider
+
 from tagbase_server import profiling
 
 
@@ -91,7 +93,10 @@ def test_enabled_configures_profiler_and_tags_phases(monkeypatch):
     pyro.configure.assert_called_once_with(
         **_expected_configure("tagbase_server.ingest_worker", "ingest_worker")
     )
-    provider.add_span_processor.assert_called_once_with("span-processor")
+    added = [call.args[0] for call in provider.add_span_processor.call_args_list]
+    assert added[0] == "span-processor"
+    assert isinstance(added[1], profiling.IngestSpanProfileLinker)
+    assert len(added) == 2
 
     with profiling.phase("build_rows", submission_id=12, file=None):
         pass
@@ -107,3 +112,43 @@ def test_api_component_appends_to_application_name(monkeypatch):
 
     assert profiling.setup_profiling("api") is True
     pyro.configure.assert_called_once_with(**_expected_configure("custom.api", "api"))
+
+
+def _linked_tracer():
+    provider = TracerProvider()
+    provider.add_span_processor(profiling.IngestSpanProfileLinker())
+    return provider.get_tracer(__name__)
+
+
+def _span_id(span):
+    return format(span.get_span_context().span_id, "016x")
+
+
+def test_linker_leaves_root_ingest_span_alone():
+    tracer = _linked_tracer()
+    with tracer.start_as_current_span("ingest.persist") as span:
+        pass
+    assert profiling.PROFILE_ID_ATTRIBUTE not in span.attributes
+
+
+def test_linker_copies_root_id_onto_nested_ingest_spans():
+    tracer = _linked_tracer()
+    with tracer.start_as_current_span("request") as root:
+        with tracer.start_as_current_span("ingest.handle") as handle:
+            with tracer.start_as_current_span("ingest.parse_etuff") as parse:
+                pass
+            with tracer.start_as_current_span("ingest.persist") as persist:
+                pass
+    assert parse.attributes[profiling.PROFILE_ID_ATTRIBUTE] == _span_id(root)
+    assert persist.attributes[profiling.PROFILE_ID_ATTRIBUTE] == _span_id(root)
+    assert profiling.PROFILE_ID_ATTRIBUTE not in handle.attributes
+
+
+def test_linker_uses_the_current_root_after_the_previous_one_ends():
+    tracer = _linked_tracer()
+    with tracer.start_as_current_span("first"):
+        pass
+    with tracer.start_as_current_span("second") as root:
+        with tracer.start_as_current_span("ingest.persist") as persist:
+            pass
+    assert persist.attributes[profiling.PROFILE_ID_ATTRIBUTE] == _span_id(root)

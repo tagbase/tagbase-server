@@ -342,10 +342,15 @@ services:
       - TEMPO_ENDPOINT=${TEMPO_ENDPOINT:-}
       - TEMPO_USERNAME=${TEMPO_USERNAME:-}
       - TEMPO_PASSWORD=${TEMPO_PASSWORD:-}
-      - PYROSCOPE_ENDPOINT=${PYROSCOPE_ENDPOINT:-http://127.0.0.1:9}
-      - PYROSCOPE_USERNAME=${PYROSCOPE_USERNAME:-unused}
-      - PYROSCOPE_PASSWORD=${PYROSCOPE_PASSWORD:-unused}
+      # Empty endpoint: the entrypoint discards profiles. Endpoint without
+      # credentials: the entrypoint exits.
+      - PYROSCOPE_ENDPOINT=${PYROSCOPE_ENDPOINT:-}
+      - PYROSCOPE_USERNAME=${PYROSCOPE_USERNAME:-}
+      - PYROSCOPE_PASSWORD=${PYROSCOPE_PASSWORD:-}
+      - ALLOY_KEEP_ROOT=true
+    entrypoint: ["/bin/sh", "/usr/local/bin/alloy-entrypoint.sh"]
     volumes:
+      - ./services/observability/alloy-entrypoint.sh:/usr/local/bin/alloy-entrypoint.sh:ro
       - ./services/observability/${ALLOY_CONFIG_FILE:-config.local.alloy}:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - alloy-data:/var/lib/alloy/data

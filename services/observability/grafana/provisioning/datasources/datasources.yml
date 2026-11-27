@@ -41,6 +41,8 @@ datasources:
         enabled: true
       tracesToProfiles:
         datasourceUid: pyroscope
+        # The Python SDK reports wall-clock samples (oncpu=False) under this
+        # process_cpu id too; there is no separate wall type to select.
         profileTypeId: process_cpu:cpu:nanoseconds:cpu:nanoseconds
         customQuery: false
 

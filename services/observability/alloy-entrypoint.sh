@@ -1,6 +1,7 @@
 #!/bin/sh
-# Named volumes keep ownership from the first writer. Git compose runs
-# grafana/alloy as root; this wrapper runs as uid 473. Chown storage then drop.
+# Named volumes keep ownership from the first writer. The published image runs
+# this wrapper as root, chowns storage, then drops to uid 473. Git compose sets
+# ALLOY_KEEP_ROOT=true because docker.sock discovery needs root.
 set -eu
 
 DATA="${ALLOY_STORAGE_PATH:-/var/lib/alloy/data}"
@@ -12,9 +13,12 @@ if [ -z "${PYROSCOPE_ENDPOINT:-}" ]; then
 	export PYROSCOPE_ENDPOINT="http://127.0.0.1:9"
 	export PYROSCOPE_USERNAME="${PYROSCOPE_USERNAME:-unused}"
 	export PYROSCOPE_PASSWORD="${PYROSCOPE_PASSWORD:-unused}"
+elif [ -z "${PYROSCOPE_USERNAME:-}" ] || [ -z "${PYROSCOPE_PASSWORD:-}" ]; then
+	echo "PYROSCOPE_ENDPOINT is set but PYROSCOPE_USERNAME or PYROSCOPE_PASSWORD is empty" >&2
+	exit 1
 fi
 
-if [ "$(id -u)" -eq 0 ]; then
+if [ "$(id -u)" -eq 0 ] && [ "${ALLOY_KEEP_ROOT:-false}" != "true" ]; then
 	chown -R alloy:alloy "${DATA}"
 	exec setpriv --reuid=alloy --regid=alloy --init-groups --inh-caps=-all -- \
 		/bin/alloy "$@"
