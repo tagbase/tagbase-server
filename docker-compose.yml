@@ -305,6 +305,9 @@ services:
       - OTEL_SDK_DISABLED=${OTEL_SDK_DISABLED:-false}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://alloy:4317}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-tagbase_server}
+      - TAGBASE_PYROSCOPE_ENABLED=${TAGBASE_PYROSCOPE_ENABLED:-false}
+      - PYROSCOPE_SERVER_ADDRESS=${PYROSCOPE_SERVER_ADDRESS:-http://alloy:4040}
+      - PYROSCOPE_APPLICATION_NAME=${PYROSCOPE_APPLICATION_NAME:-tagbase_server}
     expose:
       - 5433
     hostname: tagbase_server
@@ -326,6 +329,7 @@ services:
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
+      - --server.http.ui-path-prefix=/alloy
       - --storage.path=/var/lib/alloy/data
       - /etc/alloy/config.alloy
     environment:
@@ -338,6 +342,9 @@ services:
       - TEMPO_ENDPOINT=${TEMPO_ENDPOINT:-}
       - TEMPO_USERNAME=${TEMPO_USERNAME:-}
       - TEMPO_PASSWORD=${TEMPO_PASSWORD:-}
+      - PYROSCOPE_ENDPOINT=${PYROSCOPE_ENDPOINT:-http://127.0.0.1:9}
+      - PYROSCOPE_USERNAME=${PYROSCOPE_USERNAME:-unused}
+      - PYROSCOPE_PASSWORD=${PYROSCOPE_PASSWORD:-unused}
     volumes:
       - ./services/observability/${ALLOY_CONFIG_FILE:-config.local.alloy}:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -345,6 +352,7 @@ services:
     # UI + OTLP only on the Docker network; browsers use https://localhost/alloy/
     expose:
       - "12345"
+      - "4040"
       - "4317"
       - "4318"
       - "1514/udp"
@@ -355,6 +363,7 @@ services:
       - prometheus
       - loki
       - tempo
+      - pyroscope
 
   prometheus:
     image: prom/prometheus:v3.16.0@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06
@@ -422,6 +431,32 @@ services:
       - prometheus
       - loki
       - tempo
+      - pyroscope
+
+  pyroscope:
+    image: grafana/pyroscope:2.4.4@sha256:288da0b9b73193b5aee0843b6f1f5d033ee697d4afa280efb95de338d1409870
+    # Distroless image: no shell to chown a named volume, so the process runs
+    # as root and can write /data. Browsers use https://localhost/pyroscope/.
+    user: "0:0"
+    command:
+      - -config.file=/etc/pyroscope/config.yaml
+      - -server.http-listen-address=0.0.0.0
+      - -api.base-url=https://localhost/pyroscope
+      - -ingester.min-ready-duration=0
+      - -metastore.min-ready-duration=0
+      - -segment-writer.min-ready-duration=0
+      # "auto" waits for a metastore tenant record. Until that exists the
+      # router reads the empty v1 store, so the first profiles never show.
+      - -enable-query-backend-from=1970-01-01T00:00:00Z
+      - -usage-stats.enabled=false
+      - -self-profiling.disable-push=true
+    volumes:
+      - pyroscope-data:/data
+    expose:
+      - "4040"
+    networks:
+      - internal-network
+    restart: unless-stopped
 
 networks:
   internal-network:
@@ -433,6 +468,7 @@ volumes:
   loki-data:
   tempo-data:
   grafana-data:
+  pyroscope-data:
   nginx-certs:
   acme-www:
   lego-data:

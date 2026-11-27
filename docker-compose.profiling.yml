@@ -1,0 +1,15 @@
+# Overlay for a profiling benchmark:
+#   docker compose -f docker-compose.yml -f docker-compose.bench.yml \
+#     -f docker-compose.profiling.yml up -d --build
+# pyroscope-io publishes wheels through CPython 3.14 only, so this build
+# leaves the default 3.15 image unchanged. Profiling stays off unless this
+# overlay is applied. It profiles the ingest worker and every API worker
+# on wall-clock time, and sends sampled heap allocations.
+services:
+  tagbase_server:
+    build:
+      args:
+        BASE_IMAGE: python:3.14-slim-bookworm@sha256:e60ad028afdcdd14772a3d46decf0eaf616720f9102aeb4397a2045ff6718c3d
+        INSTALL_PROFILING: "true"
+    environment:
+      TAGBASE_PYROSCOPE_ENABLED: "true"

@@ -18,6 +18,7 @@ from tagbase_server.ingest_log import (
     heartbeat_seconds,
     heartbeat_while,
 )
+from tagbase_server.profiling import phase
 from tagbase_server.telemetry import (
     get_tracer,
     record_db_error,
@@ -482,6 +483,27 @@ def _build_proc_observations(
     timings, when set, receives build_rows in seconds and skipped_lines, the
     number of lines without a datetime. Those lines are skipped and logged.
     """
+    with phase("build_rows", submission_id=submission_id):
+        return _timed_build_rows(
+            cur,
+            conn,
+            file_content,
+            submission_filename,
+            submission_id,
+            tag_id,
+            timings,
+        )
+
+
+def _timed_build_rows(
+    cur,
+    conn,
+    file_content,
+    submission_filename,
+    submission_id,
+    tag_id,
+    timings,
+):
     proc_obs = []
     skipped = 0
     variable_lookup = {}
@@ -539,24 +561,25 @@ def _build_proc_observations(
     return proc_obs, len_proc_obs
 
 
-def _dataframe_to_buffer(proc_obs, len_proc_obs, timings=None):
+def _dataframe_to_buffer(proc_obs, len_proc_obs, timings=None, submission_id=None):
     """Build the COPY buffer for proc_observations.
 
     timings, when set, receives dataframe and csv_buffer in seconds. Building
     the DataFrame is the peak-memory step for a file of tens of millions of rows.
     """
-    s_time = time.perf_counter()
-    df = pd.DataFrame.from_records(
-        proc_obs,
-        columns=[
-            "date_time",
-            "variable_id",
-            "variable_value",
-            "submission_id",
-            "tag_id",
-        ],
-    )
-    sub_elapsed = _record_timing(timings, "dataframe", s_time)
+    with phase("dataframe", submission_id=submission_id):
+        s_time = time.perf_counter()
+        df = pd.DataFrame.from_records(
+            proc_obs,
+            columns=[
+                "date_time",
+                "variable_id",
+                "variable_value",
+                "submission_id",
+                "tag_id",
+            ],
+        )
+        sub_elapsed = _record_timing(timings, "dataframe", s_time)
     logger.info(
         "Built Pandas DF from %s records. Time elapsed: %s second(s)",
         len_proc_obs,
@@ -565,11 +588,12 @@ def _dataframe_to_buffer(proc_obs, len_proc_obs, timings=None):
     logger.debug("DF Info: %s", df.info)
     logger.debug("DF Memory Usage: %s", df.memory_usage(True))
 
-    s_time = time.perf_counter()
-    buffer = StringIO()
-    df.to_csv(buffer, header=False, index=False)
-    buffer.seek(0)
-    sub_elapsed = _record_timing(timings, "csv_buffer", s_time)
+    with phase("csv_buffer", submission_id=submission_id):
+        s_time = time.perf_counter()
+        buffer = StringIO()
+        df.to_csv(buffer, header=False, index=False)
+        buffer.seek(0)
+        sub_elapsed = _record_timing(timings, "csv_buffer", s_time)
     logger.info(
         "Copied Pandas DF to StringIO memory buffer. Time elapsed: %s second(s)",
         sub_elapsed,
@@ -601,7 +625,8 @@ def _migrate_proc_observations(
         "Copying memory buffer to 'proc_observations' and executing data migration."
     )
     try:
-        cur.copy_from(buffer, "proc_observations", sep=",")
+        with phase("copy", submission_id=submission_id):
+            cur.copy_from(buffer, "proc_observations", sep=",")
         _record_timing(timings, "copy", s_time)
         call_start = time.perf_counter()
         _clear_notices(conn)
@@ -630,10 +655,11 @@ def _migrate_proc_observations(
             )
             beater.start()
         try:
-            cur.execute(
-                "CALL sp_execute_data_migration(%s, %s);",
-                (int(submission_id), ref),
-            )
+            with phase("procedure", submission_id=submission_id):
+                cur.execute(
+                    "CALL sp_execute_data_migration(%s, %s);",
+                    (int(submission_id), ref),
+                )
         finally:
             stop_beat.set()
             if beater is not None:
@@ -719,28 +745,32 @@ def process_etuff_file(
     timings = {}
 
     with tracer.start_as_current_span("ingest.parse_etuff"):
-        read_start = time.perf_counter()
-        try:
-            (
-                instrument_name,
-                serial_number,
-                ptt,
-                platform,
-                referencetrack_included,
-                file_content,
-                metadata_content,
-                number_global_attributes_lines,
-            ) = get_dataset_properties(source_path)
-            (
-                content_hash,
-                metadata_hash,
-                entire_file_hash,
-            ) = _compute_submission_hashes(source_path, file_content, metadata_content)
-            _record_timing(timings, "read", read_start)
-        except Exception:
-            logger.exception("Error parsing etuff file: %s", submission_filename)
-            _record("error", round(time.perf_counter() - start, 2))
-            raise
+        # Root span: PyroscopeSpanProcessor stamps pyroscope.profile.id here.
+        with phase("read", file=submission_filename):
+            read_start = time.perf_counter()
+            try:
+                (
+                    instrument_name,
+                    serial_number,
+                    ptt,
+                    platform,
+                    referencetrack_included,
+                    file_content,
+                    metadata_content,
+                    number_global_attributes_lines,
+                ) = get_dataset_properties(source_path)
+                (
+                    content_hash,
+                    metadata_hash,
+                    entire_file_hash,
+                ) = _compute_submission_hashes(
+                    source_path, file_content, metadata_content
+                )
+                _record_timing(timings, "read", read_start)
+            except Exception:
+                logger.exception("Error parsing etuff file: %s", submission_filename)
+                _record("error", round(time.perf_counter() - start, 2))
+                raise
 
     with conn:
         with conn.cursor() as cur:
@@ -814,7 +844,12 @@ def process_etuff_file(
                         timings,
                     )
                     insert_metadata(cur, metadata, tag_id)
-                    buffer = _dataframe_to_buffer(proc_obs, len_proc_obs, timings)
+                    buffer = _dataframe_to_buffer(
+                        proc_obs,
+                        len_proc_obs,
+                        timings,
+                        submission_id=submission_id,
+                    )
                     sub_elapsed = _migrate_proc_observations(
                         cur,
                         conn,

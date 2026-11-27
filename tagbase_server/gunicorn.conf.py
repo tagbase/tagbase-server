@@ -1,7 +1,8 @@
 """Gunicorn settings for tagbase-server.
 
-OpenTelemetry must be initialized after fork so each Uvicorn worker
-gets its own SDK providers and exporters.
+OpenTelemetry and Pyroscope must be initialized after fork so each
+Uvicorn worker gets its own SDK providers and its own profiler. py-spy
+samples the calling process.
 """
 
 import multiprocessing
@@ -19,6 +20,7 @@ timeout = 60
 
 def post_fork(server, worker):
     from tagbase_server.__main__ import app
+    from tagbase_server.profiling import setup_profiling
     from tagbase_server.telemetry import setup_telemetry
     from tagbase_server.upload_stream import register_upload_heartbeat
     from tagbase_server.utils.db_utils import assert_schema_ready, connect
@@ -26,6 +28,8 @@ def post_fork(server, worker):
     register_upload_heartbeat(worker.notify)
     setup_telemetry(flask_app=app.app)
     server.log.info("OpenTelemetry setup complete in worker pid=%s", worker.pid)
+    setup_profiling("api")
+    server.log.info("Pyroscope setup complete in worker pid=%s", worker.pid)
 
     conn = connect()
     if hasattr(conn, "cursor"):

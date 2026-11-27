@@ -1,0 +1,2 @@
+pyroscope-io==1.4.0
+pyroscope-otel==1.1.0

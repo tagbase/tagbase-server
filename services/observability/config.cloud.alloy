@@ -118,3 +118,25 @@ loki.process "stack_logs" {
 	}
 	forward_to = [loki.write.grafana_cloud.receiver]
 }
+
+// Ingest profiles. Empty PYROSCOPE_* are filled with a discard address so this
+// config still loads when Grafana Cloud Profiles is not configured.
+pyroscope.receive_http "ingest" {
+	http {
+		listen_address = "0.0.0.0"
+		listen_port    = 4040
+	}
+
+	forward_to = [pyroscope.write.grafana_cloud.receiver]
+}
+
+pyroscope.write "grafana_cloud" {
+	endpoint {
+		url = sys.env("PYROSCOPE_ENDPOINT")
+
+		basic_auth {
+			username = sys.env("PYROSCOPE_USERNAME")
+			password = sys.env("PYROSCOPE_PASSWORD")
+		}
+	}
+}
