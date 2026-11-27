@@ -170,31 +170,6 @@ services:
     restart: unless-stopped
     volumes:
       - ./services/pgadmin/servers.json:/pgadmin4/servers.json:ro
-  # postgres:
-  #   build:
-  #     context: ./services/postgres
-  #   environment:
-  #     - PGDATA=/var/lib/postgresql/data/pgdata
-  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-  #   expose:
-  #     - ${POSTGRES_PORT}
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -d tagbase -h postgres -U tagbase"]
-  #     interval: 15s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 15s
-  #   hostname: postgres
-  #   labels:
-  #     "docker_compose_diagram.cluster": "Internal Network"
-  #     "docker_compose_diagram.description": "Tagbase PostgreSQL server"
-  #   networks:
-  #     - internal-network
-  #   ports:
-  #     - ${POSTGRES_PORT}:${POSTGRES_PORT}
-  #   restart: unless-stopped
-  #   volumes:
-  #     - ./postgres-data:/var/lib/postgresql/data
   postgis:
     environment:
       - ALLOW_IP_RANGE=0.0.0.0/0
@@ -278,6 +253,19 @@ services:
           COUNT(*) > 0
         )
         FROM public.submission;
+        SELECT setval(
+          'submission_tag_id_seq',
+          COALESCE(MAX(tag_id), 1),
+          COUNT(*) > 0
+        )
+        FROM public.submission;
+        LOCK TABLE public.dataset IN SHARE ROW EXCLUSIVE MODE;
+        SELECT setval(
+          'dataset_dataset_id_seq',
+          COALESCE(MAX(dataset_id), 1),
+          COUNT(*) > 0
+        )
+        FROM public.dataset;
         SELECT setval(
           pg_get_serial_sequence('public.observation_types', 'variable_id'),
           COALESCE(MAX(variable_id), 1),
