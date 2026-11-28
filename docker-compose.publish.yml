@@ -227,6 +227,19 @@ services:
         )
         FROM public.submission;
         SELECT setval(
+          'submission_tag_id_seq',
+          COALESCE(MAX(tag_id), 1),
+          COUNT(*) > 0
+        )
+        FROM public.submission;
+        LOCK TABLE public.dataset IN SHARE ROW EXCLUSIVE MODE;
+        SELECT setval(
+          'dataset_dataset_id_seq',
+          COALESCE(MAX(dataset_id), 1),
+          COUNT(*) > 0
+        )
+        FROM public.dataset;
+        SELECT setval(
           pg_get_serial_sequence('public.observation_types', 'variable_id'),
           COALESCE(MAX(variable_id), 1),
           COUNT(*) > 0

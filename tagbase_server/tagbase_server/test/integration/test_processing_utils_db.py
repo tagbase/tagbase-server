@@ -240,3 +240,59 @@ def test_process_etuff_file_ingests_and_skips_duplicate(clean_db):
     with clean_db.cursor() as cur:
         cur.execute("SELECT COUNT(*) FROM submission")
         assert cur.fetchone()[0] == 1
+
+
+# Same statement db-migrate runs for submission_tag_id_seq.
+_REPAIR_TAG_ID_SEQ = """
+    SELECT setval(
+        'submission_tag_id_seq',
+        COALESCE(MAX(tag_id), 1),
+        COUNT(*) > 0
+    )
+    FROM public.submission
+"""
+
+
+def test_rewound_tag_sequence_collides_until_repaired(clean_db):
+    with clean_db.cursor() as cur:
+        for i in range(1, 6):
+            cur.execute(
+                """
+                INSERT INTO dataset (
+                    dataset_id, instrument_name, serial_number, ptt, platform
+                )
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                (i, f"inst-{i}", f"sn-{i}", f"ptt-{i}", f"plat-{i}"),
+            )
+            cur.execute(
+                """
+                INSERT INTO submission (
+                    submission_id, tag_id, filename, file_sha256,
+                    dataset_id, md_sha256, data_sha256
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                (i, i, f"file-{i}.txt", "a" * 64, i, "b" * 64, "c" * 64),
+            )
+        cur.execute("SELECT setval('submission_tag_id_seq', 1, false)")
+        cur.execute("SELECT setval('dataset_dataset_id_seq', 5, true)")
+
+    clean_db.autocommit = False
+    try:
+        with clean_db.cursor() as cur:
+            cur.execute("SELECT nextval('submission_tag_id_seq')")
+            burned = cur.fetchone()[0]
+        clean_db.rollback()
+    finally:
+        clean_db.autocommit = True
+    assert burned == 1
+
+    with clean_db.cursor() as cur:
+        dataset_id = pu.get_dataset_id(cur, "inst-new", "sn-new", "ptt-new", "plat-new")
+        assert pu.get_tag_id(cur, dataset_id) == 2
+        cur.execute(_REPAIR_TAG_ID_SEQ)
+        dataset_id = pu.get_dataset_id(
+            cur, "inst-next", "sn-next", "ptt-next", "plat-next"
+        )
+        assert pu.get_tag_id(cur, dataset_id) == 6
